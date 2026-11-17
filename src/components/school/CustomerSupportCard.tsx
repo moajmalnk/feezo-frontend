@@ -884,7 +884,9 @@ export function CustomerSupportCard({
                                   : "text-black/35 dark:text-zinc-500",
                               )}
                             >
-                              {formatStamp(ticket.updatedAt)}
+                              {formatStamp(
+                                ticket.lastMessage?.createdAt || ticket.updatedAt,
+                              )}
                             </span>
                           </span>
                           <span className="mt-0.5 flex items-center gap-1.5">

@@ -16,6 +16,7 @@ import type { Tone, CornerSide } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { currencySymbol } from "@/lib/locale/currencies";
 import { formatMoney } from "@/lib/money";
+import { PLAN_LIST_PRICES } from "@/lib/plan-catalog";
 
 type Interval = "Monthly" | "Annually";
 
@@ -45,8 +46,8 @@ const DEFAULT_PLANS: SuperAdminPlan[] = [
   {
     name: "Basic",
     accent: "#000000",
-    monthly: 899,
-    annually: 9499,
+    monthly: PLAN_LIST_PRICES.Basic.monthlyInr,
+    annually: PLAN_LIST_PRICES.Basic.annualInr,
     defaultCapacity: 800,
     flags: {
       ...EMPTY_FLAGS,
@@ -64,8 +65,8 @@ const DEFAULT_PLANS: SuperAdminPlan[] = [
   {
     name: "Premium",
     accent: "#0F766E",
-    monthly: 1499,
-    annually: 16499,
+    monthly: PLAN_LIST_PRICES.Premium.monthlyInr,
+    annually: PLAN_LIST_PRICES.Premium.annualInr,
     defaultCapacity: 2500,
     flags: {
       ...EMPTY_FLAGS,
@@ -88,8 +89,8 @@ const DEFAULT_PLANS: SuperAdminPlan[] = [
   {
     name: "Enterprise",
     accent: "#000000",
-    monthly: 2299,
-    annually: 25499,
+    monthly: PLAN_LIST_PRICES.Enterprise.monthlyInr,
+    annually: PLAN_LIST_PRICES.Enterprise.annualInr,
     defaultCapacity: 5000,
     flags: {
       ...EMPTY_FLAGS,

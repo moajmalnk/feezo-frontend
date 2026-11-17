@@ -33,6 +33,7 @@ const BRAND = {
 
 const WA_PREFILL = "Hi Feezo team, I'd like to know more about Feezo for my school.";
 
+/** Keep in sync with feezo-frontend/src/lib/plan-catalog.ts + backend lib/plan_catalog.php */
 const PLANS = [
   {
     name: "Basic",

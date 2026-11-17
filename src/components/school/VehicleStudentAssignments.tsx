@@ -9,6 +9,7 @@ import {
   Save,
   Search,
   Users,
+  X,
 } from "lucide-react";
 
 import {
@@ -84,6 +85,18 @@ function shortStopLabel(stop: string, max = 42): string {
   const first = raw.split(",")[0]?.trim() || raw;
   if (first.length <= max) return first;
   return `${first.slice(0, max - 1)}…`;
+}
+
+function assignmentDraftsDiffer(
+  a: TransportAssignmentDraft,
+  b: TransportAssignmentDraft,
+): boolean {
+  return (
+    a.assigned !== b.assigned ||
+    a.busPoint1 !== b.busPoint1 ||
+    a.busPoint2 !== b.busPoint2 ||
+    a.transportShift !== b.transportShift
+  );
 }
 
 function StopSelect({
@@ -164,13 +177,44 @@ export function VehicleStudentAssignments({
 
   const stops = useMemo(() => stopsForVehicle(vehicle, routes), [vehicle, routes]);
   const schoolName = schoolDetails.name || "School";
+  const vehicleIdRef = useRef(vehicle.id);
 
+  // Rebuild drafts from the roster, but keep unsaved edits across store refreshes
+  // (due heal, snapshot sync, etc.). A full wipe made Save flicker off and assignments
+  // look like they "didn't stick" until the page was reopened.
   useEffect(() => {
-    const next: Record<string, TransportAssignmentDraft> = {};
-    for (const student of liveStudents) {
-      next[student.id] = draftFromStudent(student, vehicle.id);
-    }
-    setDrafts(next);
+    const vehicleChanged = vehicleIdRef.current !== vehicle.id;
+    vehicleIdRef.current = vehicle.id;
+
+    setDrafts((prev) => {
+      const next: Record<string, TransportAssignmentDraft> = {};
+      let changed = vehicleChanged;
+
+      for (const student of liveStudents) {
+        const baseline = draftFromStudent(student, vehicle.id);
+        const existing = prev[student.id];
+        const keep =
+          !vehicleChanged && existing && assignmentDraftsDiffer(existing, baseline)
+            ? existing
+            : baseline;
+        next[student.id] = keep;
+        if (!existing || assignmentDraftsDiffer(existing, keep)) changed = true;
+      }
+
+      if (!changed) {
+        for (const id of Object.keys(prev)) {
+          if (!(id in next)) {
+            changed = true;
+            break;
+          }
+        }
+      }
+
+      if (!changed && Object.keys(prev).length === Object.keys(next).length) {
+        return prev;
+      }
+      return next;
+    });
   }, [liveStudents, vehicle.id]);
 
   const grades = useMemo(() => {
@@ -314,8 +358,8 @@ export function VehicleStudentAssignments({
       const saved: Student[] = [];
       for (const next of changes) {
         const remote = await apiUpsertStudent(next);
-        // Prefer cleared local transport when unassigning — never let a stale
-        // remote vehicleId resurrect the assignment in the UI.
+        // Prefer the local transport patch — a stale/partial remote payload must
+        // not clear a just-saved vehicleId (or resurrect one after unassign).
         const merged =
           next.needsBus === false
             ? {
@@ -328,7 +372,16 @@ export function VehicleStudentAssignments({
                 busPoint2: undefined,
                 transportShift: undefined,
               }
-            : { ...next, ...remote, id: next.id };
+            : {
+                ...remote,
+                ...next,
+                id: next.id,
+                needsBus: true,
+                vehicleId: next.vehicleId,
+                busPoint1: next.busPoint1,
+                busPoint2: next.busPoint2,
+                transportShift: next.transportShift,
+              };
         saved.push(merged);
         upsertStudentInSnapshot(merged);
       }
@@ -482,7 +535,28 @@ export function VehicleStudentAssignments({
           const next = applyVehicleAssignment(student, vehicle.id, row.draft);
           try {
             const remote = await apiUpsertStudent(next);
-            const merged = { ...next, ...remote, id: next.id };
+            const merged =
+              next.needsBus === false
+                ? {
+                    ...remote,
+                    ...next,
+                    id: next.id,
+                    needsBus: false,
+                    vehicleId: undefined,
+                    busPoint1: undefined,
+                    busPoint2: undefined,
+                    transportShift: undefined,
+                  }
+                : {
+                    ...remote,
+                    ...next,
+                    id: next.id,
+                    needsBus: true,
+                    vehicleId: next.vehicleId,
+                    busPoint1: next.busPoint1,
+                    busPoint2: next.busPoint2,
+                    transportShift: next.transportShift,
+                  };
             saved.push(merged);
             upsertStudentInSnapshot(merged);
             byId.set(merged.id, merged);
@@ -667,8 +741,25 @@ export function VehicleStudentAssignments({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search name, admission no, stop…"
-            className="h-10 rounded-xl pl-9"
+            className="h-10 rounded-xl pl-9 pr-9"
+            aria-label="Search students"
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && query) {
+                e.preventDefault();
+                setQuery("");
+              }
+            }}
           />
+          {query ? (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-black/45 transition-colors hover:bg-[#F4F4F5] hover:text-black"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
         </div>
         <Select value={gradeFilter} onValueChange={setGradeFilter}>
           <SelectTrigger className="h-10 w-full rounded-xl">

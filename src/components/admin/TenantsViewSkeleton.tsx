@@ -55,12 +55,21 @@ export function TenantsViewSkeleton({ cardCount = 6 }: { cardCount?: number }) {
       aria-live="polite"
       aria-label="Loading school tenants registry"
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-        <div className="space-y-3">
-          <Bone className="h-8 w-[min(100%,18rem)] rounded-lg sm:h-9" />
-          <Bone className={cn("h-3.5 w-[min(100%,22rem)] rounded-md", boneSoft)} />
-        </div>
-        <Bone className="h-11 w-full rounded-full sm:w-[16.5rem]" />
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <OrganicCard
+            key={i}
+            tone="white"
+            cornerSide={i % 2 === 0 ? "tr" : "bl"}
+            padded
+            className="!p-3.5 sm:!p-4"
+          >
+            <Bone className={cn("h-2.5 w-16 rounded-md", boneSoft)} />
+            <Bone className="mt-2 h-7 w-20 rounded-md" />
+            <Bone className="mt-3 h-1.5 w-full rounded-full" />
+            <Bone className={cn("mt-2 h-2.5 w-24 rounded-md", boneSoft)} />
+          </OrganicCard>
+        ))}
       </div>
 
       <OrganicCard
@@ -73,7 +82,7 @@ export function TenantsViewSkeleton({ cardCount = 6 }: { cardCount?: number }) {
         <Bone className="h-11 w-full rounded-lg sm:h-10 sm:w-[170px]" />
       </OrganicCard>
 
-      <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 pb-20 sm:gap-4 sm:pb-24 md:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: cardCount }).map((_, i) => (
           <TenantCardSkeleton key={i} cornerSide={i % 2 === 0 ? "tr" : "bl"} />
         ))}

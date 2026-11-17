@@ -14,6 +14,14 @@ export type Tenant = {
   staffCount?: number;
   /** Branch count (from registry list). */
   branchCount?: number;
+  /** Faculty roster cap set at provision (0 = unset). */
+  staffCapacity?: number;
+  /** School contact phone from provision / school settings. */
+  contactPhone?: string | null;
+  /** Tax ID / GSTIN from provision. */
+  gstin?: string | null;
+  /** Optional custom apex host (e.g. accounts.school.edu). */
+  customDomain?: string | null;
   /** Plan list price INR / month. */
   monthlyPriceInr?: number;
   /** MRR counted when Active or Trial. */

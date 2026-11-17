@@ -1,4 +1,4 @@
-/** Matches backend `feezo_default_password` — Anita Desai +919700020004 → ani0004 */
+/** Matches backend `feezo_default_password` — Anita Desai +919700020004 → anit0004 (8 chars). */
 
 export function phoneDigits(phone: string): string {
   let digits = phone.replace(/\D+/g, "");
@@ -11,9 +11,9 @@ export function phoneDigits(phone: string): string {
 export function defaultPassword(displayName: string, phone: string): string {
   const first = displayName.trim().split(/\s+/)[0] ?? "";
   const letters = first.replace(/[^\p{L}]+/gu, "").toLowerCase();
-  let prefix = letters.slice(0, 3);
+  let prefix = letters.slice(0, 4);
   if (!prefix) prefix = "usr";
-  while (prefix.length < 3) prefix += "x";
+  while (prefix.length < 4) prefix += "x";
   const digits = phoneDigits(phone);
   const last4 = digits.length >= 4 ? digits.slice(-4) : digits.padStart(4, "0");
   return `${prefix}${last4}`;

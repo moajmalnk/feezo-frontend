@@ -34,6 +34,8 @@ function appVersionPlugin(buildId: string): Plugin {
 /**
  * Keep Vite CSS off the render-blocking critical path. Boot-shell styles in
  * index.html cover first paint; the full sheet applies as soon as it loads.
+ * Also arm a timer fallback — Chrome can skip `onload` for cached preloads,
+ * which would leave the SPA unstyled under a dismissed boot shell.
  */
 function deferStylesheetPlugin(): Plugin {
   return {
@@ -45,7 +47,8 @@ function deferStylesheetPlugin(): Plugin {
         /<link([^>]*\s)rel="stylesheet"([^>]*?)href="([^"]+\.css)"([^>]*)>/g,
         (_match, before, mid, href, after) =>
           `<link${before}rel="preload" as="style"${mid}href="${href}"${after} onload="this.onload=null;this.rel='stylesheet'">` +
-          `<noscript><link rel="stylesheet" href="${href}"></noscript>`,
+          `<noscript><link rel="stylesheet" href="${href}"></noscript>` +
+          `<script>!function(l){function a(){if(l&&l.rel!=="stylesheet")l.rel="stylesheet"}l&&(l.addEventListener("load",a),setTimeout(a,2500))}(document.querySelector('link[rel="preload"][as="style"][href="${href}"]'));</script>`,
       );
     },
   };

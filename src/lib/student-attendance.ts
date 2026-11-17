@@ -1,5 +1,7 @@
 /** Student daily attendance types and presentational helpers. */
 
+import { splitClassName } from "@/lib/tenant-store";
+
 export const STUDENT_ATTENDANCE_STATUSES = [
   "present",
   "absent",
@@ -218,13 +220,10 @@ export function parseClassDivision(className: string): {
   grade: string;
   division: string | null;
 } {
-  const dash = className.lastIndexOf(" - ");
-  if (dash === -1) {
-    return { grade: className.trim(), division: null };
-  }
+  const { grade, section } = splitClassName(className);
   return {
-    grade: className.slice(0, dash).trim(),
-    division: className.slice(dash + 3).trim() || null,
+    grade,
+    division: section || null,
   };
 }
 

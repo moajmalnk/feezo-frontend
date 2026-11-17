@@ -177,14 +177,25 @@
           shell.remove();
           return;
         }
+        var dismissed = false;
         window.__feezoDismissBootShell = function () {
+          if (dismissed) return;
           var node = document.getElementById("boot-shell");
-          if (!node || node.classList.contains("is-done")) return;
+          if (!node || node.classList.contains("is-done")) {
+            dismissed = true;
+            return;
+          }
+          dismissed = true;
           node.classList.add("is-done");
           window.setTimeout(function () {
             node.remove();
           }, 220);
         };
+        // Safety net: never leave Chrome stuck on the LCP shell if the SPA
+        // chunk fails, hangs, or React never mounts MarketingLanding.
+        window.setTimeout(function () {
+          window.__feezoDismissBootShell();
+        }, 4000);
       })();
     </script>
     <noscript>

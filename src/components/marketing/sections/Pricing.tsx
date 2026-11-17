@@ -1,16 +1,60 @@
 import { Check } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useState } from "react";
 
 import { SectionReveal, StaggerItem, StaggerReveal } from "@/components/marketing/SectionReveal";
 import { TrialSignupLink } from "@/components/marketing/TrialSignupLink";
 import { LocaleSelectBar } from "@/components/locale/LocaleSelectBar";
+import { fetchPublicPlans } from "@/lib/api/plans";
 import { useLocale } from "@/lib/locale/LocaleProvider";
 import { MARKETING, MARKETING_PRICE_NOTE } from "@/lib/marketing-content";
 
 const { pricing } = MARKETING;
 
+/** Catalog rows with mutable prices (API can override literal list prices). */
+type PricingPlan = Omit<(typeof pricing.plans)[number], "monthlyInr" | "annualInr"> & {
+  monthlyInr: number;
+  annualInr: number;
+};
+
 export function Pricing({ showHeading = true }: { showHeading?: boolean }) {
   const reduce = useReducedMotion();
+  const [plans, setPlans] = useState<PricingPlan[]>(
+    pricing.plans.map((plan) => ({
+      ...plan,
+      monthlyInr: plan.monthlyInr,
+      annualInr: plan.annualInr,
+    })),
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const live = await fetchPublicPlans();
+        if (cancelled || !live?.length) return;
+        const byName = new Map(
+          live.map((p) => [p.name, { monthly: p.monthly, annually: p.annually }] as const),
+        );
+        setPlans((prev) =>
+          prev.map((plan) => {
+            const next = byName.get(plan.name);
+            if (!next || next.monthly <= 0) return plan;
+            return {
+              ...plan,
+              monthlyInr: next.monthly,
+              annualInr: next.annually > 0 ? next.annually : plan.annualInr,
+            };
+          }),
+        );
+      } catch {
+        // Keep catalog defaults when API is unreachable.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <section
@@ -106,7 +150,7 @@ export function Pricing({ showHeading = true }: { showHeading?: boolean }) {
         )}
 
         <StaggerReveal className="mt-10 grid gap-5 sm:mt-12 lg:grid-cols-3">
-          {pricing.plans.map((plan) => (
+          {plans.map((plan) => (
             <StaggerItem key={plan.name}>
               {plan.highlight ? (
                 /* ── Featured card with rotating aurora border ── */
@@ -260,7 +304,7 @@ function PlanContent({
   plan,
   highlighted,
 }: {
-  plan: (typeof pricing.plans)[number];
+  plan: PricingPlan;
   highlighted: boolean;
 }) {
   const { formatMarketingFromInr } = useLocale();

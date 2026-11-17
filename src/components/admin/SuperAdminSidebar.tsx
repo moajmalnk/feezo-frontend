@@ -1,6 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
-  Bell,
   Building2,
   Code2,
   LayoutDashboard,
@@ -8,7 +7,7 @@ import {
   LogOut,
   Receipt,
   Search,
-  Settings,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -137,29 +136,6 @@ export function SuperAdminSidebar() {
         })}
       </nav>
 
-      <div className="px-3 pb-2 pt-3 font-mono text-[9.5px] uppercase tracking-wider text-slate-400">
-        Utilities
-      </div>
-      <div className="mx-2 mb-2 flex items-center gap-1.5">
-        <UtilityButton
-          icon={Settings}
-          label="Settings"
-          onClick={() =>
-            toast("Settings drawer coming online", { description: "Module placeholder · v2.1" })
-          }
-        />
-        <UtilityButton
-          icon={Bell}
-          label="Notifications"
-          badge={3}
-          onClick={() =>
-            toast("3 unread platform alerts", {
-              description: "Open the notification stream from the bell icon",
-            })
-          }
-        />
-      </div>
-
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
@@ -193,17 +169,10 @@ export function SuperAdminSidebar() {
             <span className="font-mono text-[10.5px] text-slate-500">{session?.email ?? "—"}</span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() =>
-              toast("Account settings open in v2.2", {
-                description: "Profile & security pane queued",
-              })
-            }
-          >
-            <Settings className="mr-2 h-3.5 w-3.5" /> Account settings
-          </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <a href="/data-deletion">Delete my account</a>
+            <a href="/data-deletion">
+              <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete my account
+            </a>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout} className="text-rose-600 focus:text-rose-600">
@@ -212,36 +181,5 @@ export function SuperAdminSidebar() {
         </DropdownMenuContent>
       </DropdownMenu>
     </aside>
-  );
-}
-
-function UtilityButton({
-  icon: Icon,
-  label,
-  badge,
-  onClick,
-}: {
-  icon: typeof Settings;
-  label: string;
-  badge?: number;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      className="relative flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200/70 bg-white py-2 text-[11px] font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900"
-    >
-      <Icon className="h-3.5 w-3.5" />
-      <span>{label}</span>
-      {typeof badge === "number" && badge > 0 && (
-        <span
-          className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full px-1 font-mono text-[9px] font-semibold text-white"
-          style={{ backgroundColor: "#F59E0B" }}
-        >
-          {badge}
-        </span>
-      )}
-    </button>
   );
 }

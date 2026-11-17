@@ -13,7 +13,7 @@ import { getOrgCurrency } from "@/lib/money";
 
 export type ParsedPhone = { country: string; national: string };
 
-/** Soft national length hints (UX only — storage stays permissive). */
+/** Expected national (subscriber) digit length per country — used for input caps + validation. */
 export const NATIONAL_LENGTH_HINT: Record<string, number> = {
   IN: 10,
   AE: 9,
@@ -38,6 +38,12 @@ export const NATIONAL_LENGTH_HINT: Record<string, number> = {
   MY: 9,
   NZ: 9,
 };
+
+/** National digit length for a country (fallback 10 when unknown). */
+export function nationalLengthFor(country: string): number {
+  const key = country.trim().toUpperCase();
+  return NATIONAL_LENGTH_HINT[key] ?? 10;
+}
 
 const DIAL_ENTRIES = Object.entries(COUNTRY_DIAL).sort((a, b) => b[1].length - a[1].length);
 
@@ -101,6 +107,52 @@ export function parsePhone(raw?: string | null, fallbackCountry = "IN"): ParsedP
   }
 
   return { country: fallback, national: digits };
+}
+
+/**
+ * Validate a stored/typed phone against the country's national length
+ * (matches PhoneInput placeholders). Counts national digits only — not the dial code —
+ * so `+91` + 8 digits fails for India even though total digits can hit 10.
+ */
+export function isValidPhoneNumber(
+  raw?: string | null,
+  fallbackCountry = "IN",
+): boolean {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) return false;
+
+  const { country, national } = parsePhone(trimmed, fallbackCountry);
+  const digits = phoneDigits(national);
+  if (!digits) return false;
+
+  const expected = NATIONAL_LENGTH_HINT[country.trim().toUpperCase()];
+  if (expected != null) {
+    return digits.length === expected;
+  }
+
+  return digits.length >= 8 && digits.length <= 14;
+}
+
+/** Inline field error for required/optional phone inputs. */
+export function phoneFieldError(
+  raw?: string | null,
+  opts?: { required?: boolean; label?: string; fallbackCountry?: string },
+): string | null {
+  const trimmed = (raw ?? "").trim();
+  const label = opts?.label?.trim() || "phone number";
+  if (!trimmed) {
+    return opts?.required ? `Enter a ${label}` : null;
+  }
+  if (!isValidPhoneNumber(trimmed, opts?.fallbackCountry ?? "IN")) {
+    const { country, national } = parsePhone(trimmed, opts?.fallbackCountry ?? "IN");
+    const expected = NATIONAL_LENGTH_HINT[country.trim().toUpperCase()];
+    const digits = phoneDigits(national).length;
+    if (expected != null && digits > 0 && digits !== expected) {
+      return `Enter a valid ${expected}-digit ${label}`;
+    }
+    return `Enter a valid ${label}`;
+  }
+  return null;
 }
 
 /** Human-readable display: `+971 50 123 4567` style (space after dial). */

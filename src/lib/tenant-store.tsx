@@ -107,10 +107,17 @@ export const STUDENT_RELIGIONS = [
   "Christian",
   "Hindu",
   "Muslim",
-  "Islam",
   "Other",
   "Nil",
 ] as const;
+
+/** Collapse duplicate Islam/Muslim labels to one option. */
+function normalizeStudentReligion(raw: unknown): string | undefined {
+  const value = optionalTrimmedString(raw);
+  if (!value) return undefined;
+  if (value.toLowerCase() === "islam") return "Muslim";
+  return value;
+}
 
 export const STUDENT_CATEGORIES = ["GENERAL", "OBC", "OEC", "ST", "SC", "Others"] as const;
 
@@ -886,6 +893,20 @@ export function withStudentStatusChange(
   };
 }
 
+/** Accept M/F, Male/Female, or MySQL ENUM ordinals (1/2) from native PDO. */
+export function normalizeStudentGender(raw: unknown): "M" | "F" | undefined {
+  if (raw === "M" || raw === "F") return raw;
+  if (raw === 1 || raw === "1") return "M";
+  if (raw === 2 || raw === "2") return "F";
+  const value = String(raw ?? "")
+    .trim()
+    .toLowerCase();
+  if (!value) return undefined;
+  if (/^(m|male|boy)$/.test(value)) return "M";
+  if (/^(f|female|girl)$/.test(value)) return "F";
+  return undefined;
+}
+
 export function normalizeStudent(
   raw: Partial<Student> & Pick<Student, "id" | "name" | "cls" | "guardian" | "due">,
 ): Student {
@@ -899,7 +920,7 @@ export function normalizeStudent(
     cls: raw.cls,
     guardian: raw.guardian,
     due: typeof raw.due === "number" && Number.isFinite(raw.due) ? raw.due : 0,
-    gender: raw.gender === "M" || raw.gender === "F" ? raw.gender : undefined,
+    gender: normalizeStudentGender(raw.gender),
     phone: optionalTrimmedString(raw.phone),
     dob: toDobIso(optionalTrimmedString(raw.dob)),
     email: optionalTrimmedString(raw.email),
@@ -911,7 +932,7 @@ export function normalizeStudent(
       (raw.id.startsWith("STU-") ? `ADM-${raw.id.slice(4)}` : undefined),
     placeOfBirth: optionalTrimmedString(raw.placeOfBirth),
     nationality: optionalTrimmedString(raw.nationality),
-    religion: optionalTrimmedString(raw.religion),
+    religion: normalizeStudentReligion(raw.religion),
     studentCategory: optionalTrimmedString(raw.studentCategory),
     bloodGroup: optionalTrimmedString(raw.bloodGroup),
     fatherOccupation: optionalTrimmedString(raw.fatherOccupation),
@@ -975,7 +996,7 @@ export function normalizeStaff(raw: Partial<Staff> & Pick<Staff, "id" | "name">)
         ? raw.guardianPhone.trim()
         : undefined,
     photoUrl: typeof raw.photoUrl === "string" && raw.photoUrl ? raw.photoUrl : undefined,
-    gender: raw.gender === "M" || raw.gender === "F" ? raw.gender : undefined,
+    gender: normalizeStudentGender(raw.gender),
     dob: typeof raw.dob === "string" && raw.dob.trim() ? raw.dob.trim().slice(0, 10) : undefined,
     email: typeof raw.email === "string" && raw.email.trim() ? raw.email.trim() : undefined,
     address: typeof raw.address === "string" && raw.address.trim() ? raw.address.trim() : undefined,
@@ -1903,8 +1924,32 @@ export type ClassConfig = {
   academicYear?: string;
 };
 
+/**
+ * Canonical school-year label: bare "3" / "grade 3" / "std 3" → "Grade 3".
+ * Leaves named tiers (LKG, UKG, Nursery, TLC, …) unchanged.
+ */
+export function normalizeGradeLabel(raw: string): string {
+  const cleaned = raw.trim().replace(/\s+/g, " ");
+  if (!cleaned) return "";
+
+  const bare = cleaned.match(/^(\d{1,2})$/);
+  if (bare) {
+    const n = Number(bare[1]);
+    if (n >= 1 && n <= 12) return `Grade ${n}`;
+    return cleaned;
+  }
+
+  const aliased = cleaned.match(/^(?:grade|class|std\.?|standard|g)\s*[.\-]?\s*(\d{1,2})$/i);
+  if (aliased) {
+    const n = Number(aliased[1]);
+    if (n >= 1 && n <= 12) return `Grade ${n}`;
+  }
+
+  return cleaned;
+}
+
 export function composeClassName(grade: string, section: string) {
-  const g = grade.trim();
+  const g = normalizeGradeLabel(grade);
   const s = section.trim();
   if (g && s) return `${g} - ${s}`;
   return g || s;
@@ -1913,10 +1958,10 @@ export function composeClassName(grade: string, section: string) {
 export function splitClassName(className: string): { grade: string; section: string } {
   const dash = className.lastIndexOf(" - ");
   if (dash === -1) {
-    return { grade: className.trim(), section: "" };
+    return { grade: normalizeGradeLabel(className.trim()), section: "" };
   }
   return {
-    grade: className.slice(0, dash).trim(),
+    grade: normalizeGradeLabel(className.slice(0, dash).trim()),
     section: className.slice(dash + 3).trim(),
   };
 }
@@ -2207,16 +2252,19 @@ export function normalizeClassConfig(
   const fromParts =
     typeof raw.grade === "string" || typeof raw.section === "string"
       ? {
-          grade: (raw.grade ?? "").trim(),
+          grade: normalizeGradeLabel((raw.grade ?? "").trim()),
           section: (raw.section ?? "").trim(),
         }
       : splitClassName(typeof raw.className === "string" ? raw.className : "");
   const grade = fromParts.grade;
   const section = fromParts.section;
-  const className =
-    typeof raw.className === "string" && raw.className.trim()
+  const composed = composeClassName(grade, section);
+  // Prefer canonical Grade N - Section when we can derive it (unifies "3" / "grade 3").
+  const className = composed
+    ? composed
+    : typeof raw.className === "string" && raw.className.trim()
       ? raw.className.trim()
-      : composeClassName(grade, section);
+      : "";
   const feeSchedule = parseClassFeeSchedule(
     (raw as Partial<ClassConfig> & { fee_schedule?: unknown }).feeSchedule ??
       (raw as { fee_schedule?: unknown }).fee_schedule,
@@ -2885,7 +2933,7 @@ function normalizeVehicleDocuments(raw: unknown): VehicleDocument[] {
   );
 }
 
-function normalizeTransportVehicle(raw: unknown): TransportVehicle | null {
+export function normalizeTransportVehicle(raw: unknown): TransportVehicle | null {
   if (!raw || typeof raw !== "object") return null;
   const v = raw as Record<string, unknown>;
   if (
@@ -3029,6 +3077,20 @@ export function daysUntilDate(isoDate: string, now = new Date()): number | null 
   const end = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   return Math.round((end.getTime() - start.getTime()) / 86_400_000);
+}
+
+/**
+ * Document card badge status. "Soon" belongs in Notifications (notifyDaysBefore),
+ * not on the vehicle card — a non-expired date must show Valid immediately.
+ */
+export function vehicleDocumentValidityStatus(
+  validUntil: string | undefined,
+  now = new Date(),
+): "expired" | "ok" | null {
+  if (!validUntil) return null;
+  const days = daysUntilDate(validUntil, now);
+  if (days === null) return null;
+  return days < 0 ? "expired" : "ok";
 }
 
 export function buildVehicleDocExpiryNotifications(
@@ -5661,7 +5723,19 @@ export function TenantStoreProvider({
 
   const applySnapshot = useCallback((snap: Snapshot) => {
     const apiLive = liveApiRef.current;
-    setStudents(Array.isArray(snap.students) ? snap.students : []);
+    setStudents(
+      Array.isArray(snap.students)
+        ? snap.students
+            .filter((s): s is Student =>
+              Boolean(s && typeof s.id === "string" && typeof s.name === "string"),
+            )
+            .map((s) =>
+              normalizeStudent(
+                s as Partial<Student> & Pick<Student, "id" | "name" | "cls" | "guardian" | "due">,
+              ),
+            )
+        : [],
+    );
     setPayments(snap.payments);
     setLeaveTypes(
       Array.isArray(snap.leaveTypes)
@@ -5859,6 +5933,8 @@ export function TenantStoreProvider({
       setTransportVehicles(
         Array.isArray(data.transportVehicles)
           ? data.transportVehicles
+              .map(normalizeTransportVehicle)
+              .filter((v): v is TransportVehicle => v !== null)
           : apiLive
             ? []
             : SEED_VEHICLES,

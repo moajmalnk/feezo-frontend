@@ -20,6 +20,42 @@ export type TransportAssignmentDraft = {
   transportShift: TransportFeeShift;
 };
 
+/** Classic Indian plate: KL-07-AB-4521 (hyphens/spaces optional). */
+const CLASSIC_VEHICLE_REG =
+  /^([A-Z]{2})[-\s]?([0-9]{1,2})[-\s]?([A-Z]{1,3})[-\s]?([0-9]{1,4})$/i;
+/** Bharat series: 22-BH-1234-AB */
+const BHARAT_VEHICLE_REG =
+  /^([0-9]{2})[-\s]?(BH)[-\s]?([0-9]{4})[-\s]?([A-Z]{1,2})$/i;
+
+/** Normalize a plate to `KL-07-AB-4521` / `22-BH-1234-AB`, or null if invalid. */
+export function normalizeVehicleRegistrationNo(raw: string): string | null {
+  const cleaned = raw.trim().toUpperCase().replace(/[./_]+/g, "-").replace(/\s+/g, "-");
+  if (!cleaned) return null;
+  const classic = cleaned.match(CLASSIC_VEHICLE_REG);
+  if (classic) {
+    return `${classic[1]}-${classic[2].padStart(2, "0")}-${classic[3]}-${classic[4]}`;
+  }
+  const bharat = cleaned.match(BHARAT_VEHICLE_REG);
+  if (bharat) {
+    return `${bharat[1]}-${bharat[2]}-${bharat[3]}-${bharat[4]}`;
+  }
+  return null;
+}
+
+export function isValidVehicleRegistrationNo(raw: string): boolean {
+  return normalizeVehicleRegistrationNo(raw) !== null;
+}
+
+/** Compact key for uniqueness checks (ignores hyphens/spaces/case). */
+export function vehicleRegistrationKey(raw: string): string {
+  const normalized = normalizeVehicleRegistrationNo(raw);
+  const source = normalized ?? raw.trim().toUpperCase();
+  return source.replace(/[\s\-./_]+/g, "");
+}
+
+export const VEHICLE_REGISTRATION_FORMAT_HINT = "Format: KL-07-AB-4521";
+
+
 export function stopsForVehicle(
   vehicle: TransportVehicle | undefined,
   routes: TransportRoute[],

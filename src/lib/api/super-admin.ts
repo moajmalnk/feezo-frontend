@@ -114,6 +114,16 @@ export type ProvisionInput = {
   adminName: string;
   adminEmail: string;
   password?: string;
+  /** School contact phone. */
+  contact?: string;
+  /** Tax ID / GSTIN. */
+  gstin?: string;
+  /** Faculty roster cap. */
+  staffCapacity?: number;
+  /** When true, persist `apex` as the custom root domain. */
+  customDomain?: boolean;
+  /** Custom apex host (e.g. accounts.school.edu). */
+  apex?: string;
 };
 
 export type ProvisionResult = {
@@ -408,6 +418,7 @@ export type TenantDeleteOtpResult = {
   name: string;
   emailMasked: string;
   expiresInSeconds: number;
+  emailed?: boolean;
   message: string;
 };
 

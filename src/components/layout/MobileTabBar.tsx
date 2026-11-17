@@ -53,7 +53,7 @@ export function MobileTabBar({ items, pathname, className }: MobileTabBarProps) 
       )}
     >
       <nav
-        className="mobile-tab-dock pointer-events-auto relative mx-auto w-full max-w-[min(32rem,100%)] overflow-hidden rounded-[28px]"
+        className="mobile-tab-dock pointer-events-auto relative mx-auto w-full max-w-lg overflow-hidden rounded-[28px]"
         aria-label="Mobile navigation"
       >
         <LayoutGroup id="mobile-tab-bar">

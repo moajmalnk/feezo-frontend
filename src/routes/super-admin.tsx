@@ -49,7 +49,6 @@ function TopNavSkeleton() {
           <Skeleton className="hidden h-10 w-56 rounded-full bg-black/[0.06] xl:block" />
           <Skeleton className="h-9 w-9 rounded-full bg-black/[0.06] sm:h-10 sm:w-10 xl:hidden" />
           <Skeleton className="hidden h-10 w-10 rounded-full bg-black/[0.06] xl:block" />
-          <Skeleton className="hidden h-10 w-10 rounded-full bg-black/[0.06] xl:block" />
           <Skeleton className="h-9 w-9 rounded-full bg-black/10 sm:h-10 sm:w-10" />
         </div>
       </div>

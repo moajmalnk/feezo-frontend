@@ -38,6 +38,7 @@ import { apiGetParentStudent, apiSubmitParentStudent } from "@/lib/api/records";
 import { cn, glassCardClass } from "@/lib/utils";
 import type { ReactNode } from "react";
 import { formatMoney, getOrgCurrency, useOrgCurrency } from "@/lib/money";
+import { EMAIL_RE } from "@/lib/signup-content";
 
 function personInitials(name: string) {
   return name
@@ -84,6 +85,7 @@ export function ParentStudentPage() {
   );
   const orgCurrency = useOrgCurrency();
   const [saving, setSaving] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [savedNote, setSavedNote] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const photoRef = useRef<HTMLInputElement>(null);
@@ -190,6 +192,15 @@ export function ParentStudentPage() {
       toast.error("Guardian name is required");
       return;
     }
+    const email = (form.email ?? "").trim();
+    if (email && (email.length > 255 || !EMAIL_RE.test(email))) {
+      const message = "Enter a valid email (e.g. guardian@email.com)";
+      setEmailError(message);
+      toast.error("Invalid email address", { description: message });
+      document.getElementById("parent-email")?.focus();
+      return;
+    }
+    setEmailError(null);
     const aadhaarDigits = (form.aadhaar ?? "").replace(/\D/g, "");
     if (aadhaarDigits && aadhaarDigits.length !== 12) {
       toast.error("Aadhaar must be 12 digits");
@@ -197,6 +208,7 @@ export function ParentStudentPage() {
     }
     const patch = {
       ...form,
+      email: email ? email.toLowerCase() : undefined,
       aadhaar: aadhaarDigits || undefined,
     };
     setSaving(true);
@@ -472,7 +484,7 @@ export function ParentStudentPage() {
                 <DatePicker
                   value={form.dob ?? ""}
                   onChange={(dob) => setForm({ ...form, dob })}
-                  placeholder="14 Mar 2012"
+                  placeholder="e.g. 14 Mar 2012"
                   valueFormat="iso"
                   variant="pill"
                   purpose="birth"
@@ -526,13 +538,35 @@ export function ParentStudentPage() {
               </FormField>
             </div>
 
-            <FormField label="Email Address">
+            <FormField label="Email Address" error={emailError}>
               <Input
+                id="parent-email"
                 type="email"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                maxLength={255}
                 value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                onChange={(e) => {
+                  setEmailError(null);
+                  setForm({ ...form, email: e.target.value });
+                }}
+                onBlur={() => {
+                  const value = (form.email ?? "").trim();
+                  setEmailError(
+                    value && (value.length > 255 || !EMAIL_RE.test(value))
+                      ? "Enter a valid email (e.g. guardian@email.com)"
+                      : null,
+                  );
+                }}
                 placeholder="guardian@email.com"
-                className="font-mono text-[13px]"
+                aria-invalid={Boolean(emailError)}
+                className={cn(
+                  "font-mono text-[13px]",
+                  emailError &&
+                    "border-[#FECACA] focus-visible:border-[#EF4444] focus-visible:ring-[#EF4444]/20",
+                )}
               />
             </FormField>
 
@@ -699,13 +733,22 @@ function ProfileSavedPopup({
   );
 }
 
-function FormField({ label, children }: { label: string; children: ReactNode }) {
+function FormField({
+  label,
+  children,
+  error,
+}: {
+  label: string;
+  children: ReactNode;
+  error?: string | null;
+}) {
   return (
     <div className="space-y-1.5">
       <Label className="text-[11px] font-semibold uppercase tracking-wider text-black/55">
         {label}
       </Label>
       {children}
+      {error ? <p className="text-[11px] font-medium text-[#EF4444]">{error}</p> : null}
     </div>
   );
 }

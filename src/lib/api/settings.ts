@@ -388,22 +388,32 @@ export async function apiDeleteTransportRoute(id: string): Promise<void> {
 
 export async function apiUpsertVehicle(vehicle: TransportVehicle): Promise<TransportVehicle> {
   if (!hasToken()) return vehicle;
-  const list = await apiRequest<TransportVehicle[]>("/api/settings/transport.php?type=vehicles");
+  const path = "/api/settings/transport.php?type=vehicles";
+  const list = await apiRequest<TransportVehicle[]>(path);
   const exists = list.some((v) => v.id === vehicle.id);
   if (exists) {
-    return apiRequest<TransportVehicle>("/api/settings/transport.php?type=vehicles", {
-      method: "PUT",
-      body: vehicle,
-    });
+    try {
+      return await apiRequest<TransportVehicle>(path, {
+        method: "PUT",
+        body: vehicle,
+      });
+    } catch (err) {
+      // Prefer POST upsert when PUT is blocked — transport.php updates by public_id.
+      if (!(err instanceof ApiError) || err.status !== 405) throw err;
+      return apiRequest<TransportVehicle>(path, {
+        method: "POST",
+        body: vehicle,
+      });
+    }
   }
   try {
-    return await apiRequest<TransportVehicle>("/api/settings/transport.php?type=vehicles", {
+    return await apiRequest<TransportVehicle>(path, {
       method: "POST",
       body: vehicle,
     });
   } catch (err) {
     if (!isDuplicateKeyError(err)) throw err;
-    return postWithoutClientId("/api/settings/transport.php?type=vehicles", vehicle);
+    return postWithoutClientId(path, vehicle);
   }
 }
 

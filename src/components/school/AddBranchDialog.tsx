@@ -26,8 +26,10 @@ import {
 import { invalidateRemoteTenantBundleCache } from "@/lib/api/tenant-sync";
 import { apiUpsertBranch } from "@/lib/api/settings";
 import { getApiToken } from "@/lib/api/client";
+import { phoneFieldError } from "@/lib/phone";
 import { planAllowsMultipleBranches } from "@/lib/permissions";
 import { useAuth } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 import {
   nextCampusSortOrder,
   normalizeCampusBranch,
@@ -35,6 +37,8 @@ import {
   useTenantStore,
   type CampusBranch,
 } from "@/lib/tenant-store";
+
+const BRANCH_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const emptyForm = (sortOrder = 1) => ({
   name: "",
@@ -68,11 +72,15 @@ export function AddBranchDialog({
   const canAddBranch = planAllowsMultipleBranches(session?.planFlags);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(() => emptyForm());
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const orderedBranches = useMemo(() => sortCampusBranches(branches), [branches]);
   const suggestedOrder = useMemo(() => nextCampusSortOrder(branches), [branches]);
 
   useEffect(() => {
     if (!open) return;
+    setPhoneError(null);
+    setEmailError(null);
     if (editing) {
       setForm({
         name: editing.name,
@@ -94,6 +102,7 @@ export function AddBranchDialog({
     e.preventDefault();
     const name = form.name.trim();
     const code = form.code.trim().toUpperCase();
+    const email = form.email.trim();
     const sortOrder = parseSortOrder(
       form.sortOrder,
       editing?.sortOrder && editing.sortOrder > 0 ? editing.sortOrder : suggestedOrder,
@@ -108,6 +117,15 @@ export function AddBranchDialog({
       });
       return;
     }
+    const nextPhoneError = phoneFieldError(form.phone, { label: "phone number" });
+    const nextEmailError =
+      email && !BRANCH_EMAIL_RE.test(email) ? "Enter a valid email address" : null;
+    setPhoneError(nextPhoneError);
+    setEmailError(nextEmailError);
+    if (nextPhoneError || nextEmailError) {
+      toast.error(nextPhoneError || nextEmailError || "Fix the contact fields");
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -116,7 +134,7 @@ export function AddBranchDialog({
         code,
         address: form.address.trim(),
         phone: form.phone.trim(),
-        email: form.email.trim(),
+        email,
         lat: form.lat,
         lng: form.lng,
         sortOrder,
@@ -277,8 +295,27 @@ export function AddBranchDialog({
             <PhoneInput
               id="branch-phone"
               value={form.phone}
-              onChange={(phone) => setForm((f) => ({ ...f, phone }))}
+              onChange={(phone) => {
+                setForm((f) => ({ ...f, phone }));
+                // Re-check only after a failed submit so typing a full number clears the error.
+                setPhoneError((prev) =>
+                  prev ? phoneFieldError(phone, { label: "phone number" }) : null,
+                );
+              }}
+              inputClassName={cn(
+                phoneError && "border-red-300 focus-visible:ring-red-200",
+              )}
+              aria-label="Branch phone number"
             />
+            {phoneError ? (
+              <p className="text-[11px] text-red-600" role="alert">
+                {phoneError}
+              </p>
+            ) : (
+              <p className="text-[11px] text-black/45 dark:text-zinc-500">
+                Optional · India numbers need 10 digits
+              </p>
+            )}
           </div>
           <div className="col-span-12 space-y-1.5 sm:col-span-6">
             <Label htmlFor="branch-email">Email</Label>
@@ -286,9 +323,26 @@ export function AddBranchDialog({
               id="branch-email"
               type="email"
               value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              onChange={(e) => {
+                const next = e.target.value;
+                setForm((f) => ({ ...f, email: next }));
+                setEmailError((prev) => {
+                  if (!prev) return null;
+                  const trimmed = next.trim();
+                  return trimmed && !BRANCH_EMAIL_RE.test(trimmed)
+                    ? "Enter a valid email address"
+                    : null;
+                });
+              }}
               placeholder="office@…"
+              className={cn(emailError && "border-red-300 focus-visible:ring-red-200")}
+              aria-invalid={Boolean(emailError)}
             />
+            {emailError ? (
+              <p className="text-[11px] text-red-600" role="alert">
+                {emailError}
+              </p>
+            ) : null}
           </div>
           <div className="col-span-12">
             <LocationPicker

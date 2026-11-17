@@ -1,3 +1,4 @@
+import { PLAN_LIST_PRICES } from "@/lib/plan-catalog";
 import { HOME_PAGE, MARKETING_NAV } from "@/lib/seo/marketing-pages-content";
 
 /** Public marketing copy for feezo.app — English only. */
@@ -276,8 +277,8 @@ export const MARKETING = {
     plans: [
       {
         name: "Basic",
-        monthlyInr: 899,
-        annualInr: 9499,
+        monthlyInr: PLAN_LIST_PRICES.Basic.monthlyInr,
+        annualInr: PLAN_LIST_PRICES.Basic.annualInr,
         highlight: false,
         blurb: "Core school ops, fees, and reporting.",
         features: [
@@ -290,8 +291,8 @@ export const MARKETING = {
       },
       {
         name: "Premium",
-        monthlyInr: 1499,
-        annualInr: 16499,
+        monthlyInr: PLAN_LIST_PRICES.Premium.monthlyInr,
+        annualInr: PLAN_LIST_PRICES.Premium.annualInr,
         highlight: true,
         badge: "Most adopted",
         blurb: "Fee collection, extra users, and branches.",
@@ -304,8 +305,8 @@ export const MARKETING = {
       },
       {
         name: "Enterprise",
-        monthlyInr: 2299,
-        annualInr: 25499,
+        monthlyInr: PLAN_LIST_PRICES.Enterprise.monthlyInr,
+        annualInr: PLAN_LIST_PRICES.Enterprise.annualInr,
         highlight: false,
         blurb: "Full platform — payroll, WhatsApp, automation.",
         features: [

@@ -60,7 +60,7 @@ function MessageActionSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="rounded-t-2xl px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5"
+        className="bottom-4 left-1/2 right-auto w-[min(100%-2rem,20rem)] max-w-xs -translate-x-1/2 rounded-2xl border border-black/10 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5 shadow-xl dark:border-white/10"
       >
         <SheetHeader className="sr-only">
           <SheetTitle>Message actions</SheetTitle>

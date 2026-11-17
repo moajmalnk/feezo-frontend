@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 
 import { syncClientStateToCurrentBuild } from "@/lib/app-version";
+import { dismissBootShell } from "@/lib/boot-shell";
 import { unregisterServiceWorkersOnDisallowedHosts } from "@/lib/pwa-host";
 import { router } from "@/router";
 import { applyWorkspaceThemeMode, peekStoredThemeMode } from "@/lib/workspace-theme";
@@ -29,3 +30,6 @@ createRoot(rootElement).render(
 queueMicrotask(() => {
   window.dispatchEvent(new Event("feezo:hydrated"));
 });
+
+// Last-resort clear if route code never calls dismiss (chunk/network failure).
+window.setTimeout(() => dismissBootShell(), 4500);

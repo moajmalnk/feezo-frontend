@@ -79,13 +79,29 @@ export function MarketingLanding() {
 
   useEffect(() => {
     applyDocumentSeo(PUBLIC_PAGE_SEO.home);
-    const timer = window.setTimeout(() => {
+    let cancelled = false;
+    let timer = 0;
+    // Let the LCP poster paint, then reveal the SPA. Cap the wait so Chrome
+    // never stays on #boot-shell when React is already up.
+    const reveal = () => {
+      if (cancelled) return;
       dismissBootShell();
       window.dispatchEvent(new Event("feezo:hydrated"));
       setShowVisuals(true);
-    }, 1200);
+    };
+    const arm = () => {
+      timer = window.setTimeout(reveal, 700);
+    };
+    if (typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(() => window.requestAnimationFrame(arm));
+    } else {
+      arm();
+    }
+    const safety = window.setTimeout(reveal, 2500);
     return () => {
+      cancelled = true;
       window.clearTimeout(timer);
+      window.clearTimeout(safety);
       dismissBootShell();
     };
   }, []);

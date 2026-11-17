@@ -20,6 +20,7 @@ import { ApiError } from "@/lib/api/client";
 import { apiDeleteTenantUser, apiUpsertTenantUser } from "@/lib/api/settings";
 import { requestSupportPasswordReset } from "@/lib/api/support";
 import { defaultPassword } from "@/lib/default-password";
+import { isPasswordLongEnough, passwordTooShortMessage } from "@/lib/password-policy";
 import {
   USER_ACTIVE_TIP,
   USER_CAMPUSES_TIP,
@@ -300,12 +301,12 @@ export function SettingsUsersCard({
         password = defaultPassword(displayName || linked.name, linked.phone);
       }
     }
-    if (!editingId && (!password || password.length < 7)) {
-      toast.error("Password must be at least 7 characters (or link staff for the default)");
+    if (!editingId && (!password || !isPasswordLongEnough(password))) {
+      toast.error(`${passwordTooShortMessage()} (or link staff for the default)`);
       return;
     }
-    if (editingId && password && password.length < 7) {
-      toast.error("New password must be at least 7 characters");
+    if (editingId && password && !isPasswordLongEnough(password)) {
+      toast.error(passwordTooShortMessage("new"));
       return;
     }
     const permissions: PermissionSet = form.allFunctions ? ALL_PERMISSIONS : form.permissions;

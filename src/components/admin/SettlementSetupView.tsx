@@ -61,6 +61,75 @@ type SchoolPack = {
   };
 };
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidEmail(value: string) {
+  const email = value.trim();
+  return email.length > 0 && EMAIL_RE.test(email);
+}
+
+type FieldKey =
+  | "email"
+  | "holder"
+  | "accountNumber"
+  | "ifsc"
+  | "bankName"
+  | "branchName"
+  | "vendorId";
+
+type FieldErrors = Partial<Record<FieldKey, string>>;
+
+function accountNumberDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+/** Display form: XXXXXX1234 (last four only). */
+function maskAccountNumber(account: string): string {
+  const digits = accountNumberDigits(account);
+  if (!digits) return "";
+  return `XXXXXX${digits.slice(-4)}`;
+}
+
+function isMaskedAccountNumber(value: string) {
+  const v = value.trim();
+  return /^X{4,14}\d{4}$/i.test(v) || /^[·•]{2,14}\d{4}$/.test(v);
+}
+
+function isValidAccountNumber(value: string) {
+  if (isMaskedAccountNumber(value)) return true;
+  return /^\d{9,18}$/.test(accountNumberDigits(value));
+}
+
+/** Never re-surface a full account number from local storage. */
+function withMaskedStoredAccount(pack: SchoolPack): SchoolPack {
+  const raw = pack.accountNumber.trim();
+  if (!raw) return pack;
+  if (isMaskedAccountNumber(raw)) {
+    return { ...pack, accountNumber: maskAccountNumber(raw) };
+  }
+  if (/^\d{5,}$/.test(raw.replace(/\s/g, ""))) {
+    return { ...pack, accountNumber: maskAccountNumber(raw) };
+  }
+  return pack;
+}
+
+function validateSettlementDraft(pack: SchoolPack): FieldErrors {
+  const errors: FieldErrors = {};
+  const email = pack.email.trim();
+  if (email && !isValidEmail(email)) errors.email = "Enter a valid email";
+  if (!pack.holder.trim()) errors.holder = "Account holder is required";
+  const account = pack.accountNumber.trim();
+  if (!account) errors.accountNumber = "Account number is required";
+  else if (!isValidAccountNumber(account)) {
+    errors.accountNumber = "Enter a valid account number (9–18 digits)";
+  }
+  if (!pack.ifsc.trim()) errors.ifsc = "IFSC is required";
+  if (!pack.bankName.trim()) errors.bankName = "Bank name is required";
+  if (!pack.branchName.trim()) errors.branchName = "Branch is required";
+  if (!pack.vendorId.trim()) errors.vendorId = "Vendor ID is required";
+  return errors;
+}
+
 const VENDOR_STATUSES = [
   "ACTIVE",
   "IN_KYC_REVIEW",
@@ -113,18 +182,22 @@ function loadPack(tenantId: string, subdomain: string): SchoolPack {
   try {
     const raw = localStorage.getItem(storageKey(tenantId));
     if (!raw) return emptyPack(subdomain);
-    return { ...emptyPack(subdomain), ...JSON.parse(raw) };
+    return withMaskedStoredAccount({
+      ...emptyPack(subdomain),
+      ...JSON.parse(raw),
+    } as SchoolPack);
   } catch {
     return emptyPack(subdomain);
   }
 }
 
 function savePack(tenantId: string, pack: SchoolPack) {
+  // Persist as-is while editing; full numbers are masked on load / after Feezo save.
   localStorage.setItem(storageKey(tenantId), JSON.stringify(pack));
 }
 
 function last4(account: string) {
-  const digits = account.replace(/\D/g, "");
+  const digits = accountNumberDigits(account);
   return digits.length >= 4 ? digits.slice(-4) : digits;
 }
 
@@ -175,11 +248,11 @@ type Phase = {
 
 function phases(pack: SchoolPack, settlement: TenantSettlement | null): Phase[] {
   const docsReady = Boolean(
-    pack.email &&
+    isValidEmail(pack.email) &&
       pack.phone &&
       pack.pan &&
       pack.holder &&
-      pack.accountNumber &&
+      isValidAccountNumber(pack.accountNumber) &&
       pack.ifsc,
   );
   return [
@@ -252,6 +325,7 @@ export function SettlementSetupView() {
   const [settlement, setSettlement] = useState<TenantSettlement | null>(null);
   const [loadingTenant, setLoadingTenant] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   const selected = tenants.find((t) => t.id === selectedId) ?? null;
 
@@ -279,12 +353,14 @@ export function SettlementSetupView() {
     if (!selectedId) {
       setPack(null);
       setSettlement(null);
+      setFieldErrors({});
       return;
     }
     const tenant = tenants.find((t) => t.id === selectedId);
     if (!tenant) return;
     let cancelled = false;
     setLoadingTenant(true);
+    setFieldErrors({});
     const local = loadPack(tenant.id, tenant.subdomain);
     setPack(local);
     fetchSuperAdminTenantSettlement(tenant.id)
@@ -301,9 +377,10 @@ export function SettlementSetupView() {
             settlementEnabled: data.settlementEnabled,
             holder: data.settlementHolder || base.holder,
             ifsc: data.settlementIfsc || base.ifsc,
-            accountNumber:
-              base.accountNumber ||
-              (data.settlementAccountLast4 ? `····${data.settlementAccountLast4}` : ""),
+            // Prefer server last4 so full numbers never reappear after a save.
+            accountNumber: data.settlementAccountLast4
+              ? maskAccountNumber(data.settlementAccountLast4)
+              : withMaskedStoredAccount(base).accountNumber,
           };
           savePack(tenant.id, merged);
           return merged;
@@ -325,6 +402,16 @@ export function SettlementSetupView() {
     const next = { ...pack, ...patch };
     setPack(next);
     savePack(selected.id, next);
+    setFieldErrors((prev) => {
+      const nextErrors = { ...prev };
+      (Object.keys(patch) as Array<keyof SchoolPack>).forEach((key) => {
+        if (key in nextErrors) delete nextErrors[key as FieldKey];
+      });
+      const email = next.email.trim();
+      if (email && !isValidEmail(email)) nextErrors.email = "Enter a valid email";
+      else delete nextErrors.email;
+      return nextErrors;
+    });
   }
 
   function updateChecklist(key: keyof SchoolPack["checklist"], value: boolean) {
@@ -347,9 +434,16 @@ export function SettlementSetupView() {
   const progress = phaseList.length
     ? Math.round((phaseList.filter((p) => p.done).length / phaseList.length) * 100)
     : 0;
+  const emailInvalid = Boolean(fieldErrors.email || (pack?.email.trim() && !isValidEmail(pack.email)));
 
   async function saveToFeezo() {
     if (!selected || !pack) return;
+    const errors = validateSettlementDraft(pack);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast.error("Fill required settlement fields before saving");
+      return;
+    }
     const fee = Number(pack.platformFee);
     if (!Number.isFinite(fee) || fee < 0) {
       toast.error("Platform fee must be a valid amount");
@@ -359,19 +453,30 @@ export function SettlementSetupView() {
       toast.error("Add Cashfree vendor ID before enabling settlement");
       return;
     }
+    if (pack.settlementEnabled && pack.vendorStatus !== "ACTIVE") {
+      toast.error("Vendor must be ACTIVE before enabling settlement");
+      return;
+    }
     setSaving(true);
     try {
+      const accountLast4 = last4(pack.accountNumber);
       const next = await saveSuperAdminTenantSettlement({
         tenantId: selected.id,
         settlementEnabled: pack.settlementEnabled,
         vendorId: pack.vendorId.trim(),
         vendorStatus: pack.vendorStatus,
         platformFee: fee,
-        settlementAccountLast4: last4(pack.accountNumber),
+        settlementAccountLast4: accountLast4,
         settlementIfsc: pack.ifsc.trim().toUpperCase(),
         settlementHolder: pack.holder.trim(),
       });
       setSettlement(next);
+      const maskedPack = {
+        ...pack,
+        accountNumber: maskAccountNumber(accountLast4 || pack.accountNumber),
+      };
+      setPack(maskedPack);
+      savePack(selected.id, maskedPack);
       toast.success(
         next.settlementReady
           ? "Settlement live for this school"
@@ -639,9 +744,21 @@ export function SettlementSetupView() {
                             type="email"
                             value={pack.email}
                             onChange={(e) => updatePack({ email: e.target.value })}
-                            className="h-9 rounded-lg"
+                            className={cn(
+                              "h-9 rounded-lg",
+                              emailInvalid && "border-red-300 focus-visible:ring-red-200",
+                            )}
                             placeholder="mack.mpm@gmail.com"
+                            aria-invalid={emailInvalid}
+                            autoComplete="email"
+                            autoCapitalize="none"
+                            spellCheck={false}
                           />
+                          {emailInvalid ? (
+                            <p className="text-[11px] text-red-600">
+                              {fieldErrors.email ?? "Enter a valid email"}
+                            </p>
+                          ) : null}
                         </label>
                         <label className="col-span-12 space-y-1.5 sm:col-span-6">
                           <Label className="text-[11px] text-black/45">Mobile</Label>
@@ -678,20 +795,47 @@ export function SettlementSetupView() {
                           <Input
                             value={pack.holder}
                             onChange={(e) => updatePack({ holder: e.target.value })}
-                            className="h-9 rounded-lg"
+                            className={cn(
+                              "h-9 rounded-lg",
+                              fieldErrors.holder && "border-red-300 focus-visible:ring-red-200",
+                            )}
                             placeholder="MABROOK ABDULLA CK"
+                            aria-invalid={Boolean(fieldErrors.holder)}
                           />
+                          {fieldErrors.holder ? (
+                            <p className="text-[11px] text-red-600">{fieldErrors.holder}</p>
+                          ) : null}
                         </label>
                         <label className="col-span-12 space-y-1.5 sm:col-span-6">
                           <Label className="text-[11px] text-black/45">Account number</Label>
                           <Input
+                            inputMode="numeric"
+                            autoComplete="off"
                             value={pack.accountNumber}
-                            onChange={(e) =>
-                              updatePack({ accountNumber: e.target.value.replace(/\s/g, "") })
-                            }
-                            className="h-9 rounded-lg font-mono"
+                            onFocus={(e) => {
+                              if (isMaskedAccountNumber(pack.accountNumber)) {
+                                e.currentTarget.select();
+                              }
+                            }}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              // Replacing a masked value (e.g. select-all + type) → digits only.
+                              const next = isMaskedAccountNumber(pack.accountNumber)
+                                ? raw.replace(/[X·•]/gi, "").replace(/\D/g, "").slice(0, 18)
+                                : raw.replace(/\D/g, "").slice(0, 18);
+                              updatePack({ accountNumber: next });
+                            }}
+                            className={cn(
+                              "h-9 rounded-lg font-mono",
+                              fieldErrors.accountNumber &&
+                                "border-red-300 focus-visible:ring-red-200",
+                            )}
                             placeholder="99980106670891"
+                            aria-invalid={Boolean(fieldErrors.accountNumber)}
                           />
+                          {fieldErrors.accountNumber ? (
+                            <p className="text-[11px] text-red-600">{fieldErrors.accountNumber}</p>
+                          ) : null}
                         </label>
                         <label className="col-span-12 space-y-1.5 sm:col-span-4">
                           <Label className="text-[11px] text-black/45">IFSC</Label>
@@ -700,27 +844,48 @@ export function SettlementSetupView() {
                             onChange={(e) =>
                               updatePack({ ifsc: e.target.value.toUpperCase().replace(/\s/g, "") })
                             }
-                            className="h-9 rounded-lg font-mono"
+                            className={cn(
+                              "h-9 rounded-lg font-mono",
+                              fieldErrors.ifsc && "border-red-300 focus-visible:ring-red-200",
+                            )}
                             placeholder="FDRL0001511"
+                            aria-invalid={Boolean(fieldErrors.ifsc)}
                           />
+                          {fieldErrors.ifsc ? (
+                            <p className="text-[11px] text-red-600">{fieldErrors.ifsc}</p>
+                          ) : null}
                         </label>
                         <label className="col-span-12 space-y-1.5 sm:col-span-4">
                           <Label className="text-[11px] text-black/45">Bank</Label>
                           <Input
                             value={pack.bankName}
                             onChange={(e) => updatePack({ bankName: e.target.value })}
-                            className="h-9 rounded-lg"
+                            className={cn(
+                              "h-9 rounded-lg",
+                              fieldErrors.bankName && "border-red-300 focus-visible:ring-red-200",
+                            )}
                             placeholder="Federal Bank"
+                            aria-invalid={Boolean(fieldErrors.bankName)}
                           />
+                          {fieldErrors.bankName ? (
+                            <p className="text-[11px] text-red-600">{fieldErrors.bankName}</p>
+                          ) : null}
                         </label>
                         <label className="col-span-12 space-y-1.5 sm:col-span-4">
                           <Label className="text-[11px] text-black/45">Branch</Label>
                           <Input
                             value={pack.branchName}
                             onChange={(e) => updatePack({ branchName: e.target.value })}
-                            className="h-9 rounded-lg"
+                            className={cn(
+                              "h-9 rounded-lg",
+                              fieldErrors.branchName && "border-red-300 focus-visible:ring-red-200",
+                            )}
                             placeholder="Kondotty"
+                            aria-invalid={Boolean(fieldErrors.branchName)}
                           />
+                          {fieldErrors.branchName ? (
+                            <p className="text-[11px] text-red-600">{fieldErrors.branchName}</p>
+                          ) : null}
                         </label>
                       </div>
                     </section>
@@ -739,15 +904,29 @@ export function SettlementSetupView() {
                                 vendorId: e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ""),
                               })
                             }
-                            className="h-9 rounded-lg font-mono"
+                            className={cn(
+                              "h-9 rounded-lg font-mono",
+                              fieldErrors.vendorId && "border-red-300 focus-visible:ring-red-200",
+                            )}
                             placeholder="FEEZO_AISE"
+                            aria-invalid={Boolean(fieldErrors.vendorId)}
                           />
+                          {fieldErrors.vendorId ? (
+                            <p className="text-[11px] text-red-600">{fieldErrors.vendorId}</p>
+                          ) : null}
                         </label>
                         <label className="col-span-12 space-y-1.5 sm:col-span-4">
                           <Label className="text-[11px] text-black/45">Vendor status</Label>
                           <Select
                             value={pack.vendorStatus}
-                            onValueChange={(v) => updatePack({ vendorStatus: v })}
+                            onValueChange={(v) =>
+                              updatePack({
+                                vendorStatus: v,
+                                ...(v !== "ACTIVE" && pack.settlementEnabled
+                                  ? { settlementEnabled: false }
+                                  : {}),
+                              })
+                            }
                           >
                             <SelectTrigger className="h-9 rounded-lg">
                               <SelectValue />
@@ -784,7 +963,18 @@ export function SettlementSetupView() {
                         </div>
                         <Switch
                           checked={pack.settlementEnabled}
-                          onCheckedChange={(on) => updatePack({ settlementEnabled: on })}
+                          disabled={pack.vendorStatus !== "ACTIVE" && !pack.settlementEnabled}
+                          onCheckedChange={(on) => {
+                            if (on && pack.vendorStatus !== "ACTIVE") {
+                              toast.error("Vendor must be ACTIVE before enabling settlement");
+                              return;
+                            }
+                            if (on && !pack.vendorId.trim()) {
+                              toast.error("Add Cashfree vendor ID before enabling settlement");
+                              return;
+                            }
+                            updatePack({ settlementEnabled: on });
+                          }}
                         />
                       </div>
                       <label className="block space-y-1.5">

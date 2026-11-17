@@ -185,14 +185,14 @@ export function TenantDashboardSkeleton() {
       aria-label="Loading dashboard"
     >
       <div className="space-y-4 sm:space-y-5">
-        <div className="grid min-w-0 grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12">
-          <div className="grid min-w-0 grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2 xl:col-span-8">
+        <div className="grid min-w-0 grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12 xl:items-start">
+          <div className="grid min-w-0 grid-cols-1 content-start gap-4 sm:gap-5 lg:grid-cols-2 xl:col-span-8">
             {/* School Overview */}
             <section
-              className={cn(dashCardClass, DASH_SKELETON.overview, "flex min-w-0 flex-col p-4 sm:p-5")}
+              className={cn(dashCardClass, DASH_SKELETON.overview, "flex h-fit min-w-0 flex-col p-4 sm:p-5")}
             >
               <Bone className="h-4 w-32 rounded-md" />
-              <div className="mt-4 grid min-w-0 flex-1 grid-cols-2 gap-2 sm:gap-3">
+              <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 sm:gap-3">
                 <div className="flex min-h-[120px] flex-col justify-between rounded-2xl border border-emerald-400/30 bg-gradient-to-br from-[#6EE7B7]/80 via-[#A7F3D0]/70 to-[#D1FAE5]/80 p-3 sm:min-h-[128px] sm:p-4 dark:border-emerald-600/30 dark:from-emerald-950/60 dark:via-zinc-900/80 dark:to-emerald-900/40">
                   <div className="flex items-start justify-between gap-2">
                     <Bone className={cn("h-3 w-20 rounded-md", boneSoft)} />
@@ -321,7 +321,7 @@ export function TenantDashboardSkeleton() {
               className={cn(
                 dashCardClass,
                 DASH_SKELETON.todo,
-                "flex min-h-[280px] flex-1 flex-col p-4 sm:p-5",
+                "flex min-h-[280px] w-full flex-col p-4 sm:p-5",
               )}
             >
               <div className="flex items-center justify-between gap-2">

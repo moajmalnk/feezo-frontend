@@ -156,7 +156,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 function BootShellGuard() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   useEffect(() => {
-    if (pathname === "/" || pathname === "/index.html") return;
+    if (pathname === "/" || pathname === "/index.html") {
+      // Home keeps the LCP shell briefly; never leave it covering a failed mount.
+      const timer = window.setTimeout(() => dismissBootShell(), 3500);
+      return () => window.clearTimeout(timer);
+    }
     dismissBootShell();
   }, [pathname]);
   return null;

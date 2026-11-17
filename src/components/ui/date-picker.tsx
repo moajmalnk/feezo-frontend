@@ -258,9 +258,10 @@ export function DatePicker({
           <span className={cn("truncate tracking-tight", variant === "pill" ? "" : "font-mono")}>
             {displayText ?? placeholder}
           </span>
-          {variant !== "pill" && (
-            <CalendarIcon className="h-3.5 w-3.5 shrink-0 text-black/45 dark:text-zinc-500" />
-          )}
+          <CalendarIcon
+            className="h-3.5 w-3.5 shrink-0 text-black/45 dark:text-zinc-500"
+            aria-hidden
+          />
         </button>
       </PopoverTrigger>
       <PopoverContent

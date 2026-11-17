@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   startTransition,
+  type FocusEvent,
   type ReactNode,
 } from "react";
 import { toast } from "sonner";
@@ -184,6 +185,7 @@ import {
 } from "@/lib/academic-year";
 import {
   composeClassName,
+  normalizeGradeLabel,
   splitClassName,
   normalizeClassConfig,
   CLASS_SCHEDULE_CYCLES,
@@ -206,6 +208,8 @@ import {
   schoolInitials,
   createDefaultVehicleDocuments,
   daysUntilDate,
+  normalizeTransportVehicle,
+  vehicleDocumentValidityStatus,
   VEHICLE_DOCUMENT_KINDS,
   VEHICLE_DOCUMENT_LABELS,
   DEFAULT_VEHICLE_NOTIFY_DAYS,
@@ -289,6 +293,11 @@ import {
   VehicleStudentAssignments,
   vehicleSeatSummary,
 } from "@/components/school/VehicleStudentAssignments";
+import {
+  normalizeVehicleRegistrationNo,
+  vehicleRegistrationKey,
+  VEHICLE_REGISTRATION_FORMAT_HINT,
+} from "@/lib/transport-assignments";
 import { AcademicPromotionDialog } from "@/components/school/AcademicPromotionDialog";
 import {
   StudentConcessionSection,
@@ -444,7 +453,7 @@ import {
   buildPaymentVoucherWhatsApp,
   feeReminderTemplateFor,
 } from "@/lib/whatsapp-messages";
-import { formatPhoneDisplay, toWhatsAppDigits } from "@/lib/phone";
+import { formatPhoneDisplay, phoneFieldError, toWhatsAppDigits } from "@/lib/phone";
 import {
   WhatsAppIcon,
   whatsappIconBtnClass,
@@ -638,8 +647,11 @@ import {
 } from "@/components/school/settings-unsaved-guard";
 import {
   buildIncomeExpenseSeries,
+  dashboardFinancialPeriodStorageKey,
   filterPaymentsByPeriod,
   PAYMENT_PERIOD_OPTIONS,
+  readDashboardFinancialPeriodPrefs,
+  writeDashboardFinancialPeriodPrefs,
   type CustomDateRange,
   type DatedAmount,
   type PaymentPeriod,
@@ -770,17 +782,33 @@ function DashboardPeriodFilter({
   customRange,
   onCustomRangeChange,
   className,
+  triggerClassName,
+  /** Keep the select on one row beside a heading; custom dates wrap full-width below. */
+  inline = false,
 }: {
   period: PaymentPeriod;
   onPeriodChange: (value: PaymentPeriod) => void;
   customRange: CustomDateRange;
   onCustomRangeChange: (value: CustomDateRange) => void;
   className?: string;
+  triggerClassName?: string;
+  inline?: boolean;
 }) {
   return (
-    <div className={cn("flex w-full flex-col gap-2", className)}>
+    <div
+      className={cn(
+        inline ? "contents" : "flex min-w-0 flex-col gap-2",
+        className,
+      )}
+    >
       <Select value={period} onValueChange={(value) => onPeriodChange(value as PaymentPeriod)}>
-        <SelectTrigger className="h-9 w-full rounded-full border-white/70 bg-white/80 text-[12px] font-semibold shadow-sm">
+        <SelectTrigger
+          className={cn(
+            "h-9 min-w-0 rounded-full border-white/70 bg-white/80 text-[12px] font-semibold shadow-sm",
+            inline ? "w-[9.75rem] shrink-0 sm:w-[10.5rem]" : "w-full",
+            triggerClassName,
+          )}
+        >
           <SelectValue placeholder="Select period" />
         </SelectTrigger>
         <SelectContent>
@@ -792,7 +820,12 @@ function DashboardPeriodFilter({
         </SelectContent>
       </Select>
       {period === "custom" && (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-2 sm:grid-cols-2",
+            inline && "w-full basis-full",
+          )}
+        >
           <DatePicker
             value={customRange.from}
             onChange={(from) => onCustomRangeChange({ ...customRange, from })}
@@ -900,6 +933,125 @@ const directoryFilterMetaCol =
 
 const directoryFilterLabelClass =
   "mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500";
+
+/** Default page size for Students Directory list + pagination controls. */
+const STUDENTS_DIRECTORY_PAGE_SIZE = 25;
+
+function directoryPageNumbers(current: number, totalPages: number): Array<number | "ellipsis"> {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  const pages: Array<number | "ellipsis"> = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(totalPages - 1, current + 1);
+  if (start > 2) pages.push("ellipsis");
+  for (let p = start; p <= end; p += 1) pages.push(p);
+  if (end < totalPages - 1) pages.push("ellipsis");
+  pages.push(totalPages);
+  return pages;
+}
+
+function DirectoryListPagination({
+  page,
+  pageSize,
+  total,
+  onPageChange,
+  noun = "student",
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  onPageChange: (page: number) => void;
+  noun?: string;
+}) {
+  if (total <= 0) return null;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const from = (safePage - 1) * pageSize + 1;
+  const to = Math.min(total, safePage * pageSize);
+  const pages = directoryPageNumbers(safePage, totalPages);
+
+  return (
+    <div
+      className={cn(
+        glassCardClass,
+        "flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-3.5",
+      )}
+      role="navigation"
+      aria-label="Student directory pagination"
+    >
+      <p className="text-[12px] leading-snug text-slate-500 dark:text-zinc-400">
+        Showing{" "}
+        <span className="font-semibold tabular-nums text-slate-800 dark:text-zinc-100">
+          {from}–{to}
+        </span>{" "}
+        of{" "}
+        <span className="font-semibold tabular-nums text-slate-800 dark:text-zinc-100">
+          {total.toLocaleString("en-IN")}
+        </span>{" "}
+        {noun}
+        {total === 1 ? "" : "s"}
+        <span className="text-slate-400 dark:text-zinc-500">
+          {" "}
+          · {pageSize}/page
+        </span>
+      </p>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 rounded-full px-3 text-[12px]"
+          disabled={safePage <= 1}
+          onClick={() => onPageChange(safePage - 1)}
+          aria-label="Previous page"
+        >
+          <ChevronLeft className="mr-0.5 h-3.5 w-3.5" />
+          Previous
+        </Button>
+        {pages.map((item, idx) =>
+          item === "ellipsis" ? (
+            <span
+              key={`e-${idx}`}
+              className="grid h-8 w-8 place-items-center text-[12px] text-slate-400"
+              aria-hidden
+            >
+              …
+            </span>
+          ) : (
+            <Button
+              key={item}
+              type="button"
+              variant={item === safePage ? "default" : "outline"}
+              size="sm"
+              className={cn(
+                "h-8 min-w-8 rounded-full px-2.5 text-[12px] tabular-nums",
+                item === safePage && "bg-[#0F766E] text-white hover:bg-[#0D9488]",
+              )}
+              aria-label={`Page ${item}`}
+              aria-current={item === safePage ? "page" : undefined}
+              onClick={() => onPageChange(item)}
+            >
+              {item}
+            </Button>
+          ),
+        )}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 rounded-full px-3 text-[12px]"
+          disabled={safePage >= totalPages}
+          onClick={() => onPageChange(safePage + 1)}
+          aria-label="Next page"
+        >
+          Next
+          <ChevronRight className="ml-0.5 h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function MobileCompactStat({
   label,
@@ -1172,6 +1324,10 @@ type PremiumDashboardProps = {
   booksPending?: boolean;
 };
 
+function dashboardTodosEqual(a: string[], b: string[]) {
+  return a.length === b.length && a.every((item, i) => item === b[i]);
+}
+
 /** Isolated from PremiumDashboard so typing todos/notes does not re-render charts. */
 function DashboardTodoNotesPanel() {
   const { dashboardTodos, setDashboardTodos, dashboardNote, setDashboardNote } = useTenantStore();
@@ -1185,55 +1341,113 @@ function DashboardTodoNotesPanel() {
   const dirtyRef = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveInFlightRef = useRef(false);
+  const saveQueuedRef = useRef(false);
+  const pendingSaveRef = useRef<{ todos: string[]; note: string } | null>(null);
+  /** Stable row ids so inputs are not remounted when the list is rewritten. */
+  const todoKeysRef = useRef<string[]>([]);
   todosRef.current = todos;
   noteRef.current = note;
+
+  if (todoKeysRef.current.length < todos.length) {
+    while (todoKeysRef.current.length < todos.length) {
+      todoKeysRef.current.push(`todo-${todoKeysRef.current.length}-${Math.random().toString(36).slice(2, 8)}`);
+    }
+  } else if (todoKeysRef.current.length > todos.length) {
+    todoKeysRef.current = todoKeysRef.current.slice(0, todos.length);
+  }
 
   // Hydrate from store only when we are not mid-edit (avoids wiping typed text).
   useEffect(() => {
     if (dirtyRef.current) return;
+    if (dashboardTodosEqual(todosRef.current, dashboardTodos)) return;
     setTodos([...dashboardTodos]);
     todosRef.current = [...dashboardTodos];
   }, [dashboardTodos]);
 
   useEffect(() => {
     if (dirtyRef.current) return;
+    if (noteRef.current === dashboardNote) return;
     setNote(dashboardNote);
     noteRef.current = dashboardNote;
   }, [dashboardNote]);
 
+  const showSavedFlash = useCallback(() => {
+    setSavedFlash(true);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setSavedFlash(false), 2500);
+  }, []);
+
   const pushToApi = useCallback(
     (nextTodos: string[], nextNote: string, immediate = false) => {
+      pendingSaveRef.current = { todos: nextTodos, note: nextNote };
       if (saveTimer.current) clearTimeout(saveTimer.current);
+
       const run = async () => {
+        if (saveInFlightRef.current) {
+          saveQueuedRef.current = true;
+          return;
+        }
+        saveInFlightRef.current = true;
         setSaving(true);
         try {
-          const saved = await apiSaveDashboardTodos(nextTodos, nextNote);
+          let saved: Awaited<ReturnType<typeof apiSaveDashboardTodos>> | null = null;
+          do {
+            const payload = pendingSaveRef.current;
+            if (!payload) break;
+            saveQueuedRef.current = false;
+            saved = await apiSaveDashboardTodos(payload.todos, payload.note);
+          } while (saveQueuedRef.current);
+
+          if (!saved) return;
+
+          // Never rewrite inputs from a stale response while the user is still typing —
+          // that was wiping characters mid-keystroke (flicker / disappear / reappear).
+          const localTodos = todosRef.current;
+          const localNote = noteRef.current;
+          const matchesLocal =
+            localNote === saved.dashboardNote &&
+            dashboardTodosEqual(localTodos, saved.dashboardTodos);
+
+          if (!matchesLocal) {
+            dirtyRef.current = true;
+            pendingSaveRef.current = { todos: [...localTodos], note: localNote };
+            saveQueuedRef.current = true;
+            return;
+          }
+
           dirtyRef.current = false;
-          setDashboardTodos(saved.dashboardTodos);
-          setDashboardNote(saved.dashboardNote);
-          setTodos([...saved.dashboardTodos]);
-          todosRef.current = [...saved.dashboardTodos];
-          setNote(saved.dashboardNote);
-          noteRef.current = saved.dashboardNote;
-          setSavedFlash(true);
-          if (flashTimer.current) clearTimeout(flashTimer.current);
-          flashTimer.current = setTimeout(() => setSavedFlash(false), 1500);
+          pendingSaveRef.current = null;
+          // Deferred store sync — avoids a synchronous full-dashboard blink after save.
+          startTransition(() => {
+            setDashboardTodos(saved.dashboardTodos);
+            setDashboardNote(saved.dashboardNote);
+          });
+          showSavedFlash();
         } catch (err) {
           const msg = err instanceof Error ? err.message : "Save failed";
           toast.error("Could not save tasks / notes", { description: msg });
         } finally {
+          saveInFlightRef.current = false;
           setSaving(false);
+          // Only continue when newer edits arrived mid-flight — avoid retry loops on hard errors.
+          if (saveQueuedRef.current) {
+            saveQueuedRef.current = false;
+            void run();
+          }
         }
       };
+
       if (immediate) {
         void run();
         return;
       }
+      // Longer debounce keeps fewer in-flight saves while typing quickly.
       saveTimer.current = setTimeout(() => {
         void run();
-      }, 500);
+      }, 900);
     },
-    [setDashboardTodos, setDashboardNote],
+    [setDashboardTodos, setDashboardNote, showSavedFlash],
   );
 
   useEffect(() => {
@@ -1250,7 +1464,8 @@ function DashboardTodoNotesPanel() {
     dirtyRef.current = true;
     setTodos(next);
     todosRef.current = next;
-    setDashboardTodos(next);
+    // Keep edits local until save confirms — writing the tenant store here
+    // re-renders the whole dashboard and blinks the screen on add/delete.
     pushToApi(next, noteRef.current);
   };
 
@@ -1265,9 +1480,18 @@ function DashboardTodoNotesPanel() {
 
   const flushTodos = () => {
     dirtyRef.current = true;
-    const next = todosRef.current;
-    setDashboardTodos(next);
-    pushToApi(next, noteRef.current, true);
+    pushToApi(todosRef.current, noteRef.current, true);
+  };
+
+  const onTodoBlur = (event: FocusEvent<HTMLInputElement>) => {
+    const next = event.relatedTarget;
+    if (
+      next instanceof Element &&
+      (next.closest("[data-todo-add]") || next.closest("[data-todo-remove]"))
+    ) {
+      return;
+    }
+    flushTodos();
   };
 
   const onNoteChange = (value: string) => {
@@ -1294,7 +1518,14 @@ function DashboardTodoNotesPanel() {
   };
 
   const removeTodo = (index: number) => {
-    const next = todos.length <= 1 ? [""] : todos.filter((_, i) => i !== index);
+    if (todos.length <= 1) {
+      persistTodos([""]);
+      return;
+    }
+    todoKeysRef.current = todoKeysRef.current.filter((_, i) => i !== index);
+    const next = todos.filter((_, i) => i !== index);
+    // Collapse the overflow panel before it unmounts to avoid a layout flash.
+    if (next.length <= 4) setMoreTodosOpen(false);
     persistTodos(next);
   };
 
@@ -1302,7 +1533,7 @@ function DashboardTodoNotesPanel() {
   const overflowTodos = todos.slice(4);
 
   return (
-    <section className={cn(dashCardClass, DASH.todo, "flex min-h-0 flex-1 flex-col p-4 sm:p-5")}>
+    <section className={cn(dashCardClass, DASH.todo, "flex w-full min-w-0 flex-col p-4 sm:p-5")}>
       <div className="flex items-center justify-between gap-2">
         <DashboardPanelHeading icon={ListTodo} title="To Do List" />
         <div className="flex items-center gap-2">
@@ -1317,6 +1548,7 @@ function DashboardTodoNotesPanel() {
           ) : null}
           <button
             type="button"
+            data-todo-add
             onClick={addTodo}
             className="inline-flex h-8 shrink-0 items-center gap-1 rounded-xl bg-gradient-to-r from-[#0D9488] to-[#0F766E] px-2.5 text-[11px] font-semibold text-white shadow-sm shadow-teal-700/25 transition-opacity hover:opacity-90"
           >
@@ -1327,20 +1559,26 @@ function DashboardTodoNotesPanel() {
       </div>
       <div className="mt-4 space-y-2.5">
         {visibleTodos.map((item, index) => (
-          <div key={index} className="flex items-center gap-2">
+          <div key={todoKeysRef.current[index] ?? `todo-${index}`} className="flex items-center gap-2">
             <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full border border-slate-300/80 bg-white/60">
               <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
             </span>
             <Input
               value={item}
               onChange={(e) => updateTodo(index, e.target.value)}
-              onBlur={flushTodos}
+              onBlur={onTodoBlur}
               placeholder={`Task ${index + 1}`}
               className="h-9 flex-1 rounded-xl border-white/60 bg-white/70 shadow-sm"
             />
             <button
               type="button"
-              onClick={() => removeTodo(index)}
+              data-todo-remove
+              // Prevent input blur→flush before delete (that double-update blinked the dashboard).
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => {
+                e.stopPropagation();
+                removeTodo(index);
+              }}
               aria-label={`Remove task ${index + 1}`}
               className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-slate-400 transition-colors hover:bg-[#FEE2E2] hover:text-[#EF4444] dark:text-zinc-400 dark:hover:bg-rose-950/50 dark:hover:text-rose-300"
             >
@@ -1374,20 +1612,28 @@ function DashboardTodoNotesPanel() {
                 {overflowTodos.map((item, overflowIndex) => {
                   const index = overflowIndex + 4;
                   return (
-                    <div key={index} className="flex items-center gap-2">
+                    <div
+                      key={todoKeysRef.current[index] ?? `todo-${index}`}
+                      className="flex items-center gap-2"
+                    >
                       <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full border border-slate-300/80 bg-white/60 dark:border-white/20 dark:bg-white/10">
                         <span className="h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-zinc-500" />
                       </span>
                       <Input
                         value={item}
                         onChange={(e) => updateTodo(index, e.target.value)}
-                        onBlur={flushTodos}
+                        onBlur={onTodoBlur}
                         placeholder={`Task ${index + 1}`}
                         className="h-9 flex-1 rounded-xl border-white/60 bg-white/70 dark:border-white/10 dark:bg-zinc-900/80 dark:text-zinc-100"
                       />
                       <button
                         type="button"
-                        onClick={() => removeTodo(index)}
+                        data-todo-remove
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeTodo(index);
+                        }}
                         aria-label={`Remove task ${index + 1}`}
                         className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-slate-400 transition-colors hover:bg-[#FEE2E2] hover:text-[#EF4444] dark:text-zinc-500 dark:hover:bg-rose-950/50 dark:hover:text-rose-300"
                       >
@@ -1405,7 +1651,7 @@ function DashboardTodoNotesPanel() {
       <div
         className={cn(
           DASH.notes,
-          "mt-5 flex min-h-0 flex-1 flex-col rounded-2xl border p-3.5 sm:p-4",
+          "mt-5 flex flex-col rounded-2xl border p-3.5 sm:p-4",
         )}
       >
         <DashboardPanelHeading icon={StickyNote} title="Notes" />
@@ -1414,7 +1660,7 @@ function DashboardTodoNotesPanel() {
           onChange={(e) => onNoteChange(e.target.value)}
           onBlur={flushNote}
           placeholder="Write a quick note for today..."
-          className="mt-3 min-h-[72px] w-full flex-1 resize-none rounded-xl border-white/60 bg-white/65"
+          className="mt-3 min-h-[72px] w-full resize-none rounded-xl border-white/60 bg-white/65"
         />
       </div>
     </section>
@@ -1558,7 +1804,7 @@ function PremiumDashboard({
 
     return (
       <div className="space-y-4 sm:space-y-5">
-        <div className="grid min-w-0 grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12 xl:items-stretch">
+        <div className="grid min-w-0 grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12 xl:items-start">
           <section
             className={cn(
               dashCardClass,
@@ -1575,7 +1821,7 @@ function PremiumDashboard({
               className="pointer-events-none absolute -bottom-24 -left-16 h-48 w-48 rounded-full bg-emerald-300/15 blur-3xl dark:bg-emerald-500/10"
             />
 
-            <div className="relative flex min-h-0 flex-1 flex-col">
+            <div className="relative flex min-h-0 flex-col">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-teal-800/65 dark:text-teal-200/60">
@@ -1659,7 +1905,7 @@ function PremiumDashboard({
                 </button>
               </div>
 
-              <div className="mt-auto flex flex-col gap-2.5 pt-6 sm:flex-row sm:flex-wrap sm:items-center">
+              <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
                 <button
                   type="button"
                   onClick={() => navigate({ to: "/tenant/attendance", search: {} })}
@@ -1690,12 +1936,12 @@ function PremiumDashboard({
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      <div className="grid min-w-0 grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12">
-        <div className="grid min-w-0 grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2 xl:col-span-8">
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-12 xl:items-start">
+        <div className="grid min-w-0 grid-cols-1 content-start gap-4 sm:gap-5 lg:grid-cols-2 xl:col-span-8">
           {/* School overview */}
-          <section className={cn(dashCardClass, DASH.overview, "flex min-w-0 flex-col p-4 sm:p-5")}>
+          <section className={cn(dashCardClass, DASH.overview, "flex h-fit min-w-0 flex-col p-4 sm:p-5")}>
             <DashboardPanelHeading icon={Users} title="School Overview" />
-            <div className="mt-4 grid min-w-0 flex-1 grid-cols-2 gap-2 sm:gap-3">
+            <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={onViewStudents}
@@ -1765,16 +2011,17 @@ function PremiumDashboard({
             <>
               {/* Financial Summary */}
               <section className={cn(dashCardClass, DASH.finance, "flex min-w-0 flex-col p-4 sm:p-5")}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <DashboardPanelHeading icon={Wallet} title="Financial Summary" />
-                  <div className="w-full min-w-0 sm:w-auto sm:max-w-[11rem] sm:shrink-0">
-                    <DashboardPeriodFilter
-                      period={period}
-                      onPeriodChange={setPeriod}
-                      customRange={customRange}
-                      onCustomRangeChange={setCustomRange}
-                    />
+                <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-2">
+                  <div className="min-w-0 flex-1 overflow-hidden">
+                    <DashboardPanelHeading icon={Wallet} title="Financial Summary" />
                   </div>
+                  <DashboardPeriodFilter
+                    period={period}
+                    onPeriodChange={setPeriod}
+                    customRange={customRange}
+                    onCustomRangeChange={setCustomRange}
+                    inline
+                  />
                 </div>
                 <div className="mt-4">
                   <IncomeExpenseSummaryTiles
@@ -2246,11 +2493,11 @@ function PremiumDashboard({
 
 function DashboardPanelHeading({ icon: Icon, title }: { icon: typeof Users; title: string }) {
   return (
-    <div className="flex items-center gap-2.5">
-      <span className="grid h-8 w-8 place-items-center rounded-xl bg-white/75 text-slate-700 shadow-sm shadow-slate-200/50 dark:bg-white/10 dark:text-zinc-200 dark:shadow-none">
+    <div className="flex min-w-0 items-center gap-2.5">
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/75 text-slate-700 shadow-sm shadow-slate-200/50 dark:bg-white/10 dark:text-zinc-200 dark:shadow-none">
         <Icon className="h-4 w-4" strokeWidth={2} />
       </span>
-      <h3 className="text-[12px] font-bold uppercase tracking-wider text-slate-900 dark:text-zinc-100">
+      <h3 className="truncate text-[12px] font-bold uppercase tracking-wider text-slate-900 dark:text-zinc-100">
         {title}
       </h3>
     </div>
@@ -2436,8 +2683,32 @@ export function SchoolDashboard() {
     booksReady,
   );
 
-  const [period, setPeriod] = useState<PaymentPeriod>("all");
-  const [customRange, setCustomRange] = useState<CustomDateRange>({ from: "", to: "" });
+  const dashboardPeriodKey = dashboardFinancialPeriodStorageKey(
+    session?.tenantId ?? session?.tenantName ?? "tenant",
+    activeBranch?.id || "",
+  );
+  const [period, setPeriod] = useState<PaymentPeriod>(
+    () => readDashboardFinancialPeriodPrefs(dashboardPeriodKey).period,
+  );
+  const [customRange, setCustomRange] = useState<CustomDateRange>(
+    () => readDashboardFinancialPeriodPrefs(dashboardPeriodKey).customRange,
+  );
+  const skipPeriodPersistRef = useRef(false);
+
+  useEffect(() => {
+    const saved = readDashboardFinancialPeriodPrefs(dashboardPeriodKey);
+    skipPeriodPersistRef.current = true;
+    setPeriod(saved.period);
+    setCustomRange(saved.customRange);
+  }, [dashboardPeriodKey]);
+
+  useEffect(() => {
+    if (skipPeriodPersistRef.current) {
+      skipPeriodPersistRef.current = false;
+      return;
+    }
+    writeDashboardFinancialPeriodPrefs(dashboardPeriodKey, { period, customRange });
+  }, [dashboardPeriodKey, period, customRange]);
 
   // O(n) due-field totals — same ledger the directory heals toward fee statements.
   const feeTotals = useMemo(() => {
@@ -2638,13 +2909,10 @@ const STATUS_TABS: { key: StatusFilter; label: string }[] = [
 ];
 
 function parseClassDivision(className: string) {
-  const dash = className.lastIndexOf(" - ");
-  if (dash === -1) {
-    return { grade: className.trim(), division: null as string | null };
-  }
+  const { grade, section } = splitClassName(className);
   return {
-    grade: className.slice(0, dash).trim(),
-    division: className.slice(dash + 3).trim() || null,
+    grade,
+    division: section || null,
   };
 }
 
@@ -2660,7 +2928,9 @@ function studentMatchesClassDivisionFilter(
 }
 
 function normalizeClassKey(className: string) {
-  return className
+  const parts = splitClassName(className);
+  const canonical = composeClassName(parts.grade, parts.section) || className.trim();
+  return canonical
     .trim()
     .toLowerCase()
     .replace(/\s*[-–—]\s*/g, "-")
@@ -3463,7 +3733,7 @@ export function AdmitStudentPage() {
 
   const submitNewClass = async (e: React.FormEvent) => {
     e.preventDefault();
-    const grade = newClassGrade.trim();
+    const grade = normalizeGradeLabel(newClassGrade.trim());
     const section = newClassSection.trim();
     if (!grade) {
       toast.error("Class name is required");
@@ -3659,9 +3929,8 @@ export function AdmitStudentPage() {
               options={classSelectOptions(classes, form.cls)}
               placeholder="Select class"
               onAddNew={() => {
-                const parts = splitClassName(form.cls);
-                setNewClassGrade(parts.grade);
-                setNewClassSection(parts.section);
+                setNewClassGrade("");
+                setNewClassSection("");
                 setAddClassOpen(true);
               }}
               addNewLabel="Add new class"
@@ -3741,10 +4010,8 @@ export function AdmitStudentPage() {
         open={addClassOpen}
         onOpenChange={(open) => {
           setAddClassOpen(open);
-          if (!open) {
-            setNewClassGrade("");
-            setNewClassSection("");
-          }
+          setNewClassGrade("");
+          setNewClassSection("");
         }}
       >
         <DialogContent className="max-w-sm rounded-xl">
@@ -3883,6 +4150,7 @@ export function StudentsLedger() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [enrollmentFilter, setEnrollmentFilter] = useState<EnrollmentFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [studentPage, setStudentPage] = useState(1);
   const [showRecycleBin, setShowRecycleBin] = useState(false);
   const [pendingPurgeId, setPendingPurgeId] = useState<string | null>(null);
   const [pendingBulkPurgeIds, setPendingBulkPurgeIds] = useState<string[] | null>(null);
@@ -3904,6 +4172,10 @@ export function StudentsLedger() {
   useEffect(() => {
     setDivisionFilter("all");
   }, [gradeFilter]);
+
+  useEffect(() => {
+    setStudentPage(1);
+  }, [gradeFilter, divisionFilter, statusFilter, enrollmentFilter, searchQuery]);
 
   const openAdmitPage = () => navigate({ to: "/tenant/students/admit" });
 
@@ -4112,7 +4384,15 @@ export function StudentsLedger() {
         const haystack = [s.name, s.id, s.guardian, s.phone ?? "", s.cls, s.email ?? ""]
           .join(" ")
           .toLowerCase();
-        return haystack.includes(q);
+        if (haystack.includes(q)) return true;
+        // Phone numbers are stored/displayed with dial codes and spaces (+91 98000 10001).
+        // Match digit-only queries (and typed "+91 980…") against normalized phone digits.
+        const qDigits = q.replace(/\D/g, "");
+        if (qDigits.length >= 2) {
+          const storedDigits = phoneDigits(s.phone);
+          if (storedDigits.includes(qDigits)) return true;
+        }
+        return false;
       });
   }, [
     directoryStudents,
@@ -4135,6 +4415,20 @@ export function StudentsLedger() {
       return next.size === prev.size ? prev : next;
     });
   }, [filtered]);
+
+  const studentTotalPages = Math.max(
+    1,
+    Math.ceil(filtered.length / STUDENTS_DIRECTORY_PAGE_SIZE),
+  );
+  const safeStudentPage = Math.min(studentPage, studentTotalPages);
+  const pagedStudents = useMemo(() => {
+    const start = (safeStudentPage - 1) * STUDENTS_DIRECTORY_PAGE_SIZE;
+    return filtered.slice(start, start + STUDENTS_DIRECTORY_PAGE_SIZE);
+  }, [filtered, safeStudentPage]);
+
+  useEffect(() => {
+    if (studentPage !== safeStudentPage) setStudentPage(safeStudentPage);
+  }, [studentPage, safeStudentPage]);
 
   const selectedStudents = useMemo(
     () => filtered.filter((s) => selectedIds.has(s.id)),
@@ -4195,11 +4489,11 @@ export function StudentsLedger() {
     setSelectedIds((prev) => {
       if (!selected) {
         const next = new Set(prev);
-        filtered.forEach((s) => next.delete(s.id));
+        pagedStudents.forEach((s) => next.delete(s.id));
         return next;
       }
       const next = new Set(prev);
-      filtered.forEach((s) => next.add(s.id));
+      pagedStudents.forEach((s) => next.add(s.id));
       return next;
     });
   };
@@ -4576,16 +4870,21 @@ export function StudentsLedger() {
     }
   };
 
-  const analytics = useMemo(
-    () => ({
+  const analytics = useMemo(() => {
+    let male = 0;
+    let female = 0;
+    for (const student of directoryStudents) {
+      if (student.gender === "M") male += 1;
+      else if (student.gender === "F") female += 1;
+    }
+    return {
       paid: feeTotals.paidCount,
       overdue: feeTotals.overdueCount,
       total: directoryStudents.length,
-      male: directoryStudents.filter((s) => s.gender === "M").length,
-      female: directoryStudents.filter((s) => s.gender === "F").length,
-    }),
-    [directoryStudents, feeTotals.paidCount, feeTotals.overdueCount],
-  );
+      male,
+      female,
+    };
+  }, [directoryStudents, feeTotals.paidCount, feeTotals.overdueCount]);
 
   const feeTotalDueCleared = feeTotals.pendingDue <= 0;
   const feeOverdueActive = feeTotals.overdueDue > 0;
@@ -5037,7 +5336,8 @@ export function StudentsLedger() {
     toast.success("Print preview opened", { description: "Save as PDF from your browser dialog" });
   };
 
-  const allShownSelected = filtered.length > 0 && filtered.every((s) => selectedIds.has(s.id));
+  const allShownSelected =
+    pagedStudents.length > 0 && pagedStudents.every((s) => selectedIds.has(s.id));
 
   const studentsBulkBar =
     selectedIds.size > 0 ? (
@@ -5545,14 +5845,22 @@ export function StudentsLedger() {
 
               <div className={directoryFilterMetaCol}>
                 <span className="font-mono text-[10px] tabular-nums text-slate-400 sm:text-[11px]">
-                  {filtered.length} shown
+                  {filtered.length === 0
+                    ? "0 shown"
+                    : `${(safeStudentPage - 1) * STUDENTS_DIRECTORY_PAGE_SIZE + 1}–${Math.min(filtered.length, safeStudentPage * STUDENTS_DIRECTORY_PAGE_SIZE)} of ${filtered.length}`}
                 </span>
-                {(gradeFilter !== "all" || divisionFilter !== "all" || searchQuery.trim()) && (
+                {(gradeFilter !== "all" ||
+                  divisionFilter !== "all" ||
+                  statusFilter !== "all" ||
+                  enrollmentFilter !== "all" ||
+                  searchQuery.trim()) && (
                   <button
                     type="button"
                     onClick={() => {
                       setGradeFilter("all");
                       setDivisionFilter("all");
+                      setStatusFilter("all");
+                      setEnrollmentFilter("all");
                       setSearchQuery("");
                     }}
                     className="text-[10px] font-semibold text-slate-500 underline-offset-2 hover:text-slate-900 hover:underline"
@@ -5595,7 +5903,7 @@ export function StudentsLedger() {
           </Dialog>
 
           <StudentsDirectoryTable
-            students={filtered}
+            students={pagedStudents}
             overdueByStudentId={feeTotals.overdueByStudentId}
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
@@ -5603,6 +5911,12 @@ export function StudentsLedger() {
             onViewProfile={openStudent}
             onEditData={openStudentEdit}
             bulkBar={studentsBulkBar}
+          />
+          <DirectoryListPagination
+            page={safeStudentPage}
+            pageSize={STUDENTS_DIRECTORY_PAGE_SIZE}
+            total={filtered.length}
+            onPageChange={setStudentPage}
           />
         </>
       )}
@@ -5987,6 +6301,11 @@ export function StaffRoster() {
     guardianPhone: "",
     photoUrl: "",
   });
+  const [recruitPhoneErrors, setRecruitPhoneErrors] = useState<{
+    phone?: string;
+    altPhone?: string;
+    guardianPhone?: string;
+  }>({});
   const [recruitCropSrc, setRecruitCropSrc] = useState<string | null>(null);
   const recruitPhotoRef = useRef<HTMLInputElement>(null);
   const staffImportRef = useRef<HTMLInputElement>(null);
@@ -6480,6 +6799,20 @@ export function StaffRoster() {
       toast.error("Name and role are required");
       return;
     }
+    const nextPhoneErrors = {
+      phone: phoneFieldError(form.phone, { required: true, label: "phone number" }) ?? undefined,
+      altPhone:
+        phoneFieldError(form.altPhone, { label: "alternative number" }) ?? undefined,
+      guardianPhone:
+        phoneFieldError(form.guardianPhone, { label: "guardian number" }) ?? undefined,
+    };
+    setRecruitPhoneErrors(nextPhoneErrors);
+    if (nextPhoneErrors.phone || nextPhoneErrors.altPhone || nextPhoneErrors.guardianPhone) {
+      toast.error("Fix the phone number fields", {
+        description: nextPhoneErrors.phone || nextPhoneErrors.altPhone || nextPhoneErrors.guardianPhone,
+      });
+      return;
+    }
     const empId = form.id.trim() || `STF-${(22 + staff.length).toString().padStart(3, "0")}`;
     const newStaff: Staff = {
       id: empId,
@@ -6532,6 +6865,7 @@ export function StaffRoster() {
       guardianPhone: "",
       photoUrl: "",
     });
+    setRecruitPhoneErrors({});
     setOpen(false);
   };
 
@@ -7844,138 +8178,218 @@ export function StaffRoster() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Recruit New Staff</DialogTitle>
-            <DialogDescription>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) setRecruitPhoneErrors({});
+        }}
+      >
+        <DialogContent className="flex max-h-[min(90dvh,calc(100dvh-1.5rem))] w-[calc(100%-1.5rem)] max-w-md flex-col gap-0 overflow-hidden rounded-xl border border-[#E5E5E5] bg-white p-0 sm:max-w-md">
+          <DialogHeader className="shrink-0 space-y-1.5 border-b border-[#F0F0F0] px-5 pb-4 pt-5 pr-12 text-left sm:px-6 sm:pt-6">
+            <DialogTitle className="text-[20px] font-semibold text-black">
+              Recruit New Staff
+            </DialogTitle>
+            <DialogDescription className="mt-1 text-[13px] leading-relaxed text-black/60 dark:text-zinc-400">
               Provision a faculty / administrative profile for Silver Hills.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleRecruit} className="space-y-3">
-            <div className="flex items-center gap-4 rounded-lg border border-[#EFEFEF] bg-[#FAFAFA] p-3">
-              <div className="relative h-14 w-14 shrink-0">
-                <ProfileAvatar
-                  name={form.name.trim() || "Staff"}
-                  photoUrl={form.photoUrl || undefined}
-                  className="h-14 w-14 rounded-lg"
-                  imgClassName="object-cover"
-                  initialsClassName="bg-[#0F766E] text-sm"
-                />
-                <button
-                  type="button"
-                  onClick={() => recruitPhotoRef.current?.click()}
-                  aria-label="Upload profile photo"
-                  className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-[#0F766E] text-white shadow-sm"
-                >
-                  <Camera className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <div className="min-w-0 text-[12px] text-black/55 dark:text-zinc-400">
-                <div className="font-medium text-black">Profile Photo</div>
-                <div className="mt-0.5">Optional · JPG, PNG or WebP · crop after pick</div>
-                {form.photoUrl && (
+          <form
+            onSubmit={handleRecruit}
+            className="flex min-h-0 flex-1 flex-col"
+            noValidate
+          >
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6">
+              <div className="flex items-center gap-4 rounded-lg border border-[#EFEFEF] bg-[#FAFAFA] p-3">
+                <div className="relative h-14 w-14 shrink-0">
+                  <ProfileAvatar
+                    name={form.name.trim() || "Staff"}
+                    photoUrl={form.photoUrl || undefined}
+                    className="h-14 w-14 rounded-lg"
+                    imgClassName="object-cover"
+                    initialsClassName="bg-[#0F766E] text-sm"
+                  />
                   <button
                     type="button"
-                    onClick={() => setForm((prev) => ({ ...prev, photoUrl: "" }))}
-                    className="mt-1.5 text-[11px] font-semibold text-[#EF4444] hover:underline"
+                    onClick={() => recruitPhotoRef.current?.click()}
+                    aria-label="Upload profile photo"
+                    className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-[#0F766E] text-white shadow-sm"
                   >
-                    Remove photo
+                    <Camera className="h-3.5 w-3.5" />
                   </button>
-                )}
-              </div>
-              <input
-                ref={recruitPhotoRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                className="hidden"
-                onChange={handleRecruitPhoto}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-semibold uppercase tracking-wider text-black/55 dark:text-zinc-400">
-                Full Name
-              </Label>
-              <Input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Sneha Pillai"
-                autoFocus
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-semibold uppercase tracking-wider text-black/55 dark:text-zinc-400">
-                Role
-              </Label>
-              <FieldSelect
-                value={form.role}
-                onValueChange={(role) => setForm({ ...form, role })}
-                options={roles.map((r) => ({ value: r.title, label: r.title }))}
-                placeholder="Select or add a role"
-                onAddNew={() => setCreateRoleOpen(true)}
-                addNewLabel="Add new role"
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label className="text-[11px] font-semibold uppercase tracking-wider text-black/55 dark:text-zinc-400">
-                  Department
-                </Label>
-                <FieldSelect
-                  value={form.dept}
-                  onValueChange={(dept) => setForm({ ...form, dept })}
-                  options={departments.map((d) => ({ value: d.name, label: d.name }))}
-                  placeholder="Select or add a department"
-                  onAddNew={() => setCreateDeptOpen(true)}
-                  addNewLabel="Add new department"
+                </div>
+                <div className="min-w-0 text-[12px] text-black/55 dark:text-zinc-400">
+                  <div className="font-medium text-black">Profile Photo</div>
+                  <div className="mt-0.5">Optional · JPG, PNG or WebP · crop after pick</div>
+                  {form.photoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, photoUrl: "" }))}
+                      className="mt-1.5 text-[11px] font-semibold text-[#EF4444] hover:underline"
+                    >
+                      Remove photo
+                    </button>
+                  )}
+                </div>
+                <input
+                  ref={recruitPhotoRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleRecruitPhoto}
                 />
               </div>
+
               <div className="space-y-1.5">
                 <Label className="text-[11px] font-semibold uppercase tracking-wider text-black/55 dark:text-zinc-400">
-                  Employee ID
+                  Full Name
                 </Label>
                 <Input
-                  value={form.id}
-                  onChange={(e) => setForm({ ...form, id: e.target.value })}
-                  placeholder="Auto-generate"
-                  className="font-mono"
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-semibold uppercase tracking-wider text-black/55 dark:text-zinc-400">
-                Phone
-              </Label>
-              <PhoneInput
-                value={form.phone}
-                onChange={(phone) => setForm({ ...form, phone })}
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label className="text-[11px] font-semibold uppercase tracking-wider text-black/55 dark:text-zinc-400">
-                  Alternative Number
-                  <span className="ml-1 font-medium normal-case tracking-normal text-black/40">
-                    (optional)
-                  </span>
-                </Label>
-                <PhoneInput
-                  value={form.altPhone}
-                  onChange={(altPhone) => setForm({ ...form, altPhone })}
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="e.g. Sneha Pillai"
+                  autoFocus
                 />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[11px] font-semibold uppercase tracking-wider text-black/55 dark:text-zinc-400">
-                  Guardian Number
+                  Role
                 </Label>
-                <PhoneInput
-                  value={form.guardianPhone}
-                  onChange={(guardianPhone) => setForm({ ...form, guardianPhone })}
+                <FieldSelect
+                  value={form.role}
+                  onValueChange={(role) => setForm({ ...form, role })}
+                  options={roles.map((r) => ({ value: r.title, label: r.title }))}
+                  placeholder="Select or add a role"
+                  onAddNew={() => setCreateRoleOpen(true)}
+                  addNewLabel="Add new role"
                 />
               </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-semibold uppercase tracking-wider text-black/55 dark:text-zinc-400">
+                    Department
+                  </Label>
+                  <FieldSelect
+                    value={form.dept}
+                    onValueChange={(dept) => setForm({ ...form, dept })}
+                    options={departments.map((d) => ({ value: d.name, label: d.name }))}
+                    placeholder="Select or add a department"
+                    onAddNew={() => setCreateDeptOpen(true)}
+                    addNewLabel="Add new department"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-semibold uppercase tracking-wider text-black/55 dark:text-zinc-400">
+                    Employee ID
+                  </Label>
+                  <Input
+                    value={form.id}
+                    onChange={(e) => setForm({ ...form, id: e.target.value })}
+                    placeholder="Auto-generate"
+                    className="font-mono"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-semibold uppercase tracking-wider text-black/55 dark:text-zinc-400">
+                  Phone
+                </Label>
+                <PhoneInput
+                  value={form.phone}
+                  onChange={(phone) => {
+                    setForm({ ...form, phone });
+                    if (recruitPhoneErrors.phone) {
+                      setRecruitPhoneErrors((prev) => ({ ...prev, phone: undefined }));
+                    }
+                  }}
+                  inputClassName={
+                    recruitPhoneErrors.phone
+                      ? "border-[#FECACA] focus-visible:ring-[#EF4444]"
+                      : undefined
+                  }
+                  triggerClassName={
+                    recruitPhoneErrors.phone
+                      ? "border-[#FECACA] focus-visible:ring-[#EF4444]"
+                      : undefined
+                  }
+                />
+                {recruitPhoneErrors.phone ? (
+                  <p className="text-[11px] font-medium text-[#DC2626]">
+                    {recruitPhoneErrors.phone}
+                  </p>
+                ) : null}
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-semibold uppercase tracking-wider text-black/55 dark:text-zinc-400">
+                    Alternative Number
+                    <span className="ml-1 font-medium normal-case tracking-normal text-black/40">
+                      (optional)
+                    </span>
+                  </Label>
+                  <PhoneInput
+                    value={form.altPhone}
+                    onChange={(altPhone) => {
+                      setForm({ ...form, altPhone });
+                      if (recruitPhoneErrors.altPhone) {
+                        setRecruitPhoneErrors((prev) => ({ ...prev, altPhone: undefined }));
+                      }
+                    }}
+                    inputClassName={
+                      recruitPhoneErrors.altPhone
+                        ? "border-[#FECACA] focus-visible:ring-[#EF4444]"
+                        : undefined
+                    }
+                    triggerClassName={
+                      recruitPhoneErrors.altPhone
+                        ? "border-[#FECACA] focus-visible:ring-[#EF4444]"
+                        : undefined
+                    }
+                  />
+                  {recruitPhoneErrors.altPhone ? (
+                    <p className="text-[11px] font-medium text-[#DC2626]">
+                      {recruitPhoneErrors.altPhone}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-semibold uppercase tracking-wider text-black/55 dark:text-zinc-400">
+                    Guardian Number
+                    <span className="ml-1 font-medium normal-case tracking-normal text-black/40">
+                      (optional)
+                    </span>
+                  </Label>
+                  <PhoneInput
+                    value={form.guardianPhone}
+                    onChange={(guardianPhone) => {
+                      setForm({ ...form, guardianPhone });
+                      if (recruitPhoneErrors.guardianPhone) {
+                        setRecruitPhoneErrors((prev) => ({
+                          ...prev,
+                          guardianPhone: undefined,
+                        }));
+                      }
+                    }}
+                    inputClassName={
+                      recruitPhoneErrors.guardianPhone
+                        ? "border-[#FECACA] focus-visible:ring-[#EF4444]"
+                        : undefined
+                    }
+                    triggerClassName={
+                      recruitPhoneErrors.guardianPhone
+                        ? "border-[#FECACA] focus-visible:ring-[#EF4444]"
+                        : undefined
+                    }
+                  />
+                  {recruitPhoneErrors.guardianPhone ? (
+                    <p className="text-[11px] font-medium text-[#DC2626]">
+                      {recruitPhoneErrors.guardianPhone}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="shrink-0 flex-row justify-end gap-2 border-t border-[#F0F0F0] bg-white px-5 py-4 sm:px-6">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
@@ -18934,7 +19348,7 @@ function ClassesCard({
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const grade = form.grade.trim();
+    const grade = normalizeGradeLabel(form.grade.trim());
     const section = form.section.trim();
     if (!grade) {
       toast.error("Class is required");
@@ -20317,6 +20731,53 @@ function ClassesCard({
   );
 }
 
+function vehicleDocAlertLabel(alert: "expired" | "soon"): string {
+  return alert === "expired" ? "Document expired" : "Document expiring soon";
+}
+
+/** Fleet warning icon with hover tooltip + accessible name (card, detail, table). */
+function VehicleDocAlertIcon({
+  alert,
+  className,
+}: {
+  alert: "expired" | "soon";
+  className?: string;
+}) {
+  const label = vehicleDocAlertLabel(alert);
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className="inline-flex shrink-0 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]/40"
+            title={label}
+            aria-label={label}
+            role="img"
+            tabIndex={0}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <AlertTriangle
+              className={cn(
+                "shrink-0",
+                alert === "expired" ? "text-[#EF4444]" : "text-[#D97706]",
+                className,
+              )}
+              aria-hidden
+            />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent
+          side="top"
+          className="border border-[#E5E5E5] bg-white px-2.5 py-1.5 text-[11px] font-medium text-black shadow-md dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-100"
+        >
+          {label}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 function TransportBusPointPanel({
   transportRoutes,
   setTransportRoutes,
@@ -20425,17 +20886,58 @@ function VehicleCard({
     },
     [navigate],
   );
-  const [form, setForm] = useState({
+  type VehicleFormState = {
+    name: string;
+    registrationNo: string;
+    capacity: string;
+    ownership: VehicleOwnership;
+    driverName: string;
+    driverPhone: string;
+    routeIds: string[];
+    active: boolean;
+    documents: VehicleDocument[];
+  };
+
+  const vehicleFormFingerprint = (value: VehicleFormState) =>
+    JSON.stringify({
+      name: value.name.trim(),
+      registrationNo:
+        normalizeVehicleRegistrationNo(value.registrationNo) ??
+        value.registrationNo.trim().toUpperCase(),
+      capacity: String(Number(value.capacity) || 0),
+      ownership: value.ownership,
+      driverName: value.driverName.trim(),
+      driverPhone: value.driverPhone.trim(),
+      routeIds: [...value.routeIds].sort(),
+      active: value.active,
+      documents: value.documents.map((doc) => ({
+        kind: doc.kind,
+        validUntil: doc.validUntil || "",
+        notifyDaysBefore: doc.notifyDaysBefore ?? DEFAULT_VEHICLE_NOTIFY_DAYS,
+        fileId: doc.file?.id ?? "",
+        fileName: doc.file?.name ?? "",
+        fileSize: doc.file?.size ?? 0,
+      })),
+    });
+
+  const [form, setForm] = useState<VehicleFormState>({
     name: "",
     registrationNo: "",
     capacity: "",
-    ownership: "owned" as VehicleOwnership,
+    ownership: "owned",
     driverName: "",
     driverPhone: "",
-    routeIds: [] as string[],
+    routeIds: [],
     active: true,
     documents: emptyDocs(),
   });
+  const [editBaseline, setEditBaseline] = useState<string | null>(null);
+  const [registrationError, setRegistrationError] = useState<string | null>(null);
+
+  const vehicleFormDirty = useMemo(() => {
+    if (!editingId || !editBaseline) return true;
+    return vehicleFormFingerprint(form) !== editBaseline;
+  }, [editingId, editBaseline, form]);
 
   const detailVehicle = useMemo(
     () => (detailId ? (transportVehicles.find((v) => v.id === detailId) ?? null) : null),
@@ -20519,7 +21021,9 @@ function VehicleCard({
 
   const startCreate = () => {
     setEditingId(null);
+    setEditBaseline(null);
     setRouteQuery("");
+    setRegistrationError(null);
     setForm({
       name: "",
       registrationNo: "",
@@ -20537,8 +21041,9 @@ function VehicleCard({
   const startEdit = (v: TransportVehicle) => {
     setEditingId(v.id);
     setRouteQuery("");
+    setRegistrationError(null);
     const docsByKind = new Map((v.documents ?? []).map((d) => [d.kind, d]));
-    setForm({
+    const nextForm: VehicleFormState = {
       name: v.name,
       registrationNo: v.registrationNo,
       capacity: String(v.capacity),
@@ -20554,19 +21059,47 @@ function VehicleCard({
             notifyDaysBefore: DEFAULT_VEHICLE_NOTIFY_DAYS,
           },
       ),
-    });
+    };
+    setForm(nextForm);
+    setEditBaseline(vehicleFormFingerprint(nextForm));
     setOpen(true);
   };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingId && !vehicleFormDirty) {
+      toast.message("No changes to save");
+      return;
+    }
     const name = form.name.trim();
-    const registrationNo = form.registrationNo.trim();
+    const registrationRaw = form.registrationNo.trim();
     const capacity = Number(form.capacity);
-    if (!name || !registrationNo) {
+    if (!name || !registrationRaw) {
       toast.error("Vehicle name and registration number are required");
       return;
     }
+    const registrationNo = normalizeVehicleRegistrationNo(registrationRaw);
+    if (!registrationNo) {
+      const message = `${VEHICLE_REGISTRATION_FORMAT_HINT} (or 22-BH-1234-AB)`;
+      setRegistrationError(message);
+      toast.error("Invalid registration number", { description: message });
+      return;
+    }
+    const regKey = vehicleRegistrationKey(registrationNo);
+    const duplicate = transportVehicles.find(
+      (v) =>
+        v.id !== editingId &&
+        vehicleRegistrationKey(v.registrationNo) === regKey,
+    );
+    if (duplicate) {
+      const message = `Already used by ${duplicate.name}`;
+      setRegistrationError(message);
+      toast.error("Registration number already in use", {
+        description: `${registrationNo} belongs to ${duplicate.name}. Each vehicle needs a unique plate.`,
+      });
+      return;
+    }
+    setRegistrationError(null);
     if (!capacity || capacity <= 0) {
       toast.error("Capacity must be a positive number");
       return;
@@ -20589,13 +21122,21 @@ function VehicleCard({
     };
     if (editingId) {
       const updated: TransportVehicle = { id: editingId, ...payload };
+      // Apply form documents immediately so expiry badges flip Expired → Valid
+      // without waiting for the API round-trip (or a full page refresh).
       setTransportVehicles((prev) => prev.map((v) => (v.id === editingId ? updated : v)));
+      setOpen(false);
       void apiUpsertVehicle(updated)
         .then((saved) => {
+          const merged =
+            normalizeTransportVehicle({
+              ...saved,
+              ...updated,
+              id: saved.id || editingId,
+              documents: updated.documents,
+            }) ?? updated;
           setTransportVehicles((prev) =>
-            prev.map((v) =>
-              v.id === editingId ? { ...updated, ...saved, id: saved.id || editingId } : v,
-            ),
+            prev.map((v) => (v.id === editingId || v.id === merged.id ? merged : v)),
           );
           toast.success(`${name} updated`);
         })
@@ -20609,15 +21150,23 @@ function VehicleCard({
         3,
       );
       const created: TransportVehicle = { id: nextId, ...payload };
-      setTransportVehicles((prev) => [...prev, created]);
+      // Newest first so the just-added bus is easy to spot in the fleet list.
+      setTransportVehicles((prev) => [created, ...prev]);
+      setOpen(false);
       void apiUpsertVehicle(created)
         .then((saved) => {
           const finalId = saved.id || nextId;
-          setTransportVehicles((prev) =>
-            prev.map((v) =>
-              v.id === nextId || v.id === finalId ? { ...created, ...saved, id: finalId } : v,
-            ),
-          );
+          const merged =
+            normalizeTransportVehicle({
+              ...saved,
+              ...created,
+              id: finalId,
+              documents: created.documents,
+            }) ?? { ...created, id: finalId };
+          setTransportVehicles((prev) => {
+            const without = prev.filter((v) => v.id !== nextId && v.id !== finalId);
+            return [merged, ...without];
+          });
           toast.success(`${name} added to fleet`);
         })
         .catch((err) => {
@@ -20625,7 +21174,6 @@ function VehicleCard({
           toast.error(err instanceof Error ? err.message : "Could not sync vehicle");
         });
     }
-    setOpen(false);
   };
 
   const remove = (v: TransportVehicle) => {
@@ -20633,7 +21181,7 @@ function VehicleCard({
     void apiDeleteVehicle(v.id).catch((err) =>
       toast.error(err instanceof Error ? err.message : "Could not delete vehicle"),
     );
-    toast.error(`${v.name} removed from fleet`);
+    toast.success(`${v.name} removed from fleet`);
   };
 
   const confirmDelete = () => {
@@ -20646,14 +21194,14 @@ function VehicleCard({
 
   const activeCount = transportVehicles.filter((v) => v.active).length;
 
-  const docAlert = (v: TransportVehicle) => {
+  const docAlert = (v: TransportVehicle): "expired" | "soon" | null => {
     let worst: "expired" | "soon" | null = null;
     for (const doc of v.documents ?? []) {
       if (!doc.validUntil) continue;
       const days = daysUntilDate(doc.validUntil);
       if (days === null) continue;
       const warn = doc.notifyDaysBefore ?? DEFAULT_VEHICLE_NOTIFY_DAYS;
-      if (days < 0) return "expired" as const;
+      if (days < 0) return "expired";
       if (days <= warn) worst = "soon";
     }
     return worst;
@@ -20755,14 +21303,9 @@ function VehicleCard({
                       <h2 className="truncate text-[18px] font-bold leading-tight tracking-tight text-black sm:text-[20px]">
                         {detailMeta.v.name}
                       </h2>
-                      {detailMeta.alert && (
-                        <AlertTriangle
-                          className={cn(
-                            "h-4 w-4 shrink-0",
-                            detailMeta.alert === "expired" ? "text-[#EF4444]" : "text-[#D97706]",
-                          )}
-                        />
-                      )}
+                      {detailMeta.alert ? (
+                        <VehicleDocAlertIcon alert={detailMeta.alert} className="h-4 w-4" />
+                      ) : null}
                     </div>
                     <p className="mt-0.5 font-mono text-[12px] text-black/50">
                       {detailMeta.v.registrationNo}
@@ -20889,13 +21432,10 @@ function VehicleCard({
               </div>
               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {detailMeta.docs.map((doc) => {
-                  const days = doc.validUntil ? daysUntilDate(doc.validUntil) : null;
-                  const warn = doc.notifyDaysBefore ?? DEFAULT_VEHICLE_NOTIFY_DAYS;
-                  const status =
-                    days === null ? null : days < 0 ? "expired" : days <= warn ? "soon" : "ok";
+                  const status = vehicleDocumentValidityStatus(doc.validUntil);
                   return (
                     <div
-                      key={doc.kind}
+                      key={`${doc.kind}:${doc.validUntil ?? ""}`}
                       className="rounded-lg border border-[#E8E8EA] bg-white p-3.5"
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -20908,16 +21448,10 @@ function VehicleCard({
                               "inline-flex shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-semibold uppercase",
                               status === "expired"
                                 ? "bg-[#FEE2E2] text-[#B91C1C]"
-                                : status === "soon"
-                                  ? "bg-[#FEF3C7] text-[#B45309]"
-                                  : "bg-[#D1F2E1] text-[#047857]",
+                                : "bg-[#D1F2E1] text-[#047857]",
                             )}
                           >
-                            {status === "expired"
-                              ? "Expired"
-                              : status === "soon"
-                                ? `${days}d left`
-                                : "Valid"}
+                            {status === "expired" ? "Expired" : "Valid"}
                           </span>
                         )}
                       </div>
@@ -21012,14 +21546,9 @@ function VehicleCard({
                             <span className="truncate text-[14px] font-semibold text-black">
                               {v.name}
                             </span>
-                            {alert && (
-                              <AlertTriangle
-                                className={cn(
-                                  "h-3.5 w-3.5 shrink-0",
-                                  alert === "expired" ? "text-[#EF4444]" : "text-[#D97706]",
-                                )}
-                              />
-                            )}
+                            {alert ? (
+                              <VehicleDocAlertIcon alert={alert} className="h-3.5 w-3.5" />
+                            ) : null}
                           </div>
                           <div className="mt-0.5 truncate text-[12px] text-black/50">
                             {v.driverName ?? "No driver assigned"}
@@ -21136,19 +21665,9 @@ function VehicleCard({
                               <div className="flex items-center gap-1.5 truncate font-medium text-black">
                                 <Bus className="h-3.5 w-3.5 shrink-0 text-black/40" />
                                 {v.name}
-                                {alert && (
-                                  <AlertTriangle
-                                    className={cn(
-                                      "h-3.5 w-3.5 shrink-0",
-                                      alert === "expired" ? "text-[#EF4444]" : "text-[#D97706]",
-                                    )}
-                                    aria-label={
-                                      alert === "expired"
-                                        ? "Document expired"
-                                        : "Document expiring soon"
-                                    }
-                                  />
-                                )}
+                                {alert ? (
+                                  <VehicleDocAlertIcon alert={alert} className="h-3.5 w-3.5" />
+                                ) : null}
                               </div>
                               <div className="mt-0.5 truncate text-[10.5px] text-black/45">
                                 {v.driverName ?? "No driver assigned"}
@@ -21293,10 +21812,54 @@ function VehicleCard({
                 </Label>
                 <Input
                   value={form.registrationNo}
-                  onChange={(e) => setForm({ ...form, registrationNo: e.target.value })}
+                  onChange={(e) => {
+                    setRegistrationError(null);
+                    setForm({ ...form, registrationNo: e.target.value.toUpperCase() });
+                  }}
+                  onBlur={() => {
+                    const raw = form.registrationNo.trim();
+                    if (!raw) {
+                      setRegistrationError(null);
+                      return;
+                    }
+                    const normalized = normalizeVehicleRegistrationNo(raw);
+                    if (!normalized) {
+                      setRegistrationError(
+                        `${VEHICLE_REGISTRATION_FORMAT_HINT} (or 22-BH-1234-AB)`,
+                      );
+                      return;
+                    }
+                    setRegistrationError(null);
+                    if (normalized !== raw) {
+                      setForm((prev) => ({ ...prev, registrationNo: normalized }));
+                    }
+                  }}
                   placeholder="KL-07-AB-4521"
-                  className="font-mono"
+                  aria-invalid={Boolean(registrationError)}
+                  aria-describedby={
+                    registrationError ? "vehicle-registration-error" : "vehicle-registration-hint"
+                  }
+                  className={cn(
+                    "font-mono",
+                    registrationError &&
+                      "border-[#FECACA] focus-visible:border-[#EF4444] focus-visible:ring-[#EF4444]/20",
+                  )}
                 />
+                {registrationError ? (
+                  <p
+                    id="vehicle-registration-error"
+                    className="text-[11px] font-medium text-[#EF4444]"
+                  >
+                    {registrationError}
+                  </p>
+                ) : (
+                  <p
+                    id="vehicle-registration-hint"
+                    className="text-[11px] text-black/45"
+                  >
+                    {VEHICLE_REGISTRATION_FORMAT_HINT}
+                  </p>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -21408,12 +21971,12 @@ function VehicleCard({
               </div>
               <div className="space-y-2.5">
                 {form.documents.map((doc) => {
-                  const days = doc.validUntil ? daysUntilDate(doc.validUntil) : null;
-                  const warn = doc.notifyDaysBefore ?? DEFAULT_VEHICLE_NOTIFY_DAYS;
-                  const status =
-                    days === null ? null : days < 0 ? "expired" : days <= warn ? "soon" : "ok";
+                  const status = vehicleDocumentValidityStatus(doc.validUntil);
                   return (
-                    <div key={doc.kind} className="rounded-lg border border-[#E8E8EA] bg-white p-3">
+                    <div
+                      key={`${doc.kind}:${doc.validUntil ?? ""}`}
+                      className="rounded-lg border border-[#E8E8EA] bg-white p-3"
+                    >
                       <div className="flex items-start justify-between gap-2">
                         <div className="text-[12px] font-semibold text-black">
                           {VEHICLE_DOCUMENT_LABELS[doc.kind]}
@@ -21424,16 +21987,10 @@ function VehicleCard({
                               "inline-flex shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-semibold uppercase",
                               status === "expired"
                                 ? "bg-[#FEE2E2] text-[#B91C1C]"
-                                : status === "soon"
-                                  ? "bg-[#FEF3C7] text-[#B45309]"
-                                  : "bg-[#D1F2E1] text-[#047857]",
+                                : "bg-[#D1F2E1] text-[#047857]",
                             )}
                           >
-                            {status === "expired"
-                              ? "Expired"
-                              : status === "soon"
-                                ? `${days}d left`
-                                : "Valid"}
+                            {status === "expired" ? "Expired" : "Valid"}
                           </span>
                         )}
                       </div>
@@ -21554,7 +22111,8 @@ function VehicleCard({
               </Button>
               <Button
                 type="submit"
-                className="rounded-full bg-[#0F766E] text-white hover:bg-[#0D9488]"
+                disabled={Boolean(editingId) && !vehicleFormDirty}
+                className="rounded-full bg-[#0F766E] text-white hover:bg-[#0D9488] disabled:opacity-50"
               >
                 {editingId ? "Save" : "Add Vehicle"}
               </Button>

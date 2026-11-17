@@ -3,6 +3,8 @@ export const BRAND = {
   name: "Feezo",
   tagline: "Edu Books",
   mark: "/icons/feezo-mark.webp",
+  /** Tenant workspace host suffix (subdomain.feezo.app). */
+  tenantHostSuffix: "feezo.app",
   /** Google Play listing — used by marketing store badges. */
   playStoreUrl: "https://play.google.com/store/apps/details?id=com.bzole.feezo",
   appStoreUrl: "https://apps.apple.com/in/app/feezo/id6811416005",
@@ -41,3 +43,9 @@ export const BRAND = {
       "Feezo (feezo.app) is a proprietary software platform owned and operated by MAC ADZ. All payment processing, merchant billing, and settlements are managed under MAC ADZ.",
   },
 } as const;
+
+/** Canonical school workspace host, e.g. nice.feezo.app */
+export function formatTenantHost(subdomain: string): string {
+  const slug = subdomain.trim().toLowerCase();
+  return slug ? `${slug}.${BRAND.tenantHostSuffix}` : BRAND.tenantHostSuffix;
+}

@@ -41,6 +41,7 @@ import {
   STUDENT_CATEGORIES,
   STUDENT_RELIGIONS,
   composeClassName,
+  normalizeGradeLabel,
   resolveTransportFeeForStudent,
   splitClassName,
   studentNeedsTransport,
@@ -67,6 +68,7 @@ import {
   unpaidAmountCoveredByBreak,
 } from "@/lib/student-fees";
 import { formatMoney } from "@/lib/money";
+import { EMAIL_RE } from "@/lib/signup-content";
 
 type StudentDraft = {
   name: string;
@@ -137,15 +139,74 @@ const todayISO = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
-function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+function FormField({
+  label,
+  children,
+  error,
+  hint,
+}: {
+  label: string;
+  children: React.ReactNode;
+  error?: string | null;
+  hint?: string;
+}) {
   return (
     <div className="space-y-1.5">
       <Label className="text-[11px] font-semibold uppercase tracking-wider text-black/55 dark:text-zinc-400">
         {label}
       </Label>
       {children}
+      {error ? (
+        <p className="text-[11px] font-medium text-[#EF4444]">{error}</p>
+      ) : hint ? (
+        <p className="text-[11px] text-black/45">{hint}</p>
+      ) : null}
     </div>
   );
+}
+
+function studentEmailError(raw: string): string | null {
+  const email = raw.trim();
+  if (!email) return null;
+  if (!EMAIL_RE.test(email)) return "Enter a valid email (e.g. guardian@email.com)";
+  return null;
+}
+
+function studentProfileFingerprint(
+  draft: StudentDraft,
+  concession: StudentConcessionState,
+  billableVehiclePeriods: string[],
+): string {
+  return JSON.stringify({
+    draft: {
+      ...draft,
+      name: draft.name.trim(),
+      guardian: draft.guardian.trim(),
+      phone: draft.phone.trim(),
+      dob: draft.dob.trim(),
+      email: draft.email.trim().toLowerCase(),
+      address: draft.address.trim(),
+      motherName: draft.motherName.trim(),
+      fatherOccupation: draft.fatherOccupation.trim(),
+      guardianOccupation: draft.guardianOccupation.trim(),
+      aadhaar: draft.aadhaar.trim(),
+      admissionNumber: draft.admissionNumber.trim(),
+      placeOfBirth: draft.placeOfBirth.trim(),
+      nationality: draft.nationality.trim(),
+      religion: draft.religion.trim(),
+      studentCategory: draft.studentCategory.trim(),
+      bloodGroup: draft.bloodGroup.trim(),
+      vehicleId: draft.vehicleId.trim(),
+      busPoint1: draft.busPoint1.trim(),
+      busPoint2: draft.busPoint2.trim(),
+    },
+    concession: {
+      hasConcession: concession.hasConcession,
+      concessionReason: concession.concessionReason.trim(),
+      concessionFees: concession.concessionFees,
+    },
+    billableVehiclePeriods: [...billableVehiclePeriods].sort(),
+  });
 }
 
 function ensureStudentDocuments(student: Student) {
@@ -247,8 +308,10 @@ export function StudentEditPage() {
   const [newClassSection, setNewClassSection] = useState("");
   const [savingClass, setSavingClass] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
   /** Periods that remain billable for vehicle fees (unchecked = on break). */
   const [billableVehiclePeriods, setBillableVehiclePeriods] = useState<string[]>([]);
+  const [vehiclePeriodsSynced, setVehiclePeriodsSynced] = useState(false);
   const [collectDialogOpen, setCollectDialogOpen] = useState(false);
   const [collectPeriods, setCollectPeriods] = useState<string[]>([]);
   const [pendingCollectStudent, setPendingCollectStudent] = useState<Student | null>(null);
@@ -257,6 +320,8 @@ export function StudentEditPage() {
     if (student) {
       setDraft(draftFromStudent(student));
       setConcession(concessionStateFromStudent(student));
+      setEmailError(null);
+      setVehiclePeriodsSynced(false);
     }
   }, [student]);
 
@@ -343,6 +408,7 @@ export function StudentEditPage() {
   useEffect(() => {
     if (!student || !draft.needsBus || vehiclePeriodOptions.length === 0) {
       setBillableVehiclePeriods([]);
+      setVehiclePeriodsSynced(true);
       return;
     }
     const labels = vehiclePeriodOptions.map((o) => o.label);
@@ -350,9 +416,41 @@ export function StudentEditPage() {
       (label) => !isPeriodOnBreak(studentFeeBreaks, student.id, academicYear, "vehicle", label),
     );
     setBillableVehiclePeriods(billable);
+    setVehiclePeriodsSynced(true);
     // Intentionally omit studentFeeBreaks so saving breaks does not wipe in-progress edits.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- schedule + student identity only
   }, [student?.id, draft.needsBus, academicYear, vehicleScheduleKey]);
+
+  const profileDirty = useMemo(() => {
+    if (!student) return false;
+    const baseDraft = draftFromStudent(student);
+    const baseConcession = concessionStateFromStudent(student);
+    const draftDirty =
+      studentProfileFingerprint(draft, concession, []) !==
+      studentProfileFingerprint(baseDraft, baseConcession, []);
+    if (!vehiclePeriodsSynced) return draftDirty;
+
+    const baseBillable = vehiclePeriodOptions
+      .map((option) => option.label)
+      .filter(
+        (label) =>
+          !isPeriodOnBreak(studentFeeBreaks, student.id, academicYear, "vehicle", label),
+      );
+    const currentPeriods = draft.needsBus ? billableVehiclePeriods : [];
+    const baselinePeriods = baseDraft.needsBus ? baseBillable : [];
+    const periodsDirty =
+      [...currentPeriods].sort().join("|") !== [...baselinePeriods].sort().join("|");
+    return draftDirty || periodsDirty;
+  }, [
+    student,
+    draft,
+    concession,
+    billableVehiclePeriods,
+    vehiclePeriodOptions,
+    studentFeeBreaks,
+    academicYear,
+    vehiclePeriodsSynced,
+  ]);
 
   const patchDraft = <K extends keyof StudentDraft>(key: K, value: StudentDraft[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -485,7 +583,7 @@ export function StudentEditPage() {
 
   const submitNewClass = async (e: FormEvent) => {
     e.preventDefault();
-    const grade = newClassGrade.trim();
+    const grade = normalizeGradeLabel(newClassGrade.trim());
     const section = newClassSection.trim();
     if (!grade) {
       toast.error("Class name is required");
@@ -557,6 +655,10 @@ export function StudentEditPage() {
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     if (!student) return;
+    if (!profileDirty) {
+      toast.message("No changes to save");
+      return;
+    }
     if (!draft.name.trim()) {
       toast.error("Student name is required");
       return;
@@ -569,6 +671,13 @@ export function StudentEditPage() {
       toast.error("Class is required");
       return;
     }
+    const nextEmailError = studentEmailError(draft.email);
+    if (nextEmailError) {
+      setEmailError(nextEmailError);
+      toast.error("Invalid email address", { description: nextEmailError });
+      return;
+    }
+    setEmailError(null);
     const concessionError = validateConcessionFees(
       concession.hasConcession,
       concession.concessionFees,
@@ -622,6 +731,13 @@ export function StudentEditPage() {
       toast.error("Fill required fields before collecting fee");
       return;
     }
+    const nextEmailError = studentEmailError(draft.email);
+    if (nextEmailError) {
+      setEmailError(nextEmailError);
+      toast.error("Invalid email address", { description: nextEmailError });
+      return;
+    }
+    setEmailError(null);
     const concessionError = validateConcessionFees(
       concession.hasConcession,
       concession.concessionFees,
@@ -705,9 +821,8 @@ export function StudentEditPage() {
                 options={classSelectOptions(classes, draft.cls)}
                 placeholder="Select class"
                 onAddNew={() => {
-                  const parts = splitClassName(draft.cls);
-                  setNewClassGrade(parts.grade);
-                  setNewClassSection(parts.section);
+                  setNewClassGrade("");
+                  setNewClassSection("");
                   setAddClassOpen(true);
                 }}
                 addNewLabel="Add new class"
@@ -833,7 +948,7 @@ export function StudentEditPage() {
               <DatePicker
                 value={draft.dob ?? ""}
                 onChange={(dob) => patchDraft("dob", dob)}
-                placeholder="14 Mar 2012"
+                placeholder="e.g. 14 Mar 2012"
                 valueFormat="iso"
                 variant="pill"
                 purpose="birth"
@@ -914,13 +1029,22 @@ export function StudentEditPage() {
             </FormField>
           </div>
 
-          <FormField label="Email Address">
+          <FormField label="Email Address" error={emailError}>
             <Input
               type="email"
               value={draft.email}
-              onChange={(e) => patchDraft("email", e.target.value)}
+              onChange={(e) => {
+                setEmailError(null);
+                patchDraft("email", e.target.value);
+              }}
+              onBlur={() => setEmailError(studentEmailError(draft.email))}
               placeholder="guardian@email.com"
-              className="font-mono text-[13px]"
+              aria-invalid={Boolean(emailError)}
+              className={cn(
+                "font-mono text-[13px]",
+                emailError &&
+                  "border-[#FECACA] focus-visible:border-[#EF4444] focus-visible:ring-[#EF4444]/20",
+              )}
             />
           </FormField>
 
@@ -1171,8 +1295,8 @@ export function StudentEditPage() {
             ) : null}
             <Button
               type="submit"
-              disabled={saving}
-              className="h-9 min-w-0 flex-1 rounded-full bg-[#0F766E] px-2 text-[11px] text-white hover:bg-[#0D9488] sm:h-10 sm:flex-none sm:px-4 sm:text-sm"
+              disabled={saving || !profileDirty}
+              className="h-9 min-w-0 flex-1 rounded-full bg-[#0F766E] px-2 text-[11px] text-white hover:bg-[#0D9488] disabled:opacity-50 sm:h-10 sm:flex-none sm:px-4 sm:text-sm"
             >
               {saving ? (
                 <>
@@ -1234,10 +1358,8 @@ export function StudentEditPage() {
         open={addClassOpen}
         onOpenChange={(open) => {
           setAddClassOpen(open);
-          if (!open) {
-            setNewClassGrade("");
-            setNewClassSection("");
-          }
+          setNewClassGrade("");
+          setNewClassSection("");
         }}
       >
         <DialogContent className="max-w-sm rounded-xl">

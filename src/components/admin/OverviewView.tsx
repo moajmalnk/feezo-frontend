@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Activity,
+  AlertTriangle,
   ArrowDownRight,
   ArrowRight,
   ArrowUpRight,
@@ -14,6 +15,7 @@ import {
   LogOut,
   Mail,
   Minus,
+  RefreshCw,
   School,
   UserPlus,
   Users,
@@ -33,8 +35,14 @@ import {
   YAxis,
 } from "recharts";
 import { OverviewSkeleton } from "@/components/admin/OverviewViewSkeleton";
+import { computeTenantPortfolioStats } from "@/components/admin/tenant-portfolio-stats";
+import type { Tenant } from "@/components/admin/data";
 import { OrganicCard } from "@/components/ui/organic-card";
-import { fetchSuperAdminOverview, type SuperAdminOverview } from "@/lib/api/super-admin";
+import {
+  fetchSuperAdminOverview,
+  fetchSuperAdminTenants,
+  type SuperAdminOverview,
+} from "@/lib/api/super-admin";
 import { ApiError, getApiToken } from "@/lib/api/client";
 import { formatAbsoluteAppTime, formatRelativeAppTime } from "@/lib/dates";
 import { cn, type Tone, type CornerSide } from "@/lib/utils";
@@ -99,6 +107,14 @@ const EMPTY_OVERVIEW: SuperAdminOverview = {
   ],
   recentRegistrations: [],
 };
+
+/** Show one decimal when utilization would otherwise round to a misleading 0%. */
+function formatSeatUtilizationPct(pct: number): string {
+  if (!Number.isFinite(pct) || pct <= 0) return "0%";
+  const rounded = Math.round(pct * 10) / 10;
+  if (rounded < 1) return `${rounded.toFixed(1)}%`;
+  return Number.isInteger(rounded) ? `${rounded}%` : `${rounded.toFixed(1)}%`;
+}
 
 function formatInr(n: number) {
   return formatMoney(Math.round(n), "INR");
@@ -262,18 +278,39 @@ function MetricCard({
 
 export function OverviewView() {
   const [data, setData] = useState<SuperAdminOverview | null>(null);
+  const [tenants, setTenants] = useState<Tenant[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setError(null);
       try {
         if (!getApiToken()) throw new ApiError("Not authenticated", 401);
-        const overview = await fetchSuperAdminOverview();
-        if (!cancelled) setData(overview);
-      } catch {
-        if (!cancelled) setData(EMPTY_OVERVIEW);
+        const [overviewResult, tenantsResult] = await Promise.allSettled([
+          fetchSuperAdminOverview(),
+          fetchSuperAdminTenants(),
+        ]);
+        if (cancelled) return;
+        if (overviewResult.status === "rejected") {
+          const err = overviewResult.reason;
+          setData(null);
+          setTenants(null);
+          setError(err instanceof ApiError ? err.message : "Could not load overview");
+          return;
+        }
+        setData(overviewResult.value);
+        setTenants(tenantsResult.status === "fulfilled" ? tenantsResult.value : null);
+        setError(null);
+      } catch (err) {
+        if (!cancelled) {
+          setData(null);
+          setTenants(null);
+          setError(err instanceof ApiError ? err.message : "Could not load overview");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -281,9 +318,13 @@ export function OverviewView() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadToken]);
 
   const overview = data ?? EMPTY_OVERVIEW;
+  const portfolio = useMemo(
+    () => (tenants ? computeTenantPortfolioStats(tenants) : null),
+    [tenants],
+  );
 
   const weeklyBars = overview.weeklyRegistrations?.length
     ? overview.weeklyRegistrations
@@ -307,11 +348,34 @@ export function OverviewView() {
     ? overview.statusBreakdown
     : EMPTY_OVERVIEW.statusBreakdown!;
   const statusTotal = statusRows.reduce((s, r) => s + r.count, 0) || 1;
-  const totalTenants = overview.totalTenants ?? planRows.reduce((s, p) => s + p.count, 0);
-  const trialCount = overview.trialTenants ?? 0;
-  const seatPct = overview.seatUtilizationPct ?? 0;
-  const enrolled = overview.enrolledStudents ?? 0;
-  const seats = overview.totalSeats ?? 0;
+  // Prefer Tenants-registry aggregates so Overview KPIs never drift from Portfolio / seats.
+  const totalTenants =
+    portfolio?.total ??
+    overview.totalTenants ??
+    planRows.reduce((s, p) => s + p.count, 0);
+  const trialCount = portfolio?.trial ?? overview.trialTenants ?? 0;
+  const activeCount = portfolio?.active ?? overview.activePaying ?? 0;
+  /** Paying / converted tenants (same source as activeCount). */
+  const payingCount = activeCount;
+  const overdueCount =
+    portfolio?.overdue ?? statusRows.find((s) => s.name === "Overdue")?.count ?? 0;
+  const suspendedCount =
+    portfolio?.suspended ?? statusRows.find((s) => s.name === "Suspended")?.count ?? 0;
+  const schoolStatusSub = [
+    `${activeCount} active`,
+    `${trialCount} trial`,
+    overdueCount > 0 ? `${overdueCount} overdue` : null,
+    suspendedCount > 0 ? `${suspendedCount} suspended` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const enrolled = portfolio?.students ?? overview.enrolledStudents ?? 0;
+  const seats = portfolio?.seats ?? overview.totalSeats ?? 0;
+  const seatPctRaw = portfolio?.seatPct ?? overview.seatUtilizationPct ?? 0;
+  const seatPct =
+    seats > 0 && enrolled > 0 && seatPctRaw === 0
+      ? Math.round((enrolled / seats) * 1000) / 10
+      : seatPctRaw;
 
   const pieData = planRows.filter((p) => p.count > 0).map((p) => ({
     name: p.name,
@@ -319,6 +383,31 @@ export function OverviewView() {
   }));
 
   if (loading) return <OverviewSkeleton />;
+
+  if (error || !data) {
+    return (
+      <div className="flex min-w-0 flex-col items-center gap-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-12 text-center sm:px-6">
+        <AlertTriangle className="h-6 w-6 text-rose-600" aria-hidden />
+        <div className="space-y-1.5">
+          <p className="text-[15px] font-semibold text-rose-950">Overview unavailable</p>
+          <p className="max-w-md text-[13px] leading-relaxed text-rose-800/90">
+            {error || "Could not load overview"}
+          </p>
+          <p className="text-[12px] text-rose-700/75">
+            Platform metrics were not loaded — this is not an empty live portfolio.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setReloadToken((n) => n + 1)}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-black px-5 py-2.5 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-black/85"
+        >
+          <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-w-0 max-w-full space-y-4 overflow-x-clip sm:space-y-6">
@@ -358,17 +447,13 @@ export function OverviewView() {
       {/* KPI strip */}
       <div className="grid min-w-0 grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
-          label="Total Active Schools"
-          value={String(overview.totalActiveSchools)}
+          label="Total Schools"
+          value={String(totalTenants)}
           icon={School}
           cornerSide="tr"
           spark={spark}
           badge={<GrowthBadge pct={overview.weekGrowthPct ?? 0} label="WoW" />}
-          sub={
-            <span>
-              {overview.activePaying ?? 0} paying · {trialCount} trial
-            </span>
-          }
+          sub={<span>{schoolStatusSub}</span>}
         />
         <MetricCard
           label="Monthly Recurring Revenue"
@@ -384,7 +469,7 @@ export function OverviewView() {
         />
         <MetricCard
           label="Seat Utilization"
-          value={`${seatPct}%`}
+          value={formatSeatUtilizationPct(seatPct)}
           icon={Users}
           cornerSide="tr"
           spark={spark}
@@ -403,7 +488,8 @@ export function OverviewView() {
           heartbeat
           sub={
             <span>
-              Uptime {Number(overview.systemUptime || 0).toFixed(2)}% · 90d
+              {payingCount} paying of {payingCount + trialCount} live
+              {trialCount > 0 ? ` · ${trialCount} still on trial` : ""}
             </span>
           }
         />
@@ -647,7 +733,7 @@ export function OverviewView() {
                 Paying
               </div>
               <div className="mt-0.5 font-mono text-[18px] font-semibold text-emerald-800">
-                {overview.activePaying ?? 0}
+                {payingCount}
               </div>
             </div>
             <div className="rounded-xl bg-violet-50/80 px-3 py-2">

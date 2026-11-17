@@ -1,5 +1,5 @@
 import { MARKETING } from "@/lib/marketing-content";
-import { composeE164, parsePhone } from "@/lib/phone";
+import { composeE164, isValidPhoneNumber, parsePhone } from "@/lib/phone";
 
 export const SCHOOL_TYPES = [
   "CBSE",
@@ -44,9 +44,18 @@ export function slugFromStepNumber(step: number): Exclude<SignupStepSlug, "succe
   return found?.slug ?? "school";
 }
 
-export const SIGNUP_PLANS = MARKETING.pricing.plans.map((p) => ({
+export type SignupPlan = {
+  name: "Basic" | "Premium" | "Enterprise";
+  monthlyInr: number;
+  blurb: string;
+  features: string[];
+  highlight: boolean;
+  badge?: string;
+};
+
+export const SIGNUP_PLANS: SignupPlan[] = MARKETING.pricing.plans.map((p) => ({
   name: p.name as "Basic" | "Premium" | "Enterprise",
-  monthlyInr: p.monthlyInr,
+  monthlyInr: p.monthlyInr as number,
   blurb: p.blurb,
   features: [...p.features],
   highlight: p.highlight,
@@ -128,9 +137,9 @@ export function normalizePhone(raw: string): string {
   return plus + trimmed.replace(/\D/g, "");
 }
 
+/** Country-aware phone check (national length matches dial-code placeholder). */
 export function isValidPhone(raw: string): boolean {
-  const digits = raw.replace(/\D/g, "");
-  return digits.length >= 10 && digits.length <= 15;
+  return isValidPhoneNumber(raw);
 }
 
 /** Ensure E.164 using the given country (defaults to India for legacy callers). */

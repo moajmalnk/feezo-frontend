@@ -33,6 +33,60 @@ export const PAYMENT_PERIOD_OPTIONS: { value: PaymentPeriod; label: string }[] =
   { value: "custom", label: "Custom" },
 ];
 
+export function isPaymentPeriod(value: unknown): value is PaymentPeriod {
+  return (
+    typeof value === "string" && PAYMENT_PERIOD_OPTIONS.some((option) => option.value === value)
+  );
+}
+
+export type DashboardFinancialPeriodPrefs = {
+  period: PaymentPeriod;
+  customRange: CustomDateRange;
+};
+
+const DEFAULT_DASHBOARD_PERIOD_PREFS: DashboardFinancialPeriodPrefs = {
+  period: "all",
+  customRange: { from: "", to: "" },
+};
+
+/** Session-scoped Home → Financial Summary period (survives Finance round-trips). */
+export function dashboardFinancialPeriodStorageKey(tenantId: string, branchId: string): string {
+  return `feezo.dashboard.financialPeriod:${tenantId || "tenant"}:${branchId || "main"}`;
+}
+
+export function readDashboardFinancialPeriodPrefs(
+  storageKey: string,
+): DashboardFinancialPeriodPrefs {
+  if (!storageKey || typeof window === "undefined") return DEFAULT_DASHBOARD_PERIOD_PREFS;
+  try {
+    const raw = window.sessionStorage.getItem(storageKey);
+    if (!raw) return DEFAULT_DASHBOARD_PERIOD_PREFS;
+    const parsed = JSON.parse(raw) as {
+      period?: unknown;
+      customRange?: Partial<CustomDateRange> | null;
+    };
+    const period = isPaymentPeriod(parsed.period) ? parsed.period : "all";
+    const from =
+      typeof parsed.customRange?.from === "string" ? parsed.customRange.from : "";
+    const to = typeof parsed.customRange?.to === "string" ? parsed.customRange.to : "";
+    return { period, customRange: { from, to } };
+  } catch {
+    return DEFAULT_DASHBOARD_PERIOD_PREFS;
+  }
+}
+
+export function writeDashboardFinancialPeriodPrefs(
+  storageKey: string,
+  prefs: DashboardFinancialPeriodPrefs,
+): void {
+  if (!storageKey || typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(storageKey, JSON.stringify(prefs));
+  } catch {
+    // Private mode / quota — keep in-memory selection only.
+  }
+}
+
 /** Day Book is a cash book — keep the period tight. */
 export const DAY_BOOK_PERIOD_OPTIONS: { value: PaymentPeriod; label: string }[] = [
   { value: "today", label: "Today" },

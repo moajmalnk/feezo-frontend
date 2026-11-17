@@ -20,7 +20,13 @@ import {
   currencyDefaultCountry,
 } from "@/lib/locale/currencies";
 import { useOrgCurrency } from "@/lib/money";
-import { composeE164, nationalPlaceholder, parsePhone, phoneDigits } from "@/lib/phone";
+import {
+  composeE164,
+  nationalLengthFor,
+  nationalPlaceholder,
+  parsePhone,
+  phoneDigits,
+} from "@/lib/phone";
 import { cn } from "@/lib/utils";
 
 export type PhoneInputProps = {
@@ -84,10 +90,12 @@ export function PhoneInput({
     if (value === lastValueRef.current) return;
     lastValueRef.current = value;
     const next = parsePhone(value, manualCountryRef.current ? country : resolvedDefault);
+    const nextCountry = !manualCountryRef.current || !value ? next.country : country;
+    const capped = phoneDigits(next.national).slice(0, nationalLengthFor(nextCountry));
     if (!manualCountryRef.current || !value) {
       setCountry(next.country);
     }
-    setNational(next.national);
+    setNational(capped);
   }, [value, resolvedDefault, country]);
 
   // When default country changes (currency) and field is empty / not manually overridden
@@ -98,7 +106,8 @@ export function PhoneInput({
   }, [resolvedDefault, national, value]);
 
   const emit = (nextCountry: string, nextNational: string) => {
-    const e164 = composeE164(nextCountry, nextNational);
+    const capped = phoneDigits(nextNational).slice(0, nationalLengthFor(nextCountry));
+    const e164 = composeE164(nextCountry, capped);
     lastValueRef.current = e164;
     onChange(e164);
   };
@@ -109,6 +118,7 @@ export function PhoneInput({
     dial: countryDial(country),
     flag: countryFlag(country),
   };
+  const maxNational = nationalLengthFor(country);
 
   return (
     <div className={cn("flex min-w-0 items-stretch gap-1.5", className)}>
@@ -134,7 +144,7 @@ export function PhoneInput({
             <ChevronsUpDown className="h-3.5 w-3.5 opacity-50" aria-hidden />
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-72 p-0" align="start">
+        <PopoverContent className="z-[130] w-72 p-0" align="start">
           <Command>
             <CommandInput placeholder="Search country or code…" />
             <CommandList>
@@ -146,9 +156,11 @@ export function PhoneInput({
                     value={`${o.label} ${o.code} +${o.dial}`}
                     onSelect={() => {
                       manualCountryRef.current = true;
+                      const capped = phoneDigits(national).slice(0, nationalLengthFor(o.code));
                       setCountry(o.code);
+                      setNational(capped);
                       setOpen(false);
-                      emit(o.code, national);
+                      emit(o.code, capped);
                     }}
                   >
                     <span className="mr-2 text-base leading-none" aria-hidden>
@@ -176,10 +188,10 @@ export function PhoneInput({
         disabled={disabled}
         aria-label={ariaLabel ?? "Phone number"}
         placeholder={placeholder ?? nationalPlaceholder(country)}
-        value={national}
-        maxLength={15}
+        value={phoneDigits(national).slice(0, maxNational)}
+        maxLength={maxNational}
         onChange={(e) => {
-          const next = phoneDigits(e.target.value).slice(0, 15);
+          const next = phoneDigits(e.target.value).slice(0, maxNational);
           setNational(next);
           emit(country, next);
         }}

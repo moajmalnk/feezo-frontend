@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   Plus,
   Search,
@@ -32,6 +33,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { type Tenant, type Tier, type Status } from "./data";
+import { computeTenantPortfolioStats } from "./tenant-portfolio-stats";
+import { BRAND, formatTenantHost } from "@/lib/brand";
 import {
   formatTenantPublicId,
   tenantIdSearchText,
@@ -48,7 +51,7 @@ import {
 } from "@/lib/api/super-admin";
 import { ApiError, getApiToken } from "@/lib/api/client";
 import { TenantsViewSkeleton } from "@/components/admin/TenantsViewSkeleton";
-import { mobileFabClass } from "@/components/layout/MobileTabBar";
+import { mobileFabBottomClass } from "@/components/layout/MobileTabBar";
 import { PlatformInvoicesPanel } from "@/components/admin/PlatformInvoicesPanel";
 import { TenantSubscriptionsPanel } from "@/components/admin/TenantSubscriptionsPanel";
 import { TenantSettlementPanel } from "@/components/admin/TenantSettlementPanel";
@@ -89,6 +92,10 @@ import { cn } from "@/lib/utils";
 import { currencySymbol } from "@/lib/locale/currencies";
 import { formatMoney } from "@/lib/money";
 import { saveFile } from "@/lib/native-download";
+import { gstinFieldError, normalizeGstin } from "@/lib/gstin";
+import { phoneFieldError } from "@/lib/phone";
+import { PASSWORD_MIN_LENGTH } from "@/lib/password-policy";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 const TIER_STYLE: Record<Tier, { bg: string; fg: string }> = {
   Basic: { bg: "#F4F4F5", fg: "#3F3F46" },
@@ -114,6 +121,13 @@ const STATUS_TOOLTIP: Record<Status, string> = {
 const TRIAL_DAYS = 14;
 const TRIAL_ENDING_SOON_DAYS = 3;
 const DAY_MS = 86_400_000;
+
+function formatSeatUtilizationPct(pct: number): string {
+  if (!Number.isFinite(pct) || pct <= 0) return "0%";
+  const rounded = Math.round(pct * 10) / 10;
+  if (rounded < 1) return `${rounded.toFixed(1)}%`;
+  return Number.isInteger(rounded) ? `${rounded}%` : `${rounded.toFixed(1)}%`;
+}
 
 type TrialWindow = "trial-running" | "trial-ending" | "trial-expired";
 
@@ -210,7 +224,6 @@ function trialWindowOf(info: TrialInfo | null): TrialWindow | null {
 
 function matchesTrialWindow(info: TrialInfo | null, window: TrialWindow): boolean {
   if (!info) return false;
-  if (window === "trial-running") return info.daysLeft > 0;
   return trialWindowOf(info) === window;
 }
 
@@ -335,6 +348,7 @@ export function TenantsView({
   initialTenantId?: string;
   initialDetailTab?: string;
 } = {}) {
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [tier, setTier] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
@@ -372,6 +386,37 @@ export function TenantsView({
   const [otpEmailMasked, setOtpEmailMasked] = useState("");
   const [otpError, setOtpError] = useState<string | null>(null);
 
+  const syncDetailSearch = (tenantId: string | null, tab?: string) => {
+    void navigate({
+      to: "/super-admin/tenants",
+      search: tenantId
+        ? {
+            tenant: tenantId,
+            tab:
+              tab === "subscriptions" ||
+              tab === "invoices" ||
+              tab === "activity" ||
+              tab === "access" ||
+              tab === "audit"
+                ? tab
+                : "overview",
+          }
+        : {},
+      replace: true,
+    });
+  };
+
+  const openTenantDetail = (tenant: Tenant, tab = "overview") => {
+    setDetailTab(tab);
+    setDetailTarget(tenant);
+    syncDetailSearch(tenant.id, tab);
+  };
+
+  const closeTenantDetail = () => {
+    setDetailTarget(null);
+    syncDetailSearch(null);
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -381,18 +426,7 @@ export function TenantsView({
           throw new ApiError("Not authenticated to API — log in again", 401);
         }
         const list = await fetchSuperAdminTenants();
-        if (!cancelled) {
-          setTenants(list);
-          if (initialTenantId) {
-            const match = list.find(
-              (t) => t.id === initialTenantId || tenantIdsMatch(t.id, initialTenantId),
-            );
-            if (match) {
-              setDetailTarget(match);
-              if (initialDetailTab) setDetailTab(initialDetailTab);
-            }
-          }
-        }
+        if (!cancelled) setTenants(list);
       } catch (err) {
         if (!cancelled) {
           setTenants([]);
@@ -408,7 +442,19 @@ export function TenantsView({
     return () => {
       cancelled = true;
     };
-  }, [initialTenantId, initialDetailTab]);
+  }, []);
+
+  // Open detail whenever ?tenant=… is present (Ctrl+K, deep links) — including when
+  // already on /super-admin/tenants with the registry loaded.
+  useEffect(() => {
+    if (!initialTenantId || tenants.length === 0) return;
+    const match = tenants.find(
+      (t) => t.id === initialTenantId || tenantIdsMatch(t.id, initialTenantId),
+    );
+    if (!match) return;
+    setDetailTarget((prev) => (prev && tenantIdsMatch(prev.id, match.id) ? prev : match));
+    if (initialDetailTab) setDetailTab(initialDetailTab);
+  }, [initialTenantId, initialDetailTab, tenants]);
 
   const trialById = useMemo(() => {
     const now = Date.now();
@@ -449,34 +495,7 @@ export function TenantsView({
     return counts;
   }, [tenants, activityMetric]);
 
-  const registryStats = useMemo(() => {
-    let active = 0;
-    let trial = 0;
-    let overdue = 0;
-    let suspended = 0;
-    let students = 0;
-    let seats = 0;
-    let staff = 0;
-    let mrr = 0;
-    let basic = 0;
-    let premium = 0;
-    let enterprise = 0;
-    for (const t of tenants) {
-      if (t.status === "Active") active += 1;
-      else if (t.status === "Trial") trial += 1;
-      else if (t.status === "Overdue") overdue += 1;
-      else if (t.status === "Suspended") suspended += 1;
-      students += t.students || 0;
-      seats += t.capacity || 0;
-      staff += t.staffCount || 0;
-      mrr += t.mrrContribution || 0;
-      if (t.tier === "Basic") basic += 1;
-      else if (t.tier === "Premium") premium += 1;
-      else if (t.tier === "Enterprise") enterprise += 1;
-    }
-    const seatPct = seats > 0 ? Math.round((students / seats) * 100) : 0;
-    return { active, trial, overdue, suspended, students, seats, staff, mrr, seatPct, basic, premium, enterprise };
-  }, [tenants]);
+  const registryStats = useMemo(() => computeTenantPortfolioStats(tenants), [tenants]);
 
   const filtered = useMemo(() => {
     const now = Date.now();
@@ -546,8 +565,6 @@ export function TenantsView({
     const target = pendingDelete;
     setOtpSending(true);
     setOtpError(null);
-    // Advance immediately — API returns before SMTP finishes.
-    setDeleteStep("otp");
     setDeleteOtp("");
     try {
       if (!getApiToken()) {
@@ -555,6 +572,7 @@ export function TenantsView({
       }
       const result = await requestSuperAdminTenantDeleteOtp(target.id);
       setOtpEmailMasked(result.emailMasked);
+      setDeleteStep("otp");
       toast.success("Verification code sent", {
         description: `Check ${result.emailMasked} — it may take a few seconds`,
       });
@@ -590,7 +608,7 @@ export function TenantsView({
         return next;
       });
       toast.error(`${target.name} deleted`, {
-        description: `${formatTenantPublicId(target.id)} · ${target.subdomain}.feezo.app · all school data removed`,
+        description: `${formatTenantPublicId(target.id)} · ${formatTenantHost(target.subdomain)} · all school data removed`,
       });
       resetDeleteDialog();
     } catch (err) {
@@ -607,32 +625,27 @@ export function TenantsView({
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-title sm:text-heading">School Tenants Registry</h1>
-        </div>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="hidden min-h-11 items-center justify-center gap-1.5 rounded-full bg-black px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_8px_24px_-12px_rgba(0,0,0,0.4)] transition hover:bg-black/85 md:inline-flex"
-        >
-          <Plus className="h-4 w-4" /> Provision New Tenant
-        </button>
-      </div>
-
+    <div className="relative space-y-4 pb-20 sm:space-y-6 sm:pb-24 lg:pb-20">
+      {/* Floating provision CTA — above mobile tab dock; bottom-right on desktop */}
       <button
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Provision new tenant"
+        title="Provision new tenant"
         className={cn(
-          mobileFabClass,
-          "grid h-14 w-14 place-items-center rounded-full bg-black text-white",
-          "shadow-[0_10px_32px_-10px_rgba(0,0,0,0.5)] ring-4 ring-white/90",
-          "transition-transform active:scale-95 hover:bg-black/90",
+          "fixed z-40 inline-flex items-center justify-center gap-2 rounded-full bg-black text-white",
+          "right-4 lg:right-6",
+          mobileFabBottomClass,
+          "lg:bottom-6",
+          "h-14 w-14 shadow-[0_12px_36px_-12px_rgba(0,0,0,0.55)] ring-4 ring-white/90",
+          "lg:w-auto lg:px-5",
+          "transition-[transform,background-color] hover:bg-black/90 active:scale-95",
         )}
       >
-        <Plus className="h-6 w-6" strokeWidth={2.25} />
+        <Plus className="h-6 w-6 shrink-0" strokeWidth={2.25} />
+        <span className="hidden text-[13px] font-semibold tracking-tight lg:inline">
+          Provision tenant
+        </span>
       </button>
 
       {/* Registry summary — denser platform pulse */}
@@ -703,7 +716,7 @@ export function TenantsView({
             Students / seats
           </div>
           <div className="mt-1 font-mono text-[22px] font-semibold tracking-tight text-black">
-            {registryStats.seatPct}%
+            {formatSeatUtilizationPct(registryStats.seatPct)}
           </div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#F4F4F5]">
             <div
@@ -934,15 +947,11 @@ export function TenantsView({
               role="button"
               tabIndex={0}
               aria-label={`Open details for ${t.name}`}
-              onClick={() => {
-                setDetailTab("overview");
-                setDetailTarget(t);
-              }}
+              onClick={() => openTenantDetail(t)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  setDetailTab("overview");
-                  setDetailTarget(t);
+                  openTenantDetail(t);
                 }
               }}
               className="cursor-pointer space-y-3.5 transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(0,0,0,0.05),0_28px_64px_-28px_rgba(15,23,42,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E]/40 focus-visible:ring-offset-2"
@@ -956,7 +965,7 @@ export function TenantsView({
                     {t.name}
                   </div>
                   <div className="mt-0.5 truncate font-mono text-[11px] text-[#0F766E]">
-                    {t.subdomain}.feezo.app
+                    {formatTenantHost(t.subdomain)}
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-1.5">
                     <button
@@ -1086,10 +1095,7 @@ export function TenantsView({
                   <TenantAction
                     icon={FileText}
                     label="View details"
-                    onClick={() => {
-                      setDetailTab("overview");
-                      setDetailTarget(t);
-                    }}
+                    onClick={() => openTenantDetail(t)}
                   />
                   <TenantAction
                     icon={ScrollText}
@@ -1144,9 +1150,12 @@ export function TenantsView({
       <TenantDetailDrawer
         tenant={detailTarget}
         tab={detailTab}
-        onTabChange={setDetailTab}
+        onTabChange={(next) => {
+          setDetailTab(next);
+          if (detailTarget) syncDetailSearch(detailTarget.id, next);
+        }}
         billing={detailTarget ? getBilling(detailTarget) : null}
-        onClose={() => setDetailTarget(null)}
+        onClose={closeTenantDetail}
         onEdit={() => {
           if (!detailTarget) return;
           setEditTarget(detailTarget);
@@ -1158,7 +1167,7 @@ export function TenantsView({
         onAudit={() => {
           if (!detailTarget) return;
           const target = detailTarget;
-          setDetailTarget(null);
+          closeTenantDetail();
           setAuditTarget(target);
         }}
         onImpersonate={() => {
@@ -1226,7 +1235,7 @@ export function TenantsView({
                   {pendingDelete.name}
                 </div>
                 <div className="mt-0.5 truncate font-mono text-[11.5px] text-black/45">
-                  {pendingDelete.subdomain}.feezo.app · {pendingDelete.id}
+                  {formatTenantHost(pendingDelete.subdomain)} · {pendingDelete.id}
                 </div>
               </div>
             ) : null}
@@ -1427,9 +1436,12 @@ function TenantFormDrawer({
   const [adminEmail, setAdminEmail] = useState("");
   const [setupPassword, setSetupPassword] = useState("school2026");
   const [contact, setContact] = useState("");
+  const [contactError, setContactError] = useState<string | null>(null);
   const [gstin, setGstin] = useState("");
-  const [students, setStudents] = useState(500);
-  const [faculty, setFaculty] = useState(40);
+  const [gstinError, setGstinError] = useState<string | null>(null);
+  /** String drafts so users can clear "0" / leading digits while typing. */
+  const [students, setStudents] = useState("500");
+  const [faculty, setFaculty] = useState("40");
   const [tier, setTier] = useState<Tier>("Premium");
   const [customDomain, setCustomDomain] = useState(false);
   const [apex, setApex] = useState("");
@@ -1442,9 +1454,11 @@ function TenantFormDrawer({
     setAdminEmail("");
     setSetupPassword("school2026");
     setContact("");
+    setContactError(null);
     setGstin("");
-    setStudents(500);
-    setFaculty(40);
+    setGstinError(null);
+    setStudents("500");
+    setFaculty("40");
     setTier("Premium");
     setCustomDomain(false);
     setApex("");
@@ -1459,8 +1473,35 @@ function TenantFormDrawer({
       toast.error("Administrator email is required");
       return;
     }
-    if (setupPassword.trim().length < 6) {
-      toast.error("Setup password must be at least 6 characters");
+    if (setupPassword.trim().length < PASSWORD_MIN_LENGTH) {
+      toast.error(`Setup password must be at least ${PASSWORD_MIN_LENGTH} characters`);
+      return;
+    }
+    if (customDomain && !apex.trim()) {
+      toast.error("Enter the custom root domain");
+      return;
+    }
+    const seatLimit = Number.parseInt(students, 10);
+    const facultyCap = Number.parseInt(faculty, 10);
+    if (!Number.isFinite(seatLimit) || seatLimit < 1) {
+      toast.error("Student seat limit must be at least 1");
+      return;
+    }
+    if (faculty.trim() !== "" && (!Number.isFinite(facultyCap) || facultyCap < 0)) {
+      toast.error("Faculty roster cap must be zero or a positive number");
+      return;
+    }
+    const contactErr = phoneFieldError(contact, { label: "contact number" });
+    setContactError(contactErr);
+    if (contactErr) {
+      toast.error("Invalid Contact String", { description: contactErr });
+      return;
+    }
+    const gstinNormalized = normalizeGstin(gstin);
+    const gstinErr = gstinFieldError(gstin);
+    setGstinError(gstinErr);
+    if (gstinErr) {
+      toast.error("Invalid Tax ID / GSTIN", { description: gstinErr });
       return;
     }
     setBusy(true);
@@ -1469,14 +1510,33 @@ function TenantFormDrawer({
         name: legalName,
         subdomain: slug,
         tier,
-        capacity: students,
+        capacity: seatLimit,
         adminName: adminName || "School Admin",
         adminEmail: adminEmail.trim(),
         password: setupPassword.trim(),
+        contact: contact.trim() || undefined,
+        gstin: gstinNormalized || undefined,
+        staffCapacity: Number.isFinite(facultyCap) && facultyCap > 0 ? facultyCap : undefined,
+        customDomain,
+        apex: customDomain ? apex.trim() : undefined,
       });
       onCreate(result.tenant);
+      const tenantId = formatTenantPublicId(result.tenant.id);
+      const adminEmailOut = result.admin.email;
+      const tempPassword = result.admin.temporaryPassword?.trim() ?? "";
+      let passwordCopied = false;
+      if (tempPassword) {
+        try {
+          await navigator.clipboard.writeText(tempPassword);
+          passwordCopied = true;
+        } catch {
+          passwordCopied = false;
+        }
+      }
       toast.success("Tenant provisioned", {
-        description: `${formatTenantPublicId(result.tenant.id)} · ${result.admin.email} / ${result.admin.temporaryPassword}`,
+        description: passwordCopied
+          ? `${tenantId} · ${adminEmailOut} · password copied once (not shown)`
+          : `${tenantId} · ${adminEmailOut} · use the setup password you entered`,
       });
       reset();
       onOpenChange(false);
@@ -1518,7 +1578,7 @@ function TenantFormDrawer({
                 className="flex-1 bg-transparent px-3 py-2 font-mono text-[13px] outline-none"
               />
               <span className="grid place-items-center bg-[#F4F4F5] px-3 font-mono text-[12px] text-black/55">
-                .feezo.app
+                .{BRAND.tenantHostSuffix}
               </span>
             </div>
           </Field>
@@ -1552,36 +1612,84 @@ function TenantFormDrawer({
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Contact String">
-              <Input
+              <PhoneInput
                 value={contact}
-                onChange={(e) => setContact(e.target.value)}
-                placeholder="+91 98XXXXXXXX"
+                onChange={(phone) => {
+                  setContact(phone);
+                  setContactError((prev) =>
+                    prev ? phoneFieldError(phone, { label: "contact number" }) : null,
+                  );
+                }}
+                inputClassName={cn(
+                  contactError && "border-[#EF4444]/55 focus-visible:ring-[#EF4444]/20",
+                )}
+                aria-label="School contact number"
               />
+              <p
+                className={cn(
+                  "mt-1 text-[11px] leading-snug",
+                  contactError ? "font-medium text-[#B91C1C]" : "text-black/45",
+                )}
+                role={contactError ? "alert" : undefined}
+              >
+                {contactError ?? "Optional · India numbers need 10 digits"}
+              </p>
             </Field>
             <Field label="Tax ID / GSTIN">
               <Input
                 value={gstin}
-                onChange={(e) => setGstin(e.target.value.toUpperCase())}
-                placeholder="29ABCDE1234F1Z5"
-                className="font-mono"
+                onChange={(e) => {
+                  const next = normalizeGstin(e.target.value);
+                  setGstin(next);
+                  // Live-check only when complete; length/format errors on blur/submit.
+                  if (!next || next.length < 15) {
+                    setGstinError(null);
+                  } else {
+                    setGstinError(gstinFieldError(next));
+                  }
+                }}
+                onBlur={() => setGstinError(gstinFieldError(gstin))}
+                placeholder="29ABCDE1234F1ZW"
+                maxLength={15}
+                autoComplete="off"
+                spellCheck={false}
+                aria-invalid={Boolean(gstinError)}
+                className={cn(
+                  "font-mono uppercase",
+                  gstinError && "border-[#EF4444]/55 focus-visible:ring-[#EF4444]/20",
+                )}
               />
+              <p
+                className={cn(
+                  "mt-1 text-[11px] leading-snug",
+                  gstinError ? "font-medium text-[#B91C1C]" : "text-black/45",
+                )}
+              >
+                {gstinError ?? "Optional · Indian GSTIN, exactly 15 characters"}
+              </p>
             </Field>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Student Seat Limit">
               <Input
-                type="number"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={students}
-                onChange={(e) => setStudents(Number(e.target.value) || 0)}
+                onChange={(e) => setStudents(e.target.value.replace(/\D/g, ""))}
+                placeholder="e.g. 500"
                 className="font-mono"
               />
             </Field>
             <Field label="Faculty Roster Cap">
               <Input
-                type="number"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={faculty}
-                onChange={(e) => setFaculty(Number(e.target.value) || 0)}
+                onChange={(e) => setFaculty(e.target.value.replace(/\D/g, ""))}
+                placeholder="e.g. 40"
                 className="font-mono"
               />
             </Field>
@@ -1870,7 +1978,7 @@ function TenantDetailDrawer({
             Tenant Details
           </DialogTitle>
           <DialogDescription className="text-[12px] text-black/55">
-            {tenant.name} · {formatTenantPublicId(tenant.id)} · {tenant.subdomain}.feezo.app
+            {tenant.name} · {formatTenantPublicId(tenant.id)} · {formatTenantHost(tenant.subdomain)}
           </DialogDescription>
         </DialogHeader>
 
@@ -1971,7 +2079,7 @@ function TenantDetailDrawer({
                 <div className="col-span-12 sm:col-span-8">
                   <DetailStat
                     label="Routing host"
-                    value={`${tenant.subdomain}.schoolaccounts.in`}
+                    value={formatTenantHost(tenant.subdomain)}
                     mono
                   />
                 </div>
@@ -1989,6 +2097,37 @@ function TenantDetailDrawer({
                   <DetailStat
                     label="Seat utilisation"
                     value={`${tenant.students.toLocaleString()} / ${tenant.capacity.toLocaleString()} · ${pct}%`}
+                  />
+                </div>
+                <div className="col-span-12 sm:col-span-4">
+                  <DetailStat
+                    label="Contact"
+                    value={tenant.contactPhone?.trim() || "—"}
+                    mono={Boolean(tenant.contactPhone?.trim())}
+                  />
+                </div>
+                <div className="col-span-12 sm:col-span-4">
+                  <DetailStat
+                    label="Tax ID / GSTIN"
+                    value={tenant.gstin?.trim() || "—"}
+                    mono={Boolean(tenant.gstin?.trim())}
+                  />
+                </div>
+                <div className="col-span-12 sm:col-span-4">
+                  <DetailStat
+                    label="Faculty roster cap"
+                    value={
+                      tenant.staffCapacity && tenant.staffCapacity > 0
+                        ? tenant.staffCapacity.toLocaleString()
+                        : "—"
+                    }
+                  />
+                </div>
+                <div className="col-span-12">
+                  <DetailStat
+                    label="Custom root domain"
+                    value={tenant.customDomain?.trim() || "Off"}
+                    mono={Boolean(tenant.customDomain?.trim())}
                   />
                 </div>
 
@@ -2517,7 +2656,7 @@ function TenantDetailDrawer({
                     mode="super_admin"
                     tenantId={tenant.id}
                     tenantName={tenant.name}
-                    schoolHost={`${tenant.subdomain}.schoolaccounts.in`}
+                    schoolHost={formatTenantHost(tenant.subdomain)}
                     issueDraft={{
                       billingCycle: draft.cycle,
                       pricingModel: draft.pricingModel,
@@ -2547,7 +2686,7 @@ function TenantDetailDrawer({
                 <TenantSubscriptionsPanel
                   tenantId={tenant.id}
                   tenantName={tenant.name}
-                  schoolHost={`${tenant.subdomain}.schoolaccounts.in`}
+                  schoolHost={formatTenantHost(tenant.subdomain)}
                   currency={snapshot?.currency || billing?.currency}
                 />
               )}
@@ -2701,7 +2840,7 @@ function EditTenantDrawer({
   const [subdomain, setSubdomain] = useState("");
   const [tier, setTier] = useState<Tier>("Basic");
   const [status, setStatus] = useState<Status>("Active");
-  const [capacity, setCapacity] = useState(0);
+  const [capacity, setCapacity] = useState("");
   const [setupUsername, setSetupUsername] = useState("");
   const [setupPassword, setSetupPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -2712,7 +2851,7 @@ function EditTenantDrawer({
     setSubdomain(tenant.subdomain);
     setTier(tenant.tier);
     setStatus(tenant.status);
-    setCapacity(tenant.capacity);
+    setCapacity(String(tenant.capacity));
     setSetupUsername(tenant.adminEmail ?? "");
     setSetupPassword("");
   }, [tenant]);
@@ -2721,12 +2860,13 @@ function EditTenantDrawer({
   const currentUsername = (tenant.adminEmail ?? "").trim().toLowerCase();
   const usernameDirty = setupUsername.trim().toLowerCase() !== currentUsername;
   const passwordDirty = setupPassword.trim().length > 0;
+  const capacityValue = Number.parseInt(capacity, 10);
   const dirty =
     name !== tenant.name ||
     subdomain !== tenant.subdomain ||
     tier !== tenant.tier ||
     status !== tenant.status ||
-    capacity !== tenant.capacity ||
+    capacity !== String(tenant.capacity) ||
     usernameDirty ||
     passwordDirty;
 
@@ -2739,7 +2879,11 @@ function EditTenantDrawer({
       toast.error("Subdomain must be lowercase letters, digits, or hyphens");
       return;
     }
-    if (capacity < tenant.students) {
+    if (!Number.isFinite(capacityValue) || capacityValue < 1) {
+      toast.error("Student seat capacity must be at least 1");
+      return;
+    }
+    if (capacityValue < tenant.students) {
       toast.error("Capacity cannot drop below active enrolment", {
         description: `${tenant.students.toLocaleString()} students currently provisioned.`,
       });
@@ -2752,8 +2896,8 @@ function EditTenantDrawer({
         return;
       }
     }
-    if (passwordDirty && setupPassword.trim().length < 6) {
-      toast.error("Setup password must be at least 6 characters");
+    if (passwordDirty && setupPassword.trim().length < PASSWORD_MIN_LENGTH) {
+      toast.error(`Setup password must be at least ${PASSWORD_MIN_LENGTH} characters`);
       return;
     }
     setBusy(true);
@@ -2764,7 +2908,7 @@ function EditTenantDrawer({
         subdomain: subdomain.trim(),
         tier,
         status,
-        capacity,
+        capacity: capacityValue,
         ...(usernameDirty ? { username: setupUsername.trim().toLowerCase() } : {}),
         ...(passwordDirty ? { password: setupPassword.trim() } : {}),
       });
@@ -2778,7 +2922,7 @@ function EditTenantDrawer({
       toast.success("Tenant meta updated", {
         description: credBits.length
           ? `${updated.name} · ${credBits.join(" · ")}`
-          : `${updated.name} · ${updated.subdomain}.schoolaccounts.in`,
+          : `${updated.name} · ${formatTenantHost(updated.subdomain)}`,
       });
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Update failed";
@@ -2813,7 +2957,7 @@ function EditTenantDrawer({
                 className="flex-1 bg-transparent px-3 py-2 font-mono text-[13px] outline-none"
               />
               <span className="grid place-items-center bg-[#F4F4F5] px-3 font-mono text-[12px] text-black/55">
-                .feezo.app
+                .{BRAND.tenantHostSuffix}
               </span>
             </div>
           </Field>
@@ -2876,10 +3020,12 @@ function EditTenantDrawer({
 
           <Field label={`Student Seat Capacity · current ${tenant.students.toLocaleString()}`}>
             <Input
-              type="number"
-              min={tenant.students}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={capacity}
-              onChange={(e) => setCapacity(Number(e.target.value) || 0)}
+              onChange={(e) => setCapacity(e.target.value.replace(/\D/g, ""))}
+              placeholder={String(Math.max(tenant.students, 1))}
               className="font-mono"
             />
           </Field>
@@ -3281,6 +3427,7 @@ function PasswordInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        minLength={PASSWORD_MIN_LENGTH}
         className="pr-10"
       />
       <button

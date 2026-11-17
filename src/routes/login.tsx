@@ -20,13 +20,12 @@ import { familyForgot, familyLogin, familyToken } from "@/lib/api/family";
 import { ApiError } from "@/lib/api/client";
 import { homePathForSession, API_UNREACHABLE_MESSAGE, useAuth } from "@/lib/auth";
 import { consumeGoogleRedirectCredential, isGoogleSignInConfigured } from "@/lib/google-gis";
+import { PASSWORD_MAX_LENGTH } from "@/lib/password-policy";
 import { applyNoindex } from "@/lib/seo/public-pages";
 import { cn } from "@/lib/utils";
 
 const SCHOOL_DEACTIVATED_MESSAGE =
   "This school workspace has been deactivated. Contact Feezo support to restore access.";
-
-const PASSWORD_MAX = 72;
 
 const fieldClass =
   "h-12 w-full rounded-2xl border bg-[#FCFDFD] pl-11 pr-3.5 text-[14px] text-[#0B1220] outline-none transition-[border-color,box-shadow,background-color] placeholder:text-black/35 hover:border-[#D1D5DB] focus:border-[#0F766E]/50 focus:bg-white focus:ring-4 focus:ring-[#0F766E]/[0.08]";
@@ -163,10 +162,10 @@ function LoginPage() {
       errs.identifier = "Enter a valid email or 10-digit phone";
     }
 
+    // Login only requires a non-empty password — min length is enforced when
+    // setting/changing (provision, signup, reset). Legacy defaults may be shorter.
     if (mode === "login" && !password) {
       errs.password = "Password is required";
-    } else if (mode === "login" && password.length < 7) {
-      errs.password = "Password must be at least 7 characters";
     }
 
     if (isPhonePath && schools.length > 0 && !tenantId) {
@@ -375,10 +374,10 @@ function LoginPage() {
                 id="login-password"
                 type={showPw ? "text" : "password"}
                 autoComplete="current-password"
-                maxLength={PASSWORD_MAX}
+                maxLength={PASSWORD_MAX_LENGTH}
                 value={password}
                 onChange={(e) => {
-                  setPassword(e.target.value.slice(0, PASSWORD_MAX));
+                  setPassword(e.target.value.slice(0, PASSWORD_MAX_LENGTH));
                   if (fieldErrors.password) {
                     setFieldErrors((f) => ({ ...f, password: undefined }));
                   }

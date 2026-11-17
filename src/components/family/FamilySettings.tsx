@@ -28,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { familyChangePassword } from "@/lib/api/family";
 import { ApiError } from "@/lib/api/client";
 import { useFamily } from "@/lib/family-session";
+import { isPasswordLongEnough, passwordTooShortMessage } from "@/lib/password-policy";
 import { cn } from "@/lib/utils";
 
 const APP_VERSION = "1.0.0";
@@ -45,8 +46,8 @@ export function FamilySettings() {
   const [leaving, setLeaving] = useState(false);
 
   async function savePassword() {
-    if (next.length < 8) {
-      setError("New password must be at least 8 characters");
+    if (!isPasswordLongEnough(next)) {
+      setError(passwordTooShortMessage("new"));
       return;
     }
     if (!current) {
@@ -183,7 +184,7 @@ export function FamilySettings() {
                   className="rounded-xl"
                 />
                 {error ? <p className="text-xs text-[var(--family-pink-deep)]">{error}</p> : null}
-                <FamilyPillButton type="submit" disabled={busy || next.length < 8 || !current} className="h-11 w-full">
+                <FamilyPillButton type="submit" disabled={busy || !isPasswordLongEnough(next) || !current} className="h-11 w-full">
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Save password
                 </FamilyPillButton>

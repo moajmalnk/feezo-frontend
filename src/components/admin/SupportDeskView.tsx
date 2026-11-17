@@ -1,18 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ArrowLeft, LifeBuoy, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { LeadsView } from "@/components/admin/LeadsView";
 import { SettlementSetupView } from "@/components/admin/SettlementSetupView";
 import { mobileChatViewportClass } from "@/components/layout/MobileTabBar";
 import {
+  ConversationMeta,
   SupportChatBubble,
   SupportChatShell,
-  ConversationMeta,
 } from "@/components/support/SupportChatBubble";
 import { SupportComposer } from "@/components/support/SupportComposer";
-import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,13 +22,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { OrganicCard } from "@/components/ui/organic-card";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { usePinnedChatFrame } from "@/hooks/usePinnedChatFrame";
 import { ApiError, getApiToken } from "@/lib/api/client";
+import { fetchLeadSummary, type LeadSummary } from "@/lib/api/leads";
 import {
   deleteSuperAdminSupportMessage,
   editSuperAdminSupportMessage,
@@ -48,7 +50,6 @@ import {
   type SupportTicket,
   type SupportTicketStatus,
 } from "@/lib/api/support";
-import { fetchLeadSummary, type LeadSummary } from "@/lib/api/leads";
 import { formatChatStamp } from "@/lib/dates";
 import { phoneDigits } from "@/lib/phone";
 import { cn } from "@/lib/utils";
@@ -173,7 +174,12 @@ export function SupportDeskView() {
   const [deletingMessage, setDeletingMessage] = useState<SupportMessage | null>(null);
   const [pendingStatusChange, setPendingStatusChange] = useState<"closed" | "open" | null>(null);
   const [pendingDeleteChat, setPendingDeleteChat] = useState(false);
+  const [pendingDeleteFaq, setPendingDeleteFaq] = useState<SupportFaq | null>(null);
   const threadScrollRef = useRef<HTMLDivElement>(null);
+  const pinMobileThread = section === "messages" && Boolean(ticketId);
+  const chatFrameRef = usePinnedChatFrame(pinMobileThread, {
+    headerSelector: "[data-super-admin-header]",
+  });
 
   const canEditMessage = useCallback((msg: SupportMessage) => {
     if (msg.author !== "admin") return false;
@@ -391,12 +397,12 @@ export function SupportDeskView() {
           return prev.map((row) =>
             row.id === full.id
               ? {
-                  ...row,
-                  adminUnread: false,
-                  adminUnreadCount: 0,
-                  status: full.status,
-                  messageCount: full.messageCount ?? row.messageCount,
-                }
+                ...row,
+                adminUnread: false,
+                adminUnreadCount: 0,
+                status: full.status,
+                messageCount: full.messageCount ?? row.messageCount,
+              }
               : row,
           );
         });
@@ -601,12 +607,15 @@ export function SupportDeskView() {
     }
   };
 
-  const deleteFaq = async (id: string) => {
+  const confirmDeleteFaq = async () => {
+    const target = pendingDeleteFaq;
+    if (!target?.id) return;
     setFaqBusy(true);
     try {
-      await postSuperAdminSupport({ action: "faq.delete", id });
-      setFaqs((prev) => prev.filter((item) => item.id !== id));
-      if (faqDraft.id === id) setFaqDraft(emptyFaq());
+      await postSuperAdminSupport({ action: "faq.delete", id: target.id });
+      setFaqs((prev) => prev.filter((item) => item.id !== target.id));
+      if (faqDraft.id === target.id) setFaqDraft(emptyFaq());
+      setPendingDeleteFaq(null);
       toast.success("Answer removed");
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Delete failed";
@@ -630,338 +639,354 @@ export function SupportDeskView() {
       <div className="grid grid-cols-12 gap-3 sm:gap-4 lg:gap-5">
         <div
           className={cn(
-            "col-span-12 flex flex-wrap items-center gap-2",
-            ticketId && "hidden lg:flex",
+            "mobile-scrollbar-none col-span-12 min-w-0 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+            ticketId && "hidden lg:block",
           )}
         >
-          {SECTIONS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => {
-                if (item.id !== "messages") {
-                  void navigate({ href: SUPPORT_SECTION_HREF[item.id] });
-                  return;
-                }
-                if (ticketId) {
-                  void navigate({ to: "/super-admin/support/$ticketId", params: { ticketId } });
-                  return;
-                }
-                void navigate({ to: "/super-admin/support" });
-              }}
-              className={cn(
-                "inline-flex h-9 items-center gap-2 rounded-full px-3.5 text-[13px] font-semibold transition-colors",
-                section === item.id
-                  ? "bg-[#0F766E] text-white"
-                  : "bg-white text-black/60 ring-1 ring-[#E5E5E5] hover:text-black",
-              )}
-            >
-              {item.label}
-              {item.id === "messages" && unreadCount > 0 ? (
-                <span
-                  className={cn(
-                    "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[10px] font-bold",
-                    section === item.id ? "bg-white/20 text-white" : "bg-[#0F766E] text-white",
-                  )}
-                >
-                  {unreadCount}
-                </span>
-              ) : null}
-              {item.id === "autoReply" && autoReplyCount > 0 ? (
-                <span
-                  className={cn(
-                    "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[10px] font-bold",
-                    section === item.id ? "bg-white/20 text-white" : "bg-black/[0.06] text-black/55",
-                  )}
-                >
-                  {autoReplyCount > 99 ? "99+" : autoReplyCount}
-                </span>
-              ) : null}
-              {item.id === "leads" && leadSummary ? (
-                <span
-                  title={`${leadSummary.unreadCount} unread · ${leadSummary.counts.all} total`}
-                  className={cn(
-                    "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[10px] font-bold",
-                    section === item.id
-                      ? "bg-white/20 text-white"
-                      : leadSummary.unreadCount > 0
-                        ? "bg-sky-600 text-white"
-                        : "bg-black/[0.06] text-black/55",
-                  )}
-                >
-                  {leadSummary.unreadCount > 0 ? leadSummary.unreadCount : leadSummary.counts.all}
-                </span>
-              ) : null}
-            </button>
-          ))}
+          <div className="inline-flex min-w-max items-center gap-1.5 sm:gap-2">
+            {SECTIONS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  if (item.id !== "messages") {
+                    void navigate({ href: SUPPORT_SECTION_HREF[item.id] });
+                    return;
+                  }
+                  if (ticketId) {
+                    void navigate({ to: "/super-admin/support/$ticketId", params: { ticketId } });
+                    return;
+                  }
+                  void navigate({ to: "/super-admin/support" });
+                }}
+                className={cn(
+                  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold whitespace-nowrap transition-colors sm:gap-2 sm:px-3.5",
+                  section === item.id
+                    ? "bg-[#0F766E] text-white"
+                    : "bg-white text-black/60 ring-1 ring-[#E5E5E5] hover:text-black",
+                )}
+              >
+                {item.label}
+                {item.id === "messages" && unreadCount > 0 ? (
+                  <span
+                    className={cn(
+                      "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[10px] font-bold",
+                      section === item.id ? "bg-white/20 text-white" : "bg-[#0F766E] text-white",
+                    )}
+                  >
+                    {unreadCount}
+                  </span>
+                ) : null}
+                {item.id === "autoReply" && autoReplyCount > 0 ? (
+                  <span
+                    className={cn(
+                      "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[10px] font-bold",
+                      section === item.id ? "bg-white/20 text-white" : "bg-black/[0.06] text-black/55",
+                    )}
+                  >
+                    {autoReplyCount > 99 ? "99+" : autoReplyCount}
+                  </span>
+                ) : null}
+                {item.id === "leads" && leadSummary ? (
+                  <span
+                    title={`${leadSummary.unreadCount} unread · ${leadSummary.counts.all} total`}
+                    className={cn(
+                      "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 font-mono text-[10px] font-bold",
+                      section === item.id
+                        ? "bg-white/20 text-white"
+                        : leadSummary.unreadCount > 0
+                          ? "bg-sky-600 text-white"
+                          : "bg-black/[0.06] text-black/55",
+                    )}
+                  >
+                    {leadSummary.unreadCount > 0 ? leadSummary.unreadCount : leadSummary.counts.all}
+                  </span>
+                ) : null}
+              </button>
+            ))}
+          </div>
         </div>
 
         {section === "messages" ? (
-          <OrganicCard
-            tone="white"
-            cornerSide="tr"
-            padded
+          <div
+            ref={chatFrameRef}
             className={cn(
-              "col-span-12",
-              ticketId &&
-                "!p-0 max-lg:-mx-3 max-lg:-mt-4 max-lg:mb-[calc(-1*(60px+0.75rem+env(safe-area-inset-bottom,0px)))] lg:!p-6 lg:mx-0 lg:mt-0 lg:mb-0",
+              "col-span-12 min-w-0 max-w-full",
+              pinMobileThread && "max-lg:overflow-hidden",
             )}
           >
-            <div className={cn("space-y-3", ticketId && "hidden lg:block")}>
-              <div>
-                <div className="text-[13px] font-semibold text-black">School messages</div>
-                <p className="mt-0.5 text-[12px] text-black/50">
-                  {visibleTickets.length === 0
-                    ? "Nothing in this list"
-                    : `${visibleTickets.length} conversation${visibleTickets.length === 1 ? "" : "s"}`}
-                </p>
-              </div>
-              <div className="mobile-scrollbar-none -mx-0.5 overflow-x-auto pb-0.5">
-                <div className="inline-flex min-w-max rounded-full border border-[#E5E5E5] bg-white p-1">
-                  {STATUS_FILTERS.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setStatus(item.id)}
-                      className={cn(
-                        "rounded-full px-3 py-1.5 text-[11px] font-semibold whitespace-nowrap",
-                        status === item.id
-                          ? "bg-black text-white"
-                          : "text-black/55 hover:text-black",
-                      )}
-                    >
-                      {item.label}
-                      {statusCounts[item.id] ? (
-                        <span className="ml-1 font-mono text-[10px] opacity-70">
-                          {statusCounts[item.id]}
-                        </span>
-                      ) : null}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div
+            <OrganicCard
+              tone="white"
+              cornerSide="tr"
+              padded={!ticketId}
               className={cn(
-                "overflow-hidden rounded-2xl border border-[#EFEFEF]",
-                ticketId
-                  ? "mt-0 border-0 max-lg:rounded-none lg:mt-4 lg:rounded-2xl lg:border"
-                  : "mt-4",
+                "min-w-0 max-w-full",
+                ticketId &&
+                "!p-0 max-lg:h-full max-lg:rounded-none max-lg:border-0 max-lg:shadow-none lg:!p-6",
               )}
             >
+              <div className={cn("space-y-3", ticketId && "hidden lg:block")}>
+                <div>
+                  <div className="text-[13px] font-semibold text-black">School messages</div>
+                  <p className="mt-0.5 text-[12px] text-black/50">
+                    {visibleTickets.length === 0
+                      ? "Nothing in this list"
+                      : `${visibleTickets.length} conversation${visibleTickets.length === 1 ? "" : "s"}`}
+                  </p>
+                </div>
+                <div className="mobile-scrollbar-none min-w-0 overflow-x-auto pb-0.5">
+                  <div className="inline-flex min-w-max rounded-full border border-[#E5E5E5] bg-white p-1">
+                    {STATUS_FILTERS.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setStatus(item.id)}
+                        className={cn(
+                          "rounded-full px-3 py-1.5 text-[11px] font-semibold whitespace-nowrap",
+                          status === item.id
+                            ? "bg-black text-white"
+                            : "text-black/55 hover:text-black",
+                        )}
+                      >
+                        {item.label}
+                        {statusCounts[item.id] ? (
+                          <span className="ml-1 font-mono text-[10px] opacity-70">
+                            {statusCounts[item.id]}
+                          </span>
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               <div
                 className={cn(
-                  "grid min-h-[22rem] grid-cols-12",
+                  "min-w-0 overflow-hidden rounded-2xl border border-[#EFEFEF]",
                   ticketId
-                    ? cn(mobileChatViewportClass, "lg:h-[min(calc(100dvh-16rem),720px)]")
-                    : "h-[min(calc(100dvh-16rem),720px)]",
+                    ? "mt-0 h-full border-0 max-lg:rounded-none lg:mt-4 lg:rounded-2xl lg:border"
+                    : "mt-4",
                 )}
               >
-                <ul
+                <div
                   className={cn(
-                    "mobile-scrollbar-none col-span-12 space-y-0 overflow-y-auto border-[#EFEFEF] bg-white lg:col-span-4 lg:border-r",
-                    ticketId ? "hidden lg:block" : "block",
+                    "grid min-h-0 min-w-0 grid-cols-12",
+                    ticketId
+                      ? cn(
+                        "max-lg:h-full",
+                        mobileChatViewportClass,
+                        "lg:h-[min(calc(100dvh-16rem),720px)]",
+                      )
+                      : "h-[min(calc(100dvh-16rem),720px)]",
                   )}
                 >
-                  {visibleTickets.length === 0 ? (
-                    <li className="rounded-xl border border-dashed border-[#E5E5E5] px-3 py-10 text-center text-[13px] text-black/45">
-                      No messages here.
-                    </li>
-                  ) : (
-                    visibleTickets.map((ticket) => {
-                      const active = ticket.id === ticketId;
-                      const preview = ticket.lastMessage?.body || ticket.subject;
-                      const unread = ticket.adminUnreadCount ?? (ticket.adminUnread ? 1 : 0);
-                      return (
-                        <li key={ticket.id}>
-                          <Link
-                            to="/super-admin/support/$ticketId"
-                            params={{ ticketId: ticket.id }}
-                            className={cn(
-                              "flex w-full items-start gap-3 px-3 py-2.5 text-left hover:bg-black/[0.03]",
-                              active && "bg-[#E6F4F1]",
-                            )}
-                          >
-                            <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#0F766E] text-[11px] font-bold text-white">
-                              {(ticket.tenantName || "S").slice(0, 1).toUpperCase()}
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="flex items-baseline justify-between gap-2">
-                                <span
-                                  className={cn(
-                                    "truncate text-[14px] text-black",
-                                    unread > 0 ? "font-bold" : "font-semibold",
-                                  )}
-                                >
-                                  {ticket.tenantName || "School"}
+                  <ul
+                    className={cn(
+                      "mobile-scrollbar-none col-span-12 space-y-0 overflow-y-auto border-[#EFEFEF] bg-white lg:col-span-4 lg:border-r",
+                      ticketId ? "hidden lg:block" : "block",
+                    )}
+                  >
+                    {visibleTickets.length === 0 ? (
+                      <li className="rounded-xl border border-dashed border-[#E5E5E5] px-3 py-10 text-center text-[13px] text-black/45">
+                        No messages here.
+                      </li>
+                    ) : (
+                      visibleTickets.map((ticket) => {
+                        const active = ticket.id === ticketId;
+                        const preview = ticket.lastMessage?.body || ticket.subject;
+                        const unread = ticket.adminUnreadCount ?? (ticket.adminUnread ? 1 : 0);
+                        return (
+                          <li key={ticket.id}>
+                            <Link
+                              to="/super-admin/support/$ticketId"
+                              params={{ ticketId: ticket.id }}
+                              className={cn(
+                                "flex w-full min-w-0 items-start gap-2.5 px-2.5 py-2.5 text-left hover:bg-black/[0.03] sm:gap-3 sm:px-3",
+                                active && "bg-[#E6F4F1]",
+                              )}
+                            >
+                              <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#0F766E] text-[11px] font-bold text-white sm:h-10 sm:w-10">
+                                {(ticket.tenantName || "S").slice(0, 1).toUpperCase()}
+                              </span>
+                              <span className="min-w-0 flex-1 overflow-hidden">
+                                <span className="flex items-baseline justify-between gap-2">
+                                  <span
+                                    className={cn(
+                                      "min-w-0 truncate text-[13px] text-black sm:text-[14px]",
+                                      unread > 0 ? "font-bold" : "font-semibold",
+                                    )}
+                                  >
+                                    {ticket.tenantName || "School"}
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      "shrink-0 whitespace-nowrap text-[10px]",
+                                      unread > 0 ? "font-semibold text-[#0F766E]" : "text-black/35",
+                                    )}
+                                  >
+                                    {formatStamp(
+                                      ticket.lastMessage?.createdAt || ticket.updatedAt,
+                                    )}
+                                  </span>
                                 </span>
-                                <span
-                                  className={cn(
-                                    "shrink-0 text-[10px]",
-                                    unread > 0 ? "font-semibold text-[#0F766E]" : "text-black/35",
-                                  )}
-                                >
-                                  {formatStamp(ticket.updatedAt)}
+                                <span className="mt-0.5 flex min-w-0 items-center gap-1.5">
+                                  <span
+                                    className={cn(
+                                      "min-w-0 flex-1 truncate text-[12px]",
+                                      unread > 0 ? "font-medium text-black/70" : "text-black/50",
+                                    )}
+                                  >
+                                    {preview}
+                                  </span>
+                                  <ConversationMeta
+                                    unreadCount={unread}
+                                    messageCount={ticket.messageCount ?? 0}
+                                  />
                                 </span>
                               </span>
-                              <span className="mt-0.5 flex items-center gap-1.5">
-                                <span
-                                  className={cn(
-                                    "min-w-0 flex-1 truncate text-[12px]",
-                                    unread > 0 ? "font-medium text-black/70" : "text-black/50",
-                                  )}
-                                >
-                                  {preview}
-                                </span>
-                                <ConversationMeta
-                                  unreadCount={unread}
-                                  messageCount={ticket.messageCount ?? 0}
-                                />
-                              </span>
-                            </span>
-                          </Link>
-                        </li>
-                      );
-                    })
-                  )}
-                </ul>
+                            </Link>
+                          </li>
+                        );
+                      })
+                    )}
+                  </ul>
 
-                <SupportChatShell
-                  className={cn(
-                    "col-span-12 min-h-0 lg:col-span-8",
-                    ticketId ? "flex" : "hidden lg:flex",
-                  )}
-                >
-                  {thread && thread.id === ticketId ? (
-                    <>
-                      <div className="flex shrink-0 items-center gap-2 border-b border-black/5 bg-white/90 px-1.5 py-1.5">
-                        <Link
-                          to="/super-admin/support"
-                          className="grid h-10 w-10 place-items-center rounded-full text-black/55 hover:bg-black/5 lg:hidden"
-                          aria-label="Back to chats"
-                        >
-                          <ArrowLeft className="h-5 w-5" />
-                        </Link>
-                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#0F766E] text-[11px] font-bold text-white">
-                          {(thread.tenantName || "S").slice(0, 1).toUpperCase()}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-[14px] font-semibold text-black">
-                            {thread.tenantName || "School"}
-                          </div>
-                          <div className="truncate text-[11px] text-black/45">
-                            {thread.createdByName || "School admin"}
-                            {thread.subject ? ` · ${thread.subject}` : ""}
-                          </div>
-                        </div>
-                        {thread.status !== "closed" ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-8 rounded-full"
-                            disabled={replyBusy}
-                            onClick={() => setPendingStatusChange("closed")}
+                  <SupportChatShell
+                    className={cn(
+                      "col-span-12 min-h-0 lg:col-span-8",
+                      ticketId ? "flex" : "hidden lg:flex",
+                    )}
+                  >
+                    {thread && thread.id === ticketId ? (
+                      <>
+                        <div className="flex shrink-0 items-center gap-2 border-b border-black/5 bg-white/90 px-1.5 py-1.5">
+                          <Link
+                            to="/super-admin/support"
+                            className="grid h-10 w-10 place-items-center rounded-full text-black/55 hover:bg-black/5 lg:hidden"
+                            aria-label="Back to chats"
                           >
-                            Close
-                          </Button>
-                        ) : (
-                          <div className="flex shrink-0 items-center gap-1.5">
+                            <ArrowLeft className="h-5 w-5" />
+                          </Link>
+                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#0F766E] text-[11px] font-bold text-white">
+                            {(thread.tenantName || "S").slice(0, 1).toUpperCase()}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-[14px] font-semibold text-black">
+                              {thread.tenantName || "School"}
+                            </div>
+                            <div className="truncate text-[11px] text-black/45">
+                              {thread.createdByName || "School admin"}
+                              {thread.subject ? ` · ${thread.subject}` : ""}
+                            </div>
+                          </div>
+                          {thread.status !== "closed" ? (
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="h-8 rounded-full px-2.5 text-[12px] text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                              className="h-8 rounded-full"
                               disabled={replyBusy}
-                              onClick={() => setPendingDeleteChat(true)}
-                              aria-label="Delete chat"
+                              onClick={() => setPendingStatusChange("closed")}
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              <span className="ml-1 hidden sm:inline">Delete</span>
+                              Close
                             </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              className="h-8 rounded-full bg-[#0F766E] px-3 text-white hover:bg-[#0D9488]"
-                              disabled={replyBusy}
-                              onClick={() => setPendingStatusChange("open")}
-                            >
-                              Reopen
-                            </Button>
+                          ) : (
+                            <div className="flex shrink-0 items-center gap-1.5">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 rounded-full px-2.5 text-[12px] text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                disabled={replyBusy}
+                                onClick={() => setPendingDeleteChat(true)}
+                                aria-label="Delete chat"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                <span className="ml-1 hidden sm:inline">Delete</span>
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="h-8 rounded-full bg-[#0F766E] px-3 text-white hover:bg-[#0D9488]"
+                                disabled={replyBusy}
+                                onClick={() => setPendingStatusChange("open")}
+                              >
+                                Reopen
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        <div
+                          ref={threadScrollRef}
+                          className="mobile-scrollbar-none min-h-0 flex-1 overflow-y-auto px-2 py-3 sm:px-3"
+                        >
+                          <div className="flex min-h-full flex-col justify-end gap-1.5">
+                            {(thread.messages ?? []).map((msg) => (
+                              <SupportChatBubble
+                                key={msg.id}
+                                fromYou={msg.author === "admin"}
+                                createdAt={msg.createdAt}
+                                updatedAt={msg.updatedAt}
+                                body={msg.body}
+                                attachments={msg.attachments}
+                                canEdit={thread.status !== "closed" && canEditMessage(msg)}
+                                canDelete={canDeleteMessage(msg)}
+                                onEdit={
+                                  thread.status !== "closed" && canEditMessage(msg)
+                                    ? () => setEditingMessage(msg)
+                                    : undefined
+                                }
+                                onDelete={
+                                  canDeleteMessage(msg) ? () => setDeletingMessage(msg) : undefined
+                                }
+                              />
+                            ))}
                           </div>
-                        )}
-                      </div>
-                      <div
-                        ref={threadScrollRef}
-                        className="mobile-scrollbar-none min-h-0 flex-1 overflow-y-auto px-2 py-3 sm:px-3"
-                      >
-                        <div className="flex min-h-full flex-col justify-end gap-1.5">
-                          {(thread.messages ?? []).map((msg) => (
-                            <SupportChatBubble
-                              key={msg.id}
-                              fromYou={msg.author === "admin"}
-                              createdAt={msg.createdAt}
-                              updatedAt={msg.updatedAt}
-                              body={msg.body}
-                              attachments={msg.attachments}
-                              canEdit={thread.status !== "closed" && canEditMessage(msg)}
-                              canDelete={canDeleteMessage(msg)}
-                              onEdit={
-                                thread.status !== "closed" && canEditMessage(msg)
-                                  ? () => setEditingMessage(msg)
-                                  : undefined
-                              }
-                              onDelete={
-                                canDeleteMessage(msg) ? () => setDeletingMessage(msg) : undefined
-                              }
+                        </div>
+                        <div className="shrink-0 border-t border-black/5 px-2 py-2 dark:border-white/10 sm:px-3">
+                          {thread.status === "closed" ? (
+                            <p className="rounded-2xl bg-white/80 px-3 py-2 text-center text-[12px] text-black/50 dark:bg-zinc-900/80 dark:text-zinc-400">
+                              Closed. Reopen or delete from the header, or the school can write again.
+                            </p>
+                          ) : (
+                            <SupportComposer
+                              key={`${thread.id}-${editingMessage?.id ?? "new"}`}
+                              ticketId={thread.id}
+                              placeholder={editingMessage ? "Edit message" : "Message"}
+                              autoFocus
+                              disabled={replyBusy}
+                              busy={replyBusy}
+                              initialDraft={editingMessage?.body ?? ""}
+                              editingMessageId={editingMessage?.id ?? null}
+                              onCancelEdit={() => setEditingMessage(null)}
+                              onSend={editingMessage ? saveEditedMessage : sendReply}
                             />
-                          ))}
+                          )}
+                        </div>
+                      </>
+                    ) : ticketId ? (
+                      <div className="grid flex-1 place-items-center text-center">
+                        <div className="flex items-center gap-2 text-[13px] text-black/45">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Opening…
                         </div>
                       </div>
-                      <div className="shrink-0 border-t border-black/5 px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 dark:border-white/10 sm:px-3">
-                        {thread.status === "closed" ? (
-                          <p className="rounded-2xl bg-white/80 px-3 py-2 text-center text-[12px] text-black/50 dark:bg-zinc-900/80 dark:text-zinc-400">
-                            Closed. Reopen or delete from the header, or the school can write again.
+                    ) : (
+                      <div className="grid flex-1 place-items-center text-center">
+                        <div>
+                          <LifeBuoy className="mx-auto h-8 w-8 text-black/25" />
+                          <p className="mt-2 text-[13px] font-medium text-black/55">Pick a chat</p>
+                          <p className="mt-0.5 text-[12px] text-black/40">
+                            Reply from here like WhatsApp.
                           </p>
-                        ) : (
-                          <SupportComposer
-                            key={`${thread.id}-${editingMessage?.id ?? "new"}`}
-                            ticketId={thread.id}
-                            placeholder={editingMessage ? "Edit message" : "Message"}
-                            autoFocus
-                            disabled={replyBusy}
-                            busy={replyBusy}
-                            initialDraft={editingMessage?.body ?? ""}
-                            editingMessageId={editingMessage?.id ?? null}
-                            onCancelEdit={() => setEditingMessage(null)}
-                            onSend={editingMessage ? saveEditedMessage : sendReply}
-                          />
-                        )}
+                        </div>
                       </div>
-                    </>
-                  ) : ticketId ? (
-                    <div className="grid flex-1 place-items-center text-center">
-                      <div className="flex items-center gap-2 text-[13px] text-black/45">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Opening…
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid flex-1 place-items-center text-center">
-                      <div>
-                        <LifeBuoy className="mx-auto h-8 w-8 text-black/25" />
-                        <p className="mt-2 text-[13px] font-medium text-black/55">Pick a chat</p>
-                        <p className="mt-0.5 text-[12px] text-black/40">
-                          Reply from here like WhatsApp.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </SupportChatShell>
+                    )}
+                  </SupportChatShell>
+                </div>
               </div>
-            </div>
-          </OrganicCard>
+            </OrganicCard>
+          </div>
         ) : null}
 
         {section === "autoReply" ? (
@@ -1007,23 +1032,23 @@ export function SupportDeskView() {
                             type="button"
                             onClick={() => setAutoReplyTenantId(tenant.tenantId)}
                             className={cn(
-                              "flex w-full items-start gap-3 px-3 py-2.5 text-left hover:bg-black/[0.03]",
+                              "flex w-full min-w-0 items-start gap-2.5 px-2.5 py-2.5 text-left hover:bg-black/[0.03] sm:gap-3 sm:px-3",
                               active && "bg-[#E6F4F1]",
                             )}
                           >
-                            <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#0F766E] text-[11px] font-bold text-white">
+                            <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#0F766E] text-[11px] font-bold text-white sm:h-10 sm:w-10">
                               {(tenant.tenantName || "S").slice(0, 1).toUpperCase()}
                             </span>
-                            <span className="min-w-0 flex-1">
+                            <span className="min-w-0 flex-1 overflow-hidden">
                               <span className="flex items-baseline justify-between gap-2">
-                                <span className="truncate text-[14px] font-semibold text-black">
+                                <span className="min-w-0 truncate text-[13px] font-semibold text-black sm:text-[14px]">
                                   {tenant.tenantName || "School"}
                                 </span>
-                                <span className="shrink-0 text-[10px] text-black/35">
+                                <span className="shrink-0 whitespace-nowrap text-[10px] text-black/35">
                                   {tenant.lastAt ? formatStamp(tenant.lastAt) : "—"}
                                 </span>
                               </span>
-                              <span className="mt-0.5 flex items-center gap-1.5">
+                              <span className="mt-0.5 flex min-w-0 items-center gap-1.5">
                                 <span className="min-w-0 flex-1 truncate text-[12px] text-black/50">
                                   {tenant.lastPreview || "Auto reply"}
                                 </span>
@@ -1127,8 +1152,8 @@ export function SupportDeskView() {
 
         {section === "help" ? (
           <OrganicCard tone="white" cornerSide="tr" padded className="col-span-12">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+              <div className="min-w-0">
                 <div className="text-[13px] font-semibold text-black">Help answers</div>
                 <p className="mt-0.5 text-[12px] text-black/50">
                   Question and answer only. Schools see these in Settings → Customer Support.
@@ -1138,7 +1163,7 @@ export function SupportDeskView() {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="rounded-full"
+                className="w-full shrink-0 rounded-full sm:w-auto"
                 onClick={() => setFaqDraft(emptyFaq())}
               >
                 <Plus className="mr-1 h-3.5 w-3.5" />
@@ -1159,17 +1184,17 @@ export function SupportDeskView() {
                         type="button"
                         onClick={() => setFaqDraft(faq)}
                         className={cn(
-                          "flex w-full items-start justify-between gap-2 rounded-xl border px-3 py-2.5 text-left",
+                          "flex w-full min-w-0 items-start justify-between gap-2 rounded-xl border px-3 py-2.5 text-left",
                           faqDraft.id === faq.id
                             ? "border-[#0F766E]/40 bg-[#F0FDFA]"
                             : "border-[#EFEFEF] bg-white hover:bg-[#FAFAFA]",
                         )}
                       >
-                        <span className="min-w-0">
+                        <span className="min-w-0 flex-1 overflow-hidden">
                           <span className="block truncate text-[13px] font-semibold text-black">
                             {faq.question}
                           </span>
-                          <span className="mt-0.5 block text-[11px] text-black/40">
+                          <span className="mt-0.5 block truncate text-[11px] text-black/40">
                             {faq.active === false ? "Hidden from schools" : "Shown to schools"}
                           </span>
                         </span>
@@ -1180,13 +1205,13 @@ export function SupportDeskView() {
                           className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-black/40 hover:bg-red-50 hover:text-red-600"
                           onClick={(e) => {
                             e.stopPropagation();
-                            void deleteFaq(faq.id);
+                            setPendingDeleteFaq(faq);
                           }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
                               e.stopPropagation();
-                              void deleteFaq(faq.id);
+                              setPendingDeleteFaq(faq);
                             }
                           }}
                         >
@@ -1426,6 +1451,41 @@ export function SupportDeskView() {
               }}
             >
               {replyBusy ? "Deleting…" : "Delete chat"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={Boolean(pendingDeleteFaq)}
+        onOpenChange={(open) => {
+          if (!open && !faqBusy) setPendingDeleteFaq(null);
+        }}
+      >
+        <AlertDialogContent className="max-w-sm rounded-2xl border border-[#E5E5E5] bg-white dark:border-white/10 dark:bg-zinc-900">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-black dark:text-zinc-50">
+              Delete this help answer?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-black/60 dark:text-zinc-400">
+              {pendingDeleteFaq?.question
+                ? `“${pendingDeleteFaq.question}” will be removed from school Customer Support. This cannot be undone.`
+                : "This help answer will be removed from school Customer Support. This cannot be undone."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={faqBusy} className="rounded-full">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={faqBusy}
+              className="rounded-full bg-[#EF4444] text-white hover:bg-[#DC2626]"
+              onClick={(event) => {
+                event.preventDefault();
+                void confirmDeleteFaq();
+              }}
+            >
+              {faqBusy ? "Deleting…" : "Delete answer"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

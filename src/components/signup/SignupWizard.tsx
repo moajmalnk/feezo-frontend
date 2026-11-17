@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { ApiError } from "@/lib/api/client";
 import { apiRegisterTrial } from "@/lib/api/auth";
+import { fetchPublicPlans } from "@/lib/api/plans";
 import { homePathForSession, useAuth } from "@/lib/auth";
 import { BRAND } from "@/lib/brand";
 import { INDIA_STATES, districtsForState } from "@/lib/geo/india-states-districts";
@@ -40,6 +41,12 @@ import { isIndianPincode, lookupIndianPincode, type PincodeMatch } from "@/lib/g
 import { CURRENCIES, currencyDefaultCountry, normalizeCurrency } from "@/lib/locale/currencies";
 import { useLocale } from "@/lib/locale/LocaleProvider";
 import { PhoneInput } from "@/components/ui/phone-input";
+import {
+  isPasswordLongEnough,
+  PASSWORD_MIN_LENGTH,
+  passwordHintLabel,
+  passwordUseMinMessage,
+} from "@/lib/password-policy";
 import {
   EMAIL_RE,
   SCHOOL_TYPES,
@@ -53,6 +60,7 @@ import {
   stepNumberFromSlug,
   withIndiaDialCode,
   type SignupFormState,
+  type SignupPlan,
   type SignupStepSlug,
 } from "@/lib/signup-content";
 import { cn } from "@/lib/utils";
@@ -87,7 +95,7 @@ function validateAccount(form: SignupFormState): Errors {
   if (!form.adminName.trim()) e.adminName = "Enter your full name";
   if (!EMAIL_RE.test(form.adminEmail.trim())) e.adminEmail = "Enter a valid email";
   if (!isValidPhone(form.adminMobile)) e.adminMobile = "Enter a valid mobile number";
-  if (form.password.length < 8) e.password = "Use at least 8 characters";
+  if (!isPasswordLongEnough(form.password)) e.password = passwordUseMinMessage();
   return e;
 }
 
@@ -620,8 +628,34 @@ function AccountStep({
   onSubmit: (e?: FormEvent) => void;
 }) {
   const [showPw, setShowPw] = useState(false);
+  const [plans, setPlans] = useState<SignupPlan[]>(SIGNUP_PLANS);
   const strength = passwordStrength(form.password);
   const strengthPct = Math.min(100, (strength.score / 5) * 100);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const live = await fetchPublicPlans();
+        if (cancelled || !live?.length) return;
+        const byName = new Map(
+          live.map((p) => [p.name, p.monthly] as [string, number]),
+        );
+        setPlans((prev): SignupPlan[] =>
+          prev.map((plan) => {
+            const monthly = byName.get(plan.name);
+            if (typeof monthly !== "number" || monthly <= 0) return plan;
+            return { ...plan, monthlyInr: monthly };
+          }),
+        );
+      } catch {
+        // Keep catalog defaults when API is unreachable.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <form className="space-y-5" onSubmit={onSubmit} noValidate autoComplete="on">
@@ -682,10 +716,10 @@ function AccountStep({
             name="new-password"
             type={showPw ? "text" : "password"}
             autoComplete="new-password"
-            minLength={8}
+            minLength={PASSWORD_MIN_LENGTH}
             enterKeyHint="done"
             className={cn(fieldClass, "pr-11")}
-            placeholder="At least 8 characters"
+            placeholder={passwordHintLabel()}
             value={form.password}
             onChange={(e) => patch("password", e.target.value)}
           />
@@ -721,7 +755,7 @@ function AccountStep({
       <fieldset>
         <FieldLabel>Plan after your 14-day trial</FieldLabel>
         <div role="radiogroup" aria-label="Plan" className="grid grid-cols-3 gap-2">
-          {SIGNUP_PLANS.map((plan) => {
+          {plans.map((plan) => {
             const on = form.tier === plan.name;
             return (
               <button

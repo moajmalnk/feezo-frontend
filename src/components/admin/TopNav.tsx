@@ -1,9 +1,10 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Bell, Home, LogOut, Settings, UserCog } from "lucide-react";
+import { Home, LogOut, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ADMIN_NAV, type ViewKey } from "@/components/admin/admin-nav";
 import { GlobalSearch } from "@/components/admin/GlobalSearch";
+import { PlatformNotificationsMenu } from "@/components/admin/PlatformNotificationsMenu";
 import { FeezoBrand } from "@/components/brand/FeezoBrand";
 import {
   DropdownMenu,
@@ -44,7 +45,10 @@ export function TopNav() {
   const activeLabel = ADMIN_NAV.find((n) => n.key === active)?.label ?? "Overview";
 
   return (
-    <header className="sticky top-0 z-30 w-full max-w-[100vw] overflow-x-clip bg-[#F4F6F9]/92 px-3 pb-2 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur-xl sm:px-4 sm:pt-[calc(1rem+env(safe-area-inset-top))] lg:border-b lg:border-[#E5E5E5]/60 lg:bg-[#F4F6F9]/92 lg:px-6 lg:pb-3 lg:pt-[calc(1.25rem+env(safe-area-inset-top))] lg:backdrop-blur-xl">
+    <header
+      data-super-admin-header
+      className="sticky top-0 z-30 w-full max-w-[100vw] overflow-x-clip bg-[#F4F6F9]/92 px-3 pb-2 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur-xl sm:px-4 sm:pt-[calc(1rem+env(safe-area-inset-top))] lg:border-b lg:border-[#E5E5E5]/60 lg:bg-[#F4F6F9]/92 lg:px-6 lg:pb-3 lg:pt-[calc(1.25rem+env(safe-area-inset-top))] lg:backdrop-blur-xl"
+    >
       <div className="mobile-app-rail mx-auto flex min-w-0 items-center justify-between gap-2 rounded-2xl border border-white/70 bg-white/88 px-2.5 py-2 shadow-[0_14px_44px_-32px_rgba(0,0,0,0.45)] sm:gap-3 sm:px-3 sm:py-2.5 lg:max-w-[1480px] lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
         <Link to="/super-admin/overview" className="flex min-w-0 flex-1 items-center overflow-hidden">
           <FeezoBrand
@@ -66,9 +70,8 @@ export function TopNav() {
               <Link
                 key={n.key}
                 to={n.to}
-                className={`relative rounded-full px-3 py-2 text-[12.5px] font-medium transition-all xl:px-5 xl:text-[13px] ${
-                  isActive ? "bg-black text-white shadow-sm" : "text-black/65 hover:text-black"
-                }`}
+                className={`relative rounded-full px-3 py-2 text-[12.5px] font-medium transition-all xl:px-5 xl:text-[13px] ${isActive ? "bg-black text-white shadow-sm" : "text-black/65 hover:text-black"
+                  }`}
               >
                 {n.label}
               </Link>
@@ -77,34 +80,9 @@ export function TopNav() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
-          <div className="hidden xl:block">
-            <GlobalSearch variant="field" />
-          </div>
-          <div className="xl:hidden">
-            <GlobalSearch variant="icon" />
-          </div>
+          <GlobalSearch />
+          <PlatformNotificationsMenu />
 
-          <button
-            onClick={() =>
-              toast("Settings drawer coming online", { description: "Module placeholder · v2.1" })
-            }
-            className="hidden h-10 w-10 place-items-center rounded-full border border-[#E5E5E5] bg-white text-black/55 transition-colors hover:bg-black hover:text-white xl:grid"
-            aria-label="Settings"
-          >
-            <Settings className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() =>
-              toast("3 unread platform alerts", {
-                description: "Open the notification stream from the bell icon",
-              })
-            }
-            className="relative hidden h-10 w-10 place-items-center rounded-full border border-[#E5E5E5] bg-white text-black/55 transition-colors hover:bg-black hover:text-white xl:grid"
-            aria-label="Notifications"
-          >
-            <Bell className="h-4 w-4" />
-            <span className="absolute right-2.5 top-2.5 h-1.5 w-1.5 rounded-full bg-[#0F766E]" />
-          </button>
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <button
@@ -129,19 +107,11 @@ export function TopNav() {
                 </span>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() =>
-                  toast("Account settings open in v2.2", {
-                    description: "Profile & security pane queued",
-                  })
-                }
-              >
-                <UserCog className="mr-2 h-3.5 w-3.5" /> Account settings
-              </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <a href="/data-deletion">Delete my account</a>
+                <a href="/data-deletion">
+                  <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete my account
+                </a>
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link to="/">
                   <Home className="mr-2 h-3.5 w-3.5" /> Home page

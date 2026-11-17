@@ -8,9 +8,13 @@ import { familyAcceptInvite, familyPreviewInvite } from "@/lib/api/family";
 import { ApiError } from "@/lib/api/client";
 import { BRAND } from "@/lib/brand";
 import { useFamily } from "@/lib/family-session";
+import {
+  isPasswordLongEnough,
+  PASSWORD_MAX_LENGTH,
+  passwordHintLabel,
+  passwordUseMinMessage,
+} from "@/lib/password-policy";
 import { cn } from "@/lib/utils";
-
-const PASSWORD_MAX = 72;
 
 type InvitePreview = { parentName: string; schoolName: string; purpose?: "invite" | "reset" };
 
@@ -97,8 +101,8 @@ export function FamilyJoin({ token }: { token: string }) {
                   confirmError={touched.confirm ? confirmError : ""}
                   ready={ready}
                   busy={busy}
-                  onPassword={(value) => setPassword(value.slice(0, PASSWORD_MAX))}
-                  onConfirm={(value) => setConfirm(value.slice(0, PASSWORD_MAX))}
+                  onPassword={(value) => setPassword(value.slice(0, PASSWORD_MAX_LENGTH))}
+                  onConfirm={(value) => setConfirm(value.slice(0, PASSWORD_MAX_LENGTH))}
                   onBlur={(field) => setTouched((current) => ({ ...current, [field]: true }))}
                   onSubmit={submit}
                 />
@@ -204,7 +208,7 @@ function PasswordCard({
   onBlur: (field: "password" | "confirm") => void;
   onSubmit: () => void;
 }) {
-  const longEnough = password.length >= 8;
+  const longEnough = isPasswordLongEnough(password);
   const matches = password.length > 0 && password === confirm;
   const resetting = preview.purpose === "reset";
 
@@ -257,7 +261,7 @@ function PasswordCard({
         />
 
         <ul className="grid gap-2 sm:grid-cols-2" aria-live="polite">
-          <Requirement met={longEnough} label="At least 8 characters" />
+          <Requirement met={longEnough} label={passwordHintLabel()} />
           <Requirement met={matches} label="Passwords match" />
         </ul>
 
@@ -307,7 +311,7 @@ function SecretField({
           type={shown ? "text" : "password"}
           autoComplete={autoComplete}
           autoFocus={autoFocus}
-          maxLength={PASSWORD_MAX}
+          maxLength={PASSWORD_MAX_LENGTH}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           onBlur={onBlur}
@@ -398,7 +402,7 @@ function initials(name: string) {
 
 function passwordIssue(value: string) {
   if (!value) return "Enter a password";
-  if (value.length < 8) return "Use at least 8 characters";
+  if (!isPasswordLongEnough(value)) return passwordUseMinMessage();
   return "";
 }
 

@@ -1,5 +1,6 @@
 import {
   composeClassName,
+  normalizeGradeLabel,
   splitClassName,
   type ClassConfig,
   type Student,
@@ -420,14 +421,14 @@ export function parseClassLabel(raw: string): {
 
   const dashed = cleaned.match(/^(.+?)\s*[-–—]\s*([A-Za-z0-9]{1,6})$/);
   if (dashed) {
-    const grade = dashed[1].trim();
+    const grade = normalizeGradeLabel(dashed[1].trim());
     const section = dashed[2].trim().toUpperCase();
     return { grade, section, className: composeClassName(grade, section) };
   }
 
   const spaced = cleaned.match(/^(.+?)\s+([A-Za-z])$/);
   if (spaced) {
-    const grade = spaced[1].trim();
+    const grade = normalizeGradeLabel(spaced[1].trim());
     const section = spaced[2].trim().toUpperCase();
     return { grade, section, className: composeClassName(grade, section) };
   }
@@ -436,12 +437,14 @@ export function parseClassLabel(raw: string): {
   return {
     grade: parts.grade,
     section: parts.section,
-    className: composeClassName(parts.grade, parts.section) || cleaned,
+    className: composeClassName(parts.grade, parts.section) || parts.grade || cleaned,
   };
 }
 
 export function normalizeClassLabelKey(className: string): string {
-  return className
+  const parts = splitClassName(className);
+  const canonical = composeClassName(parts.grade, parts.section) || className.trim();
+  return canonical
     .trim()
     .toLowerCase()
     .replace(/\s*[-–—]\s*/g, "-")

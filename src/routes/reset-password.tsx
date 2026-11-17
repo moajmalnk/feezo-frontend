@@ -7,6 +7,11 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/lib/api/client";
 import { apiResetPassword } from "@/lib/api/auth";
+import {
+  isPasswordLongEnough,
+  passwordTooShortMessage,
+  passwordUseMinMessage,
+} from "@/lib/password-policy";
 import { applyNoindex } from "@/lib/seo/public-pages";
 
 type ResetPasswordSearch = {
@@ -41,7 +46,7 @@ function ResetPasswordPage() {
 
   const strengthHint = useMemo(() => {
     if (!password) return null;
-    if (password.length < 8) return "Use at least 8 characters";
+    if (!isPasswordLongEnough(password)) return passwordUseMinMessage();
     return null;
   }, [password]);
 
@@ -50,7 +55,7 @@ function ResetPasswordPage() {
     if (!hasToken || !token) return;
 
     const errs: typeof fieldErrors = {};
-    if (password.length < 8) errs.password = "Password must be at least 8 characters";
+    if (!isPasswordLongEnough(password)) errs.password = passwordTooShortMessage();
     if (!confirm) errs.confirm = "Confirm your password";
     else if (password !== confirm) errs.confirm = "Passwords do not match";
     setFieldErrors(errs);
