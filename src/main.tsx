@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 
 import { syncClientStateToCurrentBuild } from "@/lib/app-version";
+import { unregisterServiceWorkersOnDisallowedHosts } from "@/lib/pwa-host";
 import { router } from "@/router";
 import { applyWorkspaceThemeMode, peekStoredThemeMode } from "@/lib/workspace-theme";
 
@@ -10,6 +11,7 @@ import "./styles.css";
 
 syncClientStateToCurrentBuild();
 applyWorkspaceThemeMode(peekStoredThemeMode());
+void unregisterServiceWorkersOnDisallowedHosts();
 
 const rootElement = document.getElementById("root");
 

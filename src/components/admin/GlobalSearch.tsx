@@ -104,7 +104,7 @@ export function GlobalSearch({ variant = "field" }: GlobalSearchProps) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="grid h-10 w-10 place-items-center rounded-full border border-[#E5E5E5] bg-white text-black/55 transition-colors hover:bg-black hover:text-white"
+          className="grid h-9 w-9 place-items-center rounded-full border border-[#E5E5E5] bg-white text-black/55 transition-colors hover:bg-black hover:text-white sm:h-10 sm:w-10"
           aria-label="Open global search"
         >
           <Search className="h-4 w-4" />

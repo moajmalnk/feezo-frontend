@@ -108,6 +108,8 @@ function clearTenantStoreSnapshots(): void {
 /**
  * Call once at boot. When the installed JS build changes (mobile PWA finally
  * picks up a deploy), wipe stale localStorage ledgers so laptop/mobile match.
+ * Also nudges any waiting service worker so navigation-safe SW updates land
+ * without requiring the update toast (recovers devices stuck after ERR_FAILED).
  */
 export function syncClientStateToCurrentBuild(): void {
   if (typeof window === "undefined") return;
@@ -117,6 +119,7 @@ export function syncClientStateToCurrentBuild(): void {
     const previous = window.localStorage.getItem(LAST_BUILD_KEY);
     if (previous && previous !== APP_BUILD_ID) {
       clearTenantStoreSnapshots();
+      void promoteWaitingServiceWorker();
     }
     window.localStorage.setItem(LAST_BUILD_KEY, APP_BUILD_ID);
   } catch {
@@ -130,6 +133,18 @@ export function syncClientStateToCurrentBuild(): void {
       url.searchParams.delete("_refresh");
       window.history.replaceState({}, "", url.pathname + url.search + url.hash);
     }
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Activate a waiting worker from a prior deploy (injectManifest SKIP_WAITING). */
+async function promoteWaitingServiceWorker(): Promise<void> {
+  try {
+    if (!("serviceWorker" in navigator)) return;
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg?.waiting) return;
+    reg.waiting.postMessage({ type: "SKIP_WAITING" });
   } catch {
     /* ignore */
   }

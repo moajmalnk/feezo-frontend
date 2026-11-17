@@ -122,64 +122,18 @@ export default defineConfig(({ mode }) => {
       appVersionPlugin(buildId),
       deferStylesheetPlugin(),
       VitePWA({
+        // Custom SW: network-first navigations + navigation-safe shell fallback.
+        // generateSW navigateFallback+/index.html redirect caused intermittent ERR_FAILED.
+        strategies: "injectManifest",
+        srcDir: "src",
+        filename: "sw.ts",
         registerType: "prompt",
         includeAssets: ["favicon.svg", "icons/**/*"],
         // Use public/manifest.webmanifest and inject the <link> after load (index.html)
         // so the webmanifest stays off the LCP critical path.
         manifest: false,
-        workbox: {
+        injectManifest: {
           globPatterns: ["**/*.{js,css,html,ico,svg,woff2,webp}", "icons/**/*.png"],
-          navigateFallback: "/index.html",
-          navigateFallbackDenylist: [
-            /^\/api\//,
-            /^\/assets\//,
-            /^\/manifest\.webmanifest$/,
-            /^\/family\.webmanifest$/,
-            /^\/version\.json$/,
-            /^\/sw\.js$/,
-            /^\/workbox-.*\.js$/,
-            /^\/robots\.txt$/,
-            /^\/sitemap\.xml$/,
-            /^\/llms\.txt$/,
-            /^\/llm\.txt$/,
-            /^\/not-found\.html$/,
-            /\.(?:js|mjs|css|png|jpe?g|gif|webp|svg|ico|woff2?|mp4|webmanifest|txt|xml|json|pdf)$/,
-          ],
-          runtimeCaching: [
-            {
-              // Always hit the network for deploy version — never serve stale build id.
-              urlPattern: ({ sameOrigin, url }) => sameOrigin && url.pathname === "/version.json",
-              handler: "NetworkOnly",
-              options: {
-                cacheName: "app-version-network-only",
-              },
-            },
-            {
-              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-              handler: "CacheFirst",
-              options: {
-                cacheName: "google-fonts-stylesheets",
-                expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              },
-            },
-            {
-              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-              handler: "CacheFirst",
-              options: {
-                cacheName: "google-fonts-webfonts",
-                expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
-                cacheableResponse: { statuses: [0, 200] },
-              },
-            },
-            {
-              // Only same-origin /api — never intercept https://api.feezo.app (breaks CORS in the SW).
-              urlPattern: ({ sameOrigin, url }) => sameOrigin && url.pathname.startsWith("/api/"),
-              handler: "NetworkOnly",
-              options: {
-                cacheName: "api-network-only",
-              },
-            },
-          ],
         },
         devOptions: {
           // Keep SW off in DEV by default — it was intercepting cross-origin API and

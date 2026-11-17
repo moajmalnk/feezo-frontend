@@ -214,11 +214,15 @@
     </noscript>
     <script>
       (function () {
-        var ua = navigator.userAgent || "";
-        if (!/googlebot|google-inspectiontool|adsbot-google|bingbot|duckduckbot|baiduspider|yandex|slurp/i.test(ua)) {
-          return;
-        }
         if (!("serviceWorker" in navigator)) return;
+
+        var host = (location.hostname || "").toLowerCase();
+        var ua = navigator.userAgent || "";
+        var isBot = /googlebot|google-inspectiontool|adsbot-google|bingbot|duckduckbot|baiduspider|yandex|slurp/i.test(ua);
+        // Apex must not keep a SW — it 301s to www and poisoned navigations show ERR_FAILED.
+        var isApex = host === "feezo.app";
+        if (!isBot && !isApex) return;
+
         navigator.serviceWorker.getRegistrations().then(function (regs) {
           if (!regs.length) return;
           return Promise.all(
@@ -226,6 +230,7 @@
               return reg.unregister();
             }),
           ).then(function () {
+            if (!isBot) return;
             try {
               if (sessionStorage.getItem("feezo-bot-sw-cleared")) return;
               sessionStorage.setItem("feezo-bot-sw-cleared", "1");

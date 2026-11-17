@@ -57,6 +57,7 @@ export function apiSubmitContact(payload: ContactPayload): Promise<ContactResult
     body: payload,
     auth: false,
     skipUnauthorized: true,
-    timeoutMs: 15000,
+    // Lead is stored first; mail is flushed after the response.
+    timeoutMs: 8000,
   });
 }

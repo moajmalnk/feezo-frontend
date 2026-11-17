@@ -11,6 +11,7 @@ import {
   isNewerBuild,
   isUpdatePromptOnCooldown,
 } from "@/lib/app-version";
+import { isPwaRegistrationHost } from "@/lib/pwa-host";
 import { cn } from "@/lib/utils";
 
 /** Gentle poll — enough for deploys, not aggressive enough to blink. */
@@ -23,14 +24,17 @@ export function PwaUpdateToast() {
   const [dismissed, setDismissed] = useState(false);
   const [updating, setUpdating] = useState(false);
   const checkingRef = useRef(false);
+  const allowSwRegistration = isPwaRegistrationHost();
 
   const {
     offlineReady: [offlineReady, setOfflineReady],
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
+    // Never install a worker on apex (feezo.app) — it races the www redirect.
+    immediate: allowSwRegistration,
     onRegisteredSW(_swUrl, registration) {
-      if (!registration || swUpdatePollStarted) return;
+      if (!allowSwRegistration || !registration || swUpdatePollStarted) return;
       swUpdatePollStarted = true;
 
       const check = () => {

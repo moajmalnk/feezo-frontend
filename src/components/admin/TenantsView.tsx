@@ -617,14 +617,14 @@ export function TenantsView({
           onClick={() => setOpen(true)}
           className="hidden min-h-11 items-center justify-center gap-1.5 rounded-full bg-black px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_8px_24px_-12px_rgba(0,0,0,0.4)] transition hover:bg-black/85 md:inline-flex"
         >
-          <Plus className="h-4 w-4" /> Provision New School Tenant
+          <Plus className="h-4 w-4" /> Provision New Tenant
         </button>
       </div>
 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Provision new school tenant"
+        aria-label="Provision new tenant"
         className={cn(
           mobileFabClass,
           "grid h-14 w-14 place-items-center rounded-full bg-black text-white",
@@ -1493,7 +1493,7 @@ function TenantFormDrawer({
       <SheetContent className="flex w-full flex-col gap-0 overflow-y-auto p-0 sm:max-w-[520px]">
         <SheetHeader className="border-b border-[#E5E5E5] bg-[#F4F4F5] px-6 py-5">
           <SheetTitle className="text-[18px] font-semibold text-black">
-            Provision New School Tenant
+            Provision New Tenant
           </SheetTitle>
           <SheetDescription className="text-[12px] text-black/55">
             Creates an isolated database routing key &amp; super-user.

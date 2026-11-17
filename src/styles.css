@@ -24,6 +24,8 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
+    max-width: 100%;
+    overflow-x: clip;
   }
 
   body {
@@ -405,11 +407,15 @@
     border-radius: 1rem;
   }
 
+  /* Full-bleed phone width — the old 520px cap left empty side gutters on
+     large phones / narrow desktop windows and felt broken. */
   .mobile-app-rail {
     box-sizing: border-box;
     width: 100%;
-    max-width: min(520px, 100%);
+    max-width: 100%;
     margin-inline: auto;
+    min-width: 0;
+    overflow-x: clip;
   }
 
   .mobile-scrollbar-none {

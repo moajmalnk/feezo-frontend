@@ -47,13 +47,13 @@ export function MobileTabBar({ items, pathname, className }: MobileTabBarProps) 
     <div
       data-mobile-tab-dock
       className={cn(
-        "pointer-events-none fixed inset-x-0 bottom-0 z-50 px-2 lg:hidden",
+        "pointer-events-none fixed inset-x-0 bottom-0 z-50 w-full max-w-[100vw] px-2 lg:hidden",
         "pb-[calc(0.75rem+env(safe-area-inset-bottom))]",
         className,
       )}
     >
       <nav
-        className="mobile-tab-dock pointer-events-auto relative mx-auto w-full max-w-lg overflow-hidden rounded-[28px]"
+        className="mobile-tab-dock pointer-events-auto relative mx-auto w-full max-w-[min(32rem,100%)] overflow-hidden rounded-[28px]"
         aria-label="Mobile navigation"
       >
         <LayoutGroup id="mobile-tab-bar">

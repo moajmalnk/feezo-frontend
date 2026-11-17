@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 
+import { StoreBadgeRow } from "@/components/marketing/StoreBadge";
 import { TrialSignupLink } from "@/components/marketing/TrialSignupLink";
 import { easeOutExpo } from "@/components/marketing/motion";
 import { SectionReveal, StaggerItem, StaggerReveal } from "@/components/marketing/SectionReveal";
@@ -213,32 +214,29 @@ export function MarketingPageCtas({
   location: MarketingCtaLocation;
   className?: string;
 }) {
+  const reduce = useReducedMotion();
+
   return (
-    <div className={cn("flex flex-wrap items-center justify-center gap-3", className)}>
+    <div
+      className={cn(
+        "mx-auto flex w-full max-w-[17.5rem] flex-col items-stretch gap-2.5 sm:w-auto sm:max-w-none sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-3",
+        className,
+      )}
+    >
       <TrialSignupLink
         ctaLocation={location}
-        className="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--mkt-green)] px-5 text-[14px] font-semibold text-white transition hover:bg-[var(--mkt-green-deep)] hover:shadow-[0_10px_28px_rgba(63,122,31,0.28)]"
+        className="inline-flex h-11 w-full items-center justify-center whitespace-nowrap rounded-lg bg-[var(--mkt-green)] px-5 text-[14px] font-semibold text-white transition hover:bg-[var(--mkt-green-deep)] hover:shadow-[0_10px_28px_rgba(63,122,31,0.28)] sm:w-auto"
       >
         Start free 14-day trial
       </TrialSignupLink>
       <Link
         to="/contact"
         onClick={() => pushMarketingEvent("demo_request", { cta_location: location })}
-        className="inline-flex h-11 items-center justify-center rounded-lg border border-[var(--mkt-line)] bg-white px-5 text-[14px] font-semibold text-[var(--mkt-ink)] transition hover:border-[var(--mkt-green)]/40"
+        className="inline-flex h-11 w-full items-center justify-center whitespace-nowrap rounded-lg border border-[var(--mkt-line)] bg-white px-5 text-[14px] font-semibold text-[var(--mkt-ink)] transition hover:border-[var(--mkt-green)]/40 sm:w-auto"
       >
         Book a demo
       </Link>
-      {showDownload ? (
-        <Link
-          to="/download"
-          onClick={() =>
-            pushMarketingEvent("app_download_click", { cta_location: "download", store: "landing" })
-          }
-          className="inline-flex h-11 items-center justify-center rounded-lg border border-[var(--mkt-line)] bg-white px-5 text-[14px] font-semibold text-[var(--mkt-ink)] transition hover:border-[var(--mkt-green)]/40"
-        >
-          Download the app
-        </Link>
-      ) : null}
+      {showDownload ? <StoreBadgeRow reduce={reduce} ctaLocation={location} /> : null}
     </div>
   );
 }

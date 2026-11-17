@@ -14,11 +14,12 @@ type OrganicCardProps = React.HTMLAttributes<HTMLDivElement> & {
 
 const SHADOW = "shadow-[0_1px_2px_rgba(0,0,0,0.04),0_24px_60px_-32px_rgba(0,0,0,0.18)]";
 
+/** Room for the absolute arrow control — tighter on narrow screens. */
 const contentPadByCorner: Record<CornerSide, string> = {
-  tr: "pr-10",
-  tl: "pl-10",
-  br: "pr-10 pb-10",
-  bl: "pl-10 pb-10",
+  tr: "pr-11 sm:pr-12",
+  tl: "pl-11 sm:pl-12",
+  br: "pr-11 pb-11 sm:pr-12 sm:pb-12",
+  bl: "pl-11 pb-11 sm:pl-12 sm:pb-12",
 };
 
 export function OrganicCard({
@@ -36,16 +37,19 @@ export function OrganicCard({
     <div
       {...rest}
       className={cn(
-        "organic-card relative min-w-0",
+        // overflow-x-clip keeps wide children (charts, long mono IPs) from expanding the page.
+        "organic-card relative min-w-0 max-w-full overflow-x-clip",
         toneClasses[tone],
         cornerClasses[cornerSide],
         SHADOW,
-        padded ? "p-4 sm:p-6" : "",
+        padded ? "p-3.5 sm:p-6" : "",
         className,
       )}
     >
       {arrow ? (
-        <div className={cn("relative", contentPadByCorner[cornerSide])}>{children}</div>
+        <div className={cn("relative min-w-0 max-w-full", contentPadByCorner[cornerSide])}>
+          {children}
+        </div>
       ) : (
         children
       )}
@@ -78,10 +82,10 @@ export function ArrowGlyph({
 
   // Position floats opposite the cut corner on the same edge for a balanced silhouette.
   const positionByCorner: Record<CornerSide, string> = {
-    tr: "absolute right-4 top-4",
-    tl: "absolute left-4 top-4",
-    bl: "absolute left-4 bottom-4",
-    br: "absolute right-4 bottom-4",
+    tr: "absolute right-3 top-3 sm:right-4 sm:top-4",
+    tl: "absolute left-3 top-3 sm:left-4 sm:top-4",
+    bl: "absolute left-3 bottom-3 sm:left-4 sm:bottom-4",
+    br: "absolute right-3 bottom-3 sm:right-4 sm:bottom-4",
   };
 
   const inkClass = isOnHighlight
@@ -99,7 +103,7 @@ export function ArrowGlyph({
       }}
       className={cn(
         positionByCorner[cornerSide],
-        "z-10 grid h-10 w-10 place-items-center rounded-full transition-colors",
+        "z-10 grid h-9 w-9 place-items-center rounded-full transition-colors sm:h-10 sm:w-10",
         "shadow-[0_2px_8px_rgba(0,0,0,0.08)]",
         inkClass,
         className,

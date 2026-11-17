@@ -321,41 +321,42 @@ export function OverviewView() {
   if (loading) return <OverviewSkeleton />;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-heading">Platform Control Overview</h1>
-          <p className="mt-2 text-[14px] text-black/55">
-            {totalTenants} tenant{totalTenants === 1 ? "" : "s"}
+    <div className="min-w-0 max-w-full space-y-4 overflow-x-clip sm:space-y-6">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+        <div className="min-w-0 space-y-2">
+          <p className="text-[13px] leading-relaxed text-black/55 sm:text-[14px]">
+            <span className="tabular-nums">
+              {totalTenants} tenant{totalTenants === 1 ? "" : "s"}
+            </span>
             {trialCount > 0 ? (
               <>
-                {" "}
-                · <span className="font-semibold text-black">{trialCount} on trial</span>
+                <span className="text-black/25"> · </span>
+                <span className="font-semibold text-black">{trialCount} on trial</span>
               </>
             ) : null}
             {overview.thisMonthSignups ? (
               <>
-                {" "}
-                · {overview.thisMonthSignups} new this month
+                <span className="text-black/25"> · </span>
+                <span className="tabular-nums">{overview.thisMonthSignups} new this month</span>
               </>
             ) : null}
           </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-full border border-[#E5E5E5] bg-white px-2.5 py-1 text-[11px] font-medium text-black/65 sm:text-[12px]">
+              Live · last 7 days + 6 mo growth
+            </span>
+          </div>
         </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <span className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-[#E5E5E5] bg-white px-4 py-2 text-[12.5px] font-medium text-black/70 sm:min-h-0 sm:w-auto">
-            Live · last 7 days + 6 mo growth
-          </span>
-          <Link
-            to="/super-admin/tenants"
-            className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-black px-4 py-2 text-[12.5px] font-semibold text-white shadow-sm transition-colors hover:bg-black/85 sm:min-h-0 sm:w-auto"
-          >
-            Manage Tenants
-          </Link>
-        </div>
+        <Link
+          to="/super-admin/tenants"
+          className="inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-full bg-black px-4 py-2.5 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-black/85 sm:min-h-0 sm:w-auto sm:px-5 sm:py-2 sm:text-[12.5px]"
+        >
+          Manage Tenants
+        </Link>
       </div>
 
       {/* KPI strip */}
-      <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid min-w-0 grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Total Active Schools"
           value={String(overview.totalActiveSchools)}
@@ -409,10 +410,10 @@ export function OverviewView() {
       </div>
 
       {/* Growth + weekly */}
-      <div className="grid gap-3 sm:gap-4 lg:grid-cols-5">
-        <OrganicCard tone="white" cornerSide="tr" padded className="lg:col-span-3">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+      <div className="grid min-w-0 gap-3 sm:gap-4 lg:grid-cols-5">
+        <OrganicCard tone="white" cornerSide="tr" padded className="min-w-0 lg:col-span-3">
+          <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
               <div className="text-title">Platform Growth</div>
               <div className="mt-1 text-[13px] text-black/55">
                 New tenants vs cumulative base · last 6 months
@@ -427,7 +428,7 @@ export function OverviewView() {
               </span>
             </div>
           </div>
-          <div className="mt-4 h-56 w-full sm:h-64">
+          <div className="mt-4 h-56 w-full min-w-0 overflow-hidden sm:h-64">
             {monthly.length === 0 ? (
               <div className="grid h-full place-items-center text-[13px] text-black/40">
                 No growth history yet
@@ -482,9 +483,9 @@ export function OverviewView() {
           </div>
         </OrganicCard>
 
-        <OrganicCard tone="white" cornerSide="bl" padded className="lg:col-span-2">
-          <div className="flex items-start justify-between gap-2">
-            <div>
+        <OrganicCard tone="white" cornerSide="bl" padded className="min-w-0 lg:col-span-2">
+          <div className="flex min-w-0 items-start justify-between gap-2">
+            <div className="min-w-0">
               <div className="text-title">Weekly Signups</div>
               <div className="mt-1 text-[13px] text-black/55">
                 {weekTotal > 0 ? `Peak ${weeklyBars[peakIdx]?.d}` : "Last 7 days"}
@@ -496,7 +497,7 @@ export function OverviewView() {
             +{weekTotal}
             <span className="ml-1.5 text-[12px] font-medium text-black/45">this week</span>
           </div>
-          <div className="mt-2 h-44 w-full">
+          <div className="mt-2 h-44 w-full min-w-0 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weeklyBars} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
@@ -528,14 +529,14 @@ export function OverviewView() {
       </div>
 
       {/* Mix diagrams */}
-      <div className="grid gap-3 sm:gap-4 lg:grid-cols-3">
-        <OrganicCard tone="white" cornerSide="tr" padded>
+      <div className="grid min-w-0 gap-3 sm:gap-4 lg:grid-cols-3">
+        <OrganicCard tone="white" cornerSide="tr" padded className="min-w-0">
           <div className="text-title">Plan Mix</div>
           <div className="mt-1 text-[13px] text-black/55">
             Across {totalTenants} tenant{totalTenants === 1 ? "" : "s"}
           </div>
-          <div className="mt-2 flex items-center gap-4">
-            <div className="h-36 w-36 shrink-0">
+          <div className="mt-2 flex min-w-0 items-center gap-3 sm:gap-4">
+            <div className="h-32 w-32 shrink-0 overflow-hidden sm:h-36 sm:w-36">
               {pieData.length === 0 ? (
                 <div className="grid h-full place-items-center text-[12px] text-black/35">—</div>
               ) : (
@@ -545,8 +546,8 @@ export function OverviewView() {
                       data={pieData}
                       dataKey="value"
                       nameKey="name"
-                      innerRadius={38}
-                      outerRadius={58}
+                      innerRadius="55%"
+                      outerRadius="82%"
                       paddingAngle={2}
                       strokeWidth={0}
                     >
@@ -661,10 +662,10 @@ export function OverviewView() {
         </OrganicCard>
       </div>
 
-      {/* Recent */}
-      <OrganicCard tone="white" cornerSide="tr" arrow padded>
-        <div className="flex items-center justify-between gap-3">
-          <div>
+      {/* Recent — no decorative arrow: View all is the CTA (arrow was colliding on mobile). */}
+      <OrganicCard tone="white" cornerSide="tr" padded className="min-w-0 max-w-full">
+        <div className="flex min-w-0 items-start justify-between gap-2 sm:items-center sm:gap-3">
+          <div className="min-w-0 flex-1">
             <div className="text-title">Recent activity</div>
             <div className="mt-1 text-[13px] text-black/55">
               Teams ordered by last seen · online first
@@ -672,12 +673,12 @@ export function OverviewView() {
           </div>
           <Link
             to="/super-admin/tenants"
-            className="shrink-0 rounded-full bg-black/5 px-3 py-1.5 text-[12px] font-medium text-black hover:bg-black hover:text-white"
+            className="shrink-0 rounded-full bg-black/5 px-2.5 py-1.5 text-[11px] font-medium text-black hover:bg-black hover:text-white sm:px-3 sm:text-[12px]"
           >
             View all →
           </Link>
         </div>
-        <div className="mt-4 divide-y divide-[#F0F0F0]">
+        <div className="mt-4 min-w-0 divide-y divide-[#F0F0F0]">
           {overview.recentRegistrations.length === 0 ? (
             <div className="py-8 text-center text-[13px] text-black/45">
               No tenants provisioned yet.
@@ -695,8 +696,8 @@ export function OverviewView() {
               const loginMethod = loginMethodMeta(r.lastLoginMethod);
               const LoginMethodIcon = loginMethod?.Icon;
               return (
-                <div key={`${r.domain}-${r.time}`} className="space-y-2.5 py-3.5">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div key={`${r.domain}-${r.time}`} className="min-w-0 space-y-2.5 py-3.5">
+                  <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#F4F4F5] text-black/65">
                         <School className="h-4 w-4" />
@@ -707,11 +708,13 @@ export function OverviewView() {
                           />
                         ) : null}
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <div className="truncate text-[13.5px] font-medium text-black">{r.name}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <div className="min-w-0 truncate text-[13.5px] font-medium text-black">
+                            {r.name}
+                          </div>
                           {r.onlineNow ? (
-                            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                            <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
                               Online
                               {r.openSessions && r.openSessions > 1 ? ` · ${r.openSessions}` : ""}
                             </span>
@@ -720,12 +723,12 @@ export function OverviewView() {
                         <div className="truncate font-mono text-[11px] text-black/55">{r.domain}</div>
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 pl-[3.25rem] sm:pl-0">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3 sm:pl-0">
                       <span className="inline-flex items-center gap-1.5 text-[12px] text-black/65">
                         {r.step === "Live" || r.step === "Provisioned" ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                          <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
                         ) : (
-                          <Clock className="h-3.5 w-3.5 text-black/45" />
+                          <Clock className="h-3.5 w-3.5 shrink-0 text-black/45" />
                         )}
                         {r.step}
                       </span>
@@ -751,18 +754,22 @@ export function OverviewView() {
                     </div>
                   </div>
 
-                  <div className="grid gap-2 pl-[3.25rem] sm:grid-cols-2 xl:grid-cols-4">
-                    <div className="rounded-xl border border-[#EFEFEF] bg-[#FAFAFA] px-3 py-2">
+                  {/*
+                    Mobile: full-bleed card stack (no icon indent — that was clipping).
+                    Grid items need min-w-0 so long IP/device strings can truncate.
+                  */}
+                  <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 sm:pl-[3.25rem] xl:grid-cols-4">
+                    <div className="min-w-0 overflow-hidden rounded-xl border border-[#EFEFEF] bg-[#FAFAFA] px-3 py-2">
                       <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-black/40">
-                        <UserPlus className="h-3 w-3" /> Signed up
+                        <UserPlus className="h-3 w-3 shrink-0" /> Signed up
                       </div>
                       {r.time ? (
                         <>
-                          <div className="mt-1 text-[12.5px] font-semibold text-black">
-                            {signupRel}
-                            <span className="ml-1.5 font-mono text-[11px] font-normal text-black/45">
+                          <div className="mt-1 min-w-0">
+                            <div className="text-[12.5px] font-semibold text-black">{signupRel}</div>
+                            <div className="mt-0.5 truncate font-mono text-[11px] text-black/45">
                               {signupAbs}
-                            </span>
+                            </div>
                           </div>
                           <div className="mt-0.5 truncate text-[11px] text-black/55">
                             Workspace created · {r.flag}
@@ -773,15 +780,15 @@ export function OverviewView() {
                       )}
                     </div>
 
-                    <div className="rounded-xl border border-[#EFEFEF] bg-[#FAFAFA] px-3 py-2">
+                    <div className="min-w-0 overflow-hidden rounded-xl border border-[#EFEFEF] bg-[#FAFAFA] px-3 py-2">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-black/40">
-                          <Eye className="h-3 w-3" /> Last seen
+                        <div className="flex min-w-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-black/40">
+                          <Eye className="h-3 w-3 shrink-0" /> Last seen
                         </div>
                         <Link
                           to="/super-admin/tenants"
                           search={{ tenant: r.id || undefined, tab: "activity" }}
-                          className="text-black/35 hover:text-black/70"
+                          className="shrink-0 text-black/35 hover:text-black/70"
                           aria-label={`Last seen details for ${r.name}`}
                         >
                           <ArrowRight className="h-3 w-3" />
@@ -789,11 +796,13 @@ export function OverviewView() {
                       </div>
                       {r.lastSeenAt ? (
                         <>
-                          <div className="mt-1 text-[12.5px] font-semibold text-black">
-                            {r.onlineNow ? "Now" : seenRel}
-                            <span className="ml-1.5 font-mono text-[11px] font-normal text-black/45">
+                          <div className="mt-1 min-w-0">
+                            <div className="text-[12.5px] font-semibold text-black">
+                              {r.onlineNow ? "Now" : seenRel}
+                            </div>
+                            <div className="mt-0.5 truncate font-mono text-[11px] text-black/45">
                               {seenAbs}
-                            </span>
+                            </div>
                           </div>
                           <div className="mt-0.5 truncate text-[11px] text-black/55">
                             {[
@@ -813,15 +822,15 @@ export function OverviewView() {
                       )}
                     </div>
 
-                    <div className="rounded-xl border border-[#EFEFEF] bg-[#FAFAFA] px-3 py-2">
+                    <div className="min-w-0 overflow-hidden rounded-xl border border-[#EFEFEF] bg-[#FAFAFA] px-3 py-2">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-black/40">
-                          <LogIn className="h-3 w-3" /> Last login
+                        <div className="flex min-w-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-black/40">
+                          <LogIn className="h-3 w-3 shrink-0" /> Last login
                         </div>
                         <Link
                           to="/super-admin/tenants"
                           search={{ tenant: r.id || undefined, tab: "activity" }}
-                          className="text-black/35 hover:text-black/70"
+                          className="shrink-0 text-black/35 hover:text-black/70"
                           aria-label={`Login details for ${r.name}`}
                         >
                           <ArrowRight className="h-3 w-3" />
@@ -829,22 +838,24 @@ export function OverviewView() {
                       </div>
                       {r.lastLoginAt ? (
                         <>
-                          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12.5px] font-semibold text-black">
-                            <span>{loginRel}</span>
-                            <span className="font-mono text-[11px] font-normal text-black/45">
-                              {loginAbs}
-                            </span>
-                            {loginMethod && LoginMethodIcon ? (
-                              <span
-                                className={cn(
-                                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                                  loginMethod.cls,
-                                )}
-                              >
-                                <LoginMethodIcon className="h-3 w-3" aria-hidden />
-                                {loginMethod.label}
+                          <div className="mt-1 min-w-0 space-y-1">
+                            <div className="text-[12.5px] font-semibold text-black">{loginRel}</div>
+                            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                              <span className="truncate font-mono text-[11px] text-black/45">
+                                {loginAbs}
                               </span>
-                            ) : null}
+                              {loginMethod && LoginMethodIcon ? (
+                                <span
+                                  className={cn(
+                                    "inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                                    loginMethod.cls,
+                                  )}
+                                >
+                                  <LoginMethodIcon className="h-3 w-3 shrink-0" aria-hidden />
+                                  <span className="truncate">{loginMethod.label}</span>
+                                </span>
+                              ) : null}
+                            </div>
                           </div>
                           <div className="mt-0.5 truncate text-[11px] text-black/55">
                             {[r.lastLoginUser || r.lastLoginEmail, r.lastLoginDevice, r.lastLoginIp]
@@ -857,15 +868,15 @@ export function OverviewView() {
                       )}
                     </div>
 
-                    <div className="rounded-xl border border-[#EFEFEF] bg-[#FAFAFA] px-3 py-2">
+                    <div className="min-w-0 overflow-hidden rounded-xl border border-[#EFEFEF] bg-[#FAFAFA] px-3 py-2">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-black/40">
-                          <LogOut className="h-3 w-3" /> Last logout
+                        <div className="flex min-w-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-black/40">
+                          <LogOut className="h-3 w-3 shrink-0" /> Last logout
                         </div>
                         <Link
                           to="/super-admin/tenants"
                           search={{ tenant: r.id || undefined, tab: "activity" }}
-                          className="text-black/35 hover:text-black/70"
+                          className="shrink-0 text-black/35 hover:text-black/70"
                           aria-label={`Logout details for ${r.name}`}
                         >
                           <ArrowRight className="h-3 w-3" />
@@ -873,11 +884,11 @@ export function OverviewView() {
                       </div>
                       {r.lastLogoutAt ? (
                         <>
-                          <div className="mt-1 text-[12.5px] font-semibold text-black">
-                            {logoutRel}
-                            <span className="ml-1.5 font-mono text-[11px] font-normal text-black/45">
+                          <div className="mt-1 min-w-0">
+                            <div className="text-[12.5px] font-semibold text-black">{logoutRel}</div>
+                            <div className="mt-0.5 truncate font-mono text-[11px] text-black/45">
                               {logoutAbs}
-                            </span>
+                            </div>
                           </div>
                           <div className="mt-0.5 truncate text-[11px] text-black/55">
                             {[

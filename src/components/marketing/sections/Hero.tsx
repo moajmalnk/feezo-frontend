@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { motion, useReducedMotion } from "motion/react";
 
 import { HeroShowcase } from "@/components/marketing/HeroShowcase";
+import { StoreBadgeRow } from "@/components/marketing/StoreBadge";
 import { TrialSignupLink } from "@/components/marketing/TrialSignupLink";
 import { easeOutExpo } from "@/components/marketing/motion";
 import { HOME_PAGE } from "@/lib/seo/marketing-pages-content";
@@ -32,43 +33,30 @@ export function Hero({ noDelay = false }: { noDelay?: boolean }) {
         </div>
 
         <motion.div
-          className="mt-10 flex flex-col items-center gap-6 sm:mt-14 sm:flex-row sm:items-end sm:justify-between sm:gap-10"
+          className="mt-10 flex flex-col items-center gap-7 sm:mt-14 sm:flex-row sm:items-end sm:justify-between sm:gap-10"
           initial={reduce ? false : { opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.85, ease: easeOutExpo, delay: baseDelay + 0.22 }}
         >
-          <p className="max-w-lg text-center text-[clamp(1rem,2.4vw,1.25rem)] font-medium leading-snug text-[var(--mkt-ink)] sm:text-left">
+          <p className="max-w-lg px-1 text-center text-[clamp(0.95rem,2.4vw,1.25rem)] font-medium leading-relaxed text-[var(--mkt-ink)] sm:px-0 sm:text-left sm:leading-snug">
             {HOME_PAGE.intro}
           </p>
 
-          <div className="flex w-full max-w-md flex-col items-stretch gap-3 sm:max-w-none sm:w-auto">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-3">
-              <TrialSignupLink
-                ctaLocation="hero"
-                className="inline-flex h-11 flex-1 items-center justify-center rounded-lg bg-[var(--mkt-green)] px-4 text-[14px] font-semibold text-white transition hover:bg-[var(--mkt-green-deep)] sm:flex-none sm:px-5"
-              >
-                {HOME_PAGE.primaryCta}
-              </TrialSignupLink>
-              <Link
-                to="/contact"
-                onClick={() => pushMarketingEvent("demo_request", { cta_location: "hero" })}
-                className="inline-flex h-11 flex-1 items-center justify-center rounded-lg border border-[var(--mkt-line)] bg-white px-4 text-[14px] font-semibold text-[var(--mkt-ink)] transition hover:border-[var(--mkt-green)]/40 sm:flex-none sm:px-5"
-              >
-                {HOME_PAGE.secondaryCta}
-              </Link>
-              <Link
-                to="/download"
-                onClick={() =>
-                  pushMarketingEvent("app_download_click", {
-                    cta_location: "hero",
-                    store: "landing",
-                  })
-                }
-                className="inline-flex h-11 flex-1 items-center justify-center rounded-lg border border-[var(--mkt-line)] bg-white px-4 text-[14px] font-semibold text-[var(--mkt-ink)] transition hover:border-[var(--mkt-green)]/40 sm:flex-none sm:px-5"
-              >
-                {HOME_PAGE.tertiaryCta}
-              </Link>
-            </div>
+          <div className="flex w-full flex-col items-center gap-2.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-end sm:gap-3">
+            <TrialSignupLink
+              ctaLocation="hero"
+              className="inline-flex h-11 w-full max-w-[17.5rem] items-center justify-center whitespace-nowrap rounded-lg bg-[var(--mkt-green)] px-5 text-[14px] font-semibold text-white transition hover:bg-[var(--mkt-green-deep)] sm:w-auto sm:max-w-none"
+            >
+              {HOME_PAGE.primaryCta}
+            </TrialSignupLink>
+            <Link
+              to="/contact"
+              onClick={() => pushMarketingEvent("demo_request", { cta_location: "hero" })}
+              className="inline-flex h-11 w-full max-w-[17.5rem] items-center justify-center whitespace-nowrap rounded-lg border border-[var(--mkt-line)] bg-white px-5 text-[14px] font-semibold text-[var(--mkt-ink)] transition hover:border-[var(--mkt-green)]/40 sm:w-auto sm:max-w-none"
+            >
+              {HOME_PAGE.secondaryCta}
+            </Link>
+            <StoreBadgeRow reduce={reduce} ctaLocation="hero" />
           </div>
         </motion.div>
       </div>

@@ -503,12 +503,12 @@ export function ContactForm({ compact = false }: { compact?: boolean }) {
         elapsedMs: Date.now() - startedAt.current,
         page: typeof window !== "undefined" ? window.location.pathname : undefined,
       });
+      // Show success immediately — confirmation mail is sent in the background.
+      setDone({ reference: res.reference });
       pushMarketingEvent(
         form.topic === "demo" ? "demo_request" : "lead_form_submit",
-        { cta_location: "form" },
+        { cta_location: "form", topic: form.topic },
       );
-      pushMarketingEvent("lead_form_submit", { cta_location: "form", topic: form.topic });
-      setDone({ reference: res.reference });
     } catch (err) {
       setServerError(
         err instanceof ApiError && err.status < 500
