@@ -5,6 +5,7 @@ export const LEGAL_LAST_UPDATED = "21 October 2026";
 export const LEGAL_PAGES = [
   { id: "terms", label: "Terms of Use", path: BRAND.legal.termsPath },
   { id: "privacy", label: "Privacy Policy", path: BRAND.legal.privacyPath },
+  { id: "payment", label: "Payment Policy", path: BRAND.legal.paymentPolicyPath },
   { id: "refund", label: "Refund Policy", path: BRAND.legal.refundPolicyPath },
   { id: "deletion", label: "Data deletion", path: BRAND.legal.dataDeletionPath },
 ] as const;

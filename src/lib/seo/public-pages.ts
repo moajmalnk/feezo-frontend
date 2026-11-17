@@ -9,6 +9,7 @@ import {
   PRODUCT_PAGE,
   SETUP_PAGE,
   SIGNUP_PAGE_SEO,
+  SUPPORT_PAGE_SEO,
   WHO_ITS_FOR_PAGE,
   WHY_FEEZO_PAGE,
 } from "@/lib/seo/marketing-pages-content";
@@ -27,6 +28,7 @@ export type PublicPageKey =
   | "pricing"
   | "download"
   | "contact"
+  | "support"
   | "signup";
 
 export type PublicPageSeo = {
@@ -185,6 +187,7 @@ export const PUBLIC_PAGE_SEO: Record<PublicPageKey, PublicPageSeo> = {
       contactPageLd(),
     ]),
   },
+  support: pageSeo("/support", SUPPORT_PAGE_SEO.title, SUPPORT_PAGE_SEO.description, "Support"),
   signup: {
     path: "/signup/school",
     canonical: `${SITE_ORIGIN}/signup/school`,

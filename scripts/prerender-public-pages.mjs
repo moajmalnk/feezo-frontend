@@ -16,6 +16,7 @@ const OG_IMAGE = `${SITE}/og/feezo-share.jpg`;
 const BRAND = {
   name: "Feezo",
   email: "info@feezo.app",
+  supportEmail: "support@feezo.app",
   phoneDisplay: "+91 94473 39048",
   phoneE164: "+919447339048",
   whatsappDisplay: "+91 94473 39048",
@@ -507,6 +508,41 @@ function contactBody() {
 </main>`;
 }
 
+function supportBody() {
+  const wa = `https://wa.me/${BRAND.whatsappNumber}?text=${encodeURIComponent("Hi Feezo support, I need help with my school workspace.")}`;
+  return seoShell(`
+  <h1 style="margin:0;font-size:2rem">Feezo Support</h1>
+  <p style="margin:0.75rem 0 0;color:#3f3f46">Need help with your school workspace, login, billing, or day-to-day Feezo use? Reach the support team directly — we reply within one business day.</p>
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">Ways to reach support</h2>
+  <ul style="margin:1rem 0 0;padding:0;list-style:none">
+    <li style="margin:0.5rem 0"><a href="mailto:${esc(BRAND.supportEmail)}">Email: ${esc(BRAND.supportEmail)}</a></li>
+    <li style="margin:0.5rem 0"><a href="${esc(wa)}" rel="noopener" target="_blank">WhatsApp: ${esc(BRAND.whatsappDisplay)}</a></li>
+    <li style="margin:0.5rem 0"><a href="tel:${esc(BRAND.phoneE164)}">Phone: ${esc(BRAND.phoneDisplay)}</a></li>
+  </ul>
+  <p style="margin:1rem 0 0;font-size:0.9rem;color:#64748b">${esc(BRAND.hours)}. ${esc(BRAND.responseTime)}.</p>
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">Common help topics</h2>
+  <ul style="margin:0.75rem 0 0;padding-left:1.25rem">
+    <li><a href="/forgot-password">Sign-in &amp; passwords</a></li>
+    <li><a href="/pricing">Billing &amp; trials</a></li>
+    <li><a href="/data-deletion">Account &amp; data deletion</a></li>
+    <li><a href="/privacy">Privacy &amp; security</a></li>
+  </ul>
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">Support FAQ</h2>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">How fast will support reply?</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">We aim to reply within one business day. During working hours WhatsApp and phone are usually answered much faster.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">I already use Feezo — where do I get help?</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Signed-in school admins can open Settings → Support inside the app. You can also email ${esc(BRAND.supportEmail)} or message us on WhatsApp.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Is this the same as booking a demo?</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">No. Support is for existing customers and account help. For demos and sales, use the <a href="/contact">Contact</a> page.</p>
+  <p style="margin:2rem 0 0">
+    <a href="/">Feezo home</a> ·
+    <a href="/login">Sign in</a> ·
+    <a href="/contact">Contact sales</a> ·
+    <a href="/signup/school">Start a 14-day trial</a>
+  </p>
+`);
+}
+
 function downloadBody() {
   return `
 <main id="seo-content" style="max-width:28rem;margin:0 auto;padding:4.5rem 1.25rem 3rem;font-family:system-ui,sans-serif;color:#0B1B33;text-align:center;line-height:1.5">
@@ -662,6 +698,12 @@ const pages = {
     "Contact",
     [contactPageLd()],
   ),
+  support: pageSeo(
+    "/support",
+    "Feezo Support | Help with School Accounts, Login & Billing",
+    "Get help with Feezo school accounts, sign-in, billing, and product support. Email support@feezo.app, WhatsApp, or call the Malappuram team.",
+    "Support",
+  ),
 };
 
 async function writeRoute(base, routePath, seo, bodyHtml) {
@@ -688,6 +730,7 @@ async function main() {
   await writeRoute(base, "/setup", pages.setup, setupBody());
   await writeRoute(base, "/pricing", pages.pricing, pricingBody());
   await writeRoute(base, "/contact", pages.contact, contactBody());
+  await writeRoute(base, "/support", pages.support, supportBody());
   await writeRoute(base, "/download", pages.download, downloadBody());
 
   const notFound = `<!doctype html>
@@ -712,7 +755,7 @@ async function main() {
   await unlink(path.join(dist, "404.html")).catch(() => undefined);
 
   console.log(
-    "Prerendered public pages: /, /why-feezo, /who-is-feezo-for, /product, /features, /setup, /pricing, /contact, /download, not-found.html",
+    "Prerendered public pages: /, /why-feezo, /who-is-feezo-for, /product, /features, /setup, /pricing, /contact, /support, /download, not-found.html",
   );
 }
 

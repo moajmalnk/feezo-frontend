@@ -14,6 +14,7 @@ const PRERENDERED = new Set([
   "/setup",
   "/pricing",
   "/contact",
+  "/support",
   "/download",
 ]);
 
@@ -29,6 +30,7 @@ const SPA_PREFIXES = [
   "/privacy",
   "/terms",
   "/refund-policy",
+  "/payment-policy",
   "/data-deletion",
   "/staff",
   "/parent",

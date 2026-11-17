@@ -13,6 +13,7 @@ import { Route as WhyFeezoRouteImport } from './routes/why-feezo'
 import { Route as WhoIsFeezoForRouteImport } from './routes/who-is-feezo-for'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TenantRouteImport } from './routes/tenant'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as SuperAdminRouteImport } from './routes/super-admin'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SetupRouteImport } from './routes/setup'
@@ -21,6 +22,7 @@ import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
 import { Route as ProductRouteImport } from './routes/product'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PaymentPolicyRouteImport } from './routes/payment-policy'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ImpersonateRouteImport } from './routes/impersonate'
 import { Route as HomeRouteImport } from './routes/home'
@@ -93,6 +95,11 @@ const TenantRoute = TenantRouteImport.update({
   path: '/tenant',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SuperAdminRoute = SuperAdminRouteImport.update({
   id: '/super-admin',
   path: '/super-admin',
@@ -131,6 +138,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentPolicyRoute = PaymentPolicyRouteImport.update({
+  id: '/payment-policy',
+  path: '/payment-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -404,6 +416,7 @@ export interface FileRoutesByFullPath {
   '/home': typeof HomeRoute
   '/impersonate': typeof ImpersonateRoute
   '/login': typeof LoginRoute
+  '/payment-policy': typeof PaymentPolicyRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/product': typeof ProductRoute
@@ -412,6 +425,7 @@ export interface FileRoutesByFullPath {
   '/setup': typeof SetupRoute
   '/signup': typeof SignupRouteWithChildren
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/support': typeof SupportRoute
   '/tenant': typeof TenantRouteWithChildren
   '/terms': typeof TermsRoute
   '/who-is-feezo-for': typeof WhoIsFeezoForRoute
@@ -468,12 +482,14 @@ export interface FileRoutesByTo {
   '/home': typeof HomeRoute
   '/impersonate': typeof ImpersonateRoute
   '/login': typeof LoginRoute
+  '/payment-policy': typeof PaymentPolicyRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/product': typeof ProductRoute
   '/refund-policy': typeof RefundPolicyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
+  '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/who-is-feezo-for': typeof WhoIsFeezoForRoute
   '/why-feezo': typeof WhyFeezoRoute
@@ -530,6 +546,7 @@ export interface FileRoutesById {
   '/home': typeof HomeRoute
   '/impersonate': typeof ImpersonateRoute
   '/login': typeof LoginRoute
+  '/payment-policy': typeof PaymentPolicyRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/product': typeof ProductRoute
@@ -538,6 +555,7 @@ export interface FileRoutesById {
   '/setup': typeof SetupRoute
   '/signup': typeof SignupRouteWithChildren
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/support': typeof SupportRoute
   '/tenant': typeof TenantRouteWithChildren
   '/terms': typeof TermsRoute
   '/who-is-feezo-for': typeof WhoIsFeezoForRoute
@@ -597,6 +615,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/impersonate'
     | '/login'
+    | '/payment-policy'
     | '/pricing'
     | '/privacy'
     | '/product'
@@ -605,6 +624,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/signup'
     | '/super-admin'
+    | '/support'
     | '/tenant'
     | '/terms'
     | '/who-is-feezo-for'
@@ -661,12 +681,14 @@ export interface FileRouteTypes {
     | '/home'
     | '/impersonate'
     | '/login'
+    | '/payment-policy'
     | '/pricing'
     | '/privacy'
     | '/product'
     | '/refund-policy'
     | '/reset-password'
     | '/setup'
+    | '/support'
     | '/terms'
     | '/who-is-feezo-for'
     | '/why-feezo'
@@ -722,6 +744,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/impersonate'
     | '/login'
+    | '/payment-policy'
     | '/pricing'
     | '/privacy'
     | '/product'
@@ -730,6 +753,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/signup'
     | '/super-admin'
+    | '/support'
     | '/tenant'
     | '/terms'
     | '/who-is-feezo-for'
@@ -788,6 +812,7 @@ export interface RootRouteChildren {
   HomeRoute: typeof HomeRoute
   ImpersonateRoute: typeof ImpersonateRoute
   LoginRoute: typeof LoginRoute
+  PaymentPolicyRoute: typeof PaymentPolicyRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ProductRoute: typeof ProductRoute
@@ -796,6 +821,7 @@ export interface RootRouteChildren {
   SetupRoute: typeof SetupRoute
   SignupRoute: typeof SignupRouteWithChildren
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
+  SupportRoute: typeof SupportRoute
   TenantRoute: typeof TenantRouteWithChildren
   TermsRoute: typeof TermsRoute
   WhoIsFeezoForRoute: typeof WhoIsFeezoForRoute
@@ -832,6 +858,13 @@ declare module '@tanstack/react-router' {
       path: '/tenant'
       fullPath: '/tenant'
       preLoaderRoute: typeof TenantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/super-admin': {
@@ -888,6 +921,13 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment-policy': {
+      id: '/payment-policy'
+      path: '/payment-policy'
+      fullPath: '/payment-policy'
+      preLoaderRoute: typeof PaymentPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -1385,6 +1425,7 @@ const rootRouteChildren: RootRouteChildren = {
   HomeRoute: HomeRoute,
   ImpersonateRoute: ImpersonateRoute,
   LoginRoute: LoginRoute,
+  PaymentPolicyRoute: PaymentPolicyRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ProductRoute: ProductRoute,
@@ -1393,6 +1434,7 @@ const rootRouteChildren: RootRouteChildren = {
   SetupRoute: SetupRoute,
   SignupRoute: SignupRouteWithChildren,
   SuperAdminRoute: SuperAdminRouteWithChildren,
+  SupportRoute: SupportRoute,
   TenantRoute: TenantRouteWithChildren,
   TermsRoute: TermsRoute,
   WhoIsFeezoForRoute: WhoIsFeezoForRoute,

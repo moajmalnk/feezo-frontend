@@ -11,6 +11,7 @@ const SHARED_LINKS = [
   { href: "/", label: "Feezo home" },
   { href: "/signup/school", label: "Start a 14-day trial" },
   { href: "/contact", label: "Contact the team" },
+  { href: "/support", label: "Support" },
   { href: "/download", label: "Download the app" },
 ] as const;
 
@@ -34,6 +35,18 @@ function pageForPath(pathname: string): FallbackPage {
         `Talk to the Feezo team in Malappuram, Kerala. Book a demo or ask about fee collection software and setup.`,
         `Email ${BRAND.contact.email} or call ${BRAND.contact.phoneDisplay}.`,
         BRAND.contact.registeredAddress,
+      ],
+      links: SHARED_LINKS,
+    };
+  }
+
+  if (pathname === "/support") {
+    return {
+      title: "Feezo Support",
+      paragraphs: [
+        "Get help with school accounts, sign-in, billing, and product support.",
+        `Email ${BRAND.legal.supportEmail}, WhatsApp ${BRAND.contact.whatsappDisplay}, or call ${BRAND.contact.phoneDisplay}.`,
+        `${BRAND.contact.hours}. ${BRAND.contact.responseTime}.`,
       ],
       links: SHARED_LINKS,
     };
@@ -156,10 +169,12 @@ export function isPublicIndexablePath(pathname: string): boolean {
     pathname === "/setup" ||
     pathname === "/pricing" ||
     pathname === "/contact" ||
+    pathname === "/support" ||
     pathname === "/download" ||
     pathname === "/terms" ||
     pathname === "/privacy" ||
     pathname === "/refund-policy" ||
+    pathname === "/payment-policy" ||
     pathname === "/data-deletion" ||
     pathname === "/signup" ||
     pathname.startsWith("/signup/")

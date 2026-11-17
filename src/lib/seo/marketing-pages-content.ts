@@ -482,6 +482,43 @@ export const CONTACT_PAGE_SEO = {
   },
 } as const;
 
+export const SUPPORT_PAGE_SEO = {
+  title: "Feezo Support | Help with School Accounts, Login & Billing",
+  description:
+    "Get help with Feezo school accounts, sign-in, billing, and product support. Email support@feezo.app, WhatsApp, or call the Malappuram team.",
+  h1: "Feezo Support",
+  intro:
+    "Need help with your school workspace, login, billing, or day-to-day Feezo use? Reach the support team directly — we reply within one business day.",
+  channels: {
+    h2: "Ways to reach support",
+  },
+  topics: {
+    h2: "Common help topics",
+    body: "Quick links for the requests we handle most often.",
+  },
+  faq: {
+    h2: "Support FAQ",
+    items: [
+      {
+        q: "How fast will support reply?",
+        a: "We aim to reply within one business day. During Mon–Sat, 9:30 AM – 6:30 PM IST, WhatsApp and phone are usually answered much faster.",
+      },
+      {
+        q: "I already use Feezo — where do I get help?",
+        a: "Signed-in school admins can open Settings → Support inside the app to raise a ticket. You can also email support@feezo.app or message us on WhatsApp.",
+      },
+      {
+        q: "Can you help reset a password?",
+        a: "Yes. Use Forgot password on the login page, or contact support with the school name and admin email if you are locked out.",
+      },
+      {
+        q: "Is this the same as booking a demo?",
+        a: "No. Support is for existing customers and account help. For demos and sales questions, use the Contact page instead.",
+      },
+    ],
+  },
+} as const;
+
 export const DOWNLOAD_PAGE = {
   title: "Feezo App Download | Student App for Schools & Parents",
   description:

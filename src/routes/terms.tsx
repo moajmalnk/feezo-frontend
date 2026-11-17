@@ -121,6 +121,7 @@ function TermsOfUsePage() {
         </ul>
         <p>
           Refunds are governed by our{" "}
+          <LegalLink href={BRAND.legal.paymentPolicyPath}>Payment Policy</LegalLink> and{" "}
           <LegalLink href={BRAND.legal.refundPolicyPath}>Refund Policy</LegalLink>.
         </p>
       </LegalSection>

@@ -53,6 +53,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: unknown;
       parentRoute: unknown;
     };
+    "/support": {
+      id: "/support";
+      path: "/support";
+      fullPath: "/support";
+      preLoaderRoute: unknown;
+      parentRoute: unknown;
+    };
     "/terms": {
       id: "/terms";
       path: "/terms";
@@ -71,6 +78,13 @@ declare module "@tanstack/react-router" {
       id: "/refund-policy";
       path: "/refund-policy";
       fullPath: "/refund-policy";
+      preLoaderRoute: unknown;
+      parentRoute: unknown;
+    };
+    "/payment-policy": {
+      id: "/payment-policy";
+      path: "/payment-policy";
+      fullPath: "/payment-policy";
       preLoaderRoute: unknown;
       parentRoute: unknown;
     };
