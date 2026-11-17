@@ -39,9 +39,9 @@ export function HomeLeadSection() {
               }}
             >
               <img
-                src="/auth/login-hero.jpg?v=9"
+                src="/auth/login-hero.png?v=10"
                 alt="Students collaborating on a laptop with school books and campus"
-                width={1280}
+                width={1232}
                 height={720}
                 className="pointer-events-none h-auto w-full select-none object-contain"
                 loading="lazy"
