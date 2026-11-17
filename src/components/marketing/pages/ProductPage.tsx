@@ -107,6 +107,7 @@ export function ProductPage() {
         </div>
         <MarketingRelatedLinks
           links={[
+            { to: "/who-is-feezo-for", label: "Who It's For" },
             { to: "/features", label: "Features" },
             { to: "/setup", label: "Setup" },
             { to: "/pricing", label: "Pricing" },

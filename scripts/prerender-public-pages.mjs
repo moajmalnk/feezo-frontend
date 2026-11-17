@@ -215,6 +215,9 @@ function homeBody() {
   <h2 style="margin:2rem 0 0;font-size:1.25rem">Fee Collection Problems Schools Face Every Month</h2>
   <p style="margin:0.75rem 0 0;color:#3f3f46">Late payments, handwritten receipts and scattered records make fee collection a monthly struggle. Staff chase parents one by one, and accounts are matched by hand at the month end. Feezo replaces this routine with one simple system for fees, receipts and follow-ups, so nothing slips through.</p>
   <p style="margin:0.5rem 0 0"><a href="/why-feezo">See why schools choose Feezo</a></p>
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">Fee Management Software Built for Academies and Institutes</h2>
+  <p style="margin:0.75rem 0 0;color:#3f3f46">Tuition centres, coaching institutes, language academies, madrasas, arts and sports academies, pre-schools, schools and colleges use Feezo to collect fees, send reminders and issue online receipts — without depending on an accountant.</p>
+  <p style="margin:0.5rem 0 0"><a href="/who-is-feezo-for">See who Feezo is for</a></p>
   <h2 style="margin:2rem 0 0;font-size:1.25rem">Feezo: ERP for Schools That Runs Fees and Accounts</h2>
   <p style="margin:0.75rem 0 0;color:#3f3f46">Feezo is a mini ERP for schools. It brings fee collection, online receipts, reports and day-to-day school accounts into one simple system, so your office does not depend on separate registers, spreadsheets and accounting software. Management sees income, expenses and cash position on one dashboard.</p>
   <p style="margin:0.5rem 0 0"><a href="/product">Explore the Feezo product overview</a></p>
@@ -263,14 +266,110 @@ function whyFeezoBody() {
   </ul>
   <h2 style="margin:2rem 0 0;font-size:1.25rem">Who Feezo Is For</h2>
   <p style="margin:0.75rem 0 0;color:#3f3f46">School owners and principals who want clear numbers. Office staff who want less manual work. Academies and institutes that collect fees every month and need reliable records.</p>
+  <p style="margin:0.5rem 0 0"><a href="/who-is-feezo-for">See every academy type Feezo supports</a></p>
   <h2 style="margin:2rem 0 0;font-size:1.25rem">Operated from Kerala</h2>
   <p style="margin:0.75rem 0 0;color:#3f3f46">Feezo is operated by MAC ADZ in Malappuram, Kerala. Our team is available to help your school get started.</p>
   <p style="margin:1.25rem 0 0">
     <a href="/signup/school">Start free 14-day trial</a> ·
     <a href="/contact">Book a demo</a> ·
+    <a href="/who-is-feezo-for">Who It's For</a> ·
     <a href="/product">Product</a> ·
     <a href="/features">Features</a> ·
     <a href="/pricing">Pricing</a>
+  </p>
+`);
+}
+
+function whoItsForBody() {
+  return seoShell(`
+  <h1 style="margin:0;font-size:2rem">Fee Management Software Built for Academies and Institutes</h1>
+  <p style="margin:1rem 0 0;color:#3f3f46">Chasing parents for pending fees, writing receipts by hand and reconciling registers every month? Feezo handles fees collection, reminders and receipts in one place, so your team can focus on teaching instead of accounts.</p>
+  <p style="margin:1.25rem 0 0">
+    <a href="/signup/school">Start free trial</a> ·
+    <a href="/contact">Book a demo</a>
+  </p>
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">Fee Collection Shouldn't Take Over Your Day</h2>
+  <ul style="margin:0.75rem 0 0;padding-left:1.25rem">
+    <li>Fees pile up as "pending" and no one knows exactly who owes what</li>
+    <li>Staff spend hours calling and messaging parents for dues</li>
+    <li>Receipts are handwritten, delayed or lost</li>
+    <li>Monthly fee tracking lives in registers and Excel sheets</li>
+    <li>You depend on an accountant just to know your collection status</li>
+    <li>Parents pay late because they forget or find paying inconvenient</li>
+  </ul>
+  <p style="margin:0.75rem 0 0;color:#3f3f46">Feezo replaces all of this with one system anyone on your team can use.</p>
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">Made for Every Kind of Academy</h2>
+  <p style="margin:0.75rem 0 0;color:#3f3f46">If you collect fees from students on a monthly, term or course basis, Feezo fits.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Tuition centres</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Track monthly fees across batches and classes without a single register.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Entrance and competitive coaching (NEET, JEE, KEAM, CUET)</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Manage installments and course fees for hundreds of students at once.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">PSC and government exam coaching</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Handle batch-wise fees and send due reminders automatically.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Language and skill academies (Spoken English, IELTS, Arabic, computer training)</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Keep short-course and monthly fees organised, with instant receipts.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Madrasas and Quran learning centres</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Simple monthly fee tracking for large student numbers.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Arts, music, dance and sports academies</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Manage recurring fees with clear dues and receipts.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Pre-schools and kindergartens</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Collect term and monthly fees and keep parents informed.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Schools and colleges</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Run fees alongside attendance, exams and student records.</p>
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">Everything You Need to Collect Fees on Time</h2>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Fee collection and fee pay</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Set up fee structures once and collect payments quickly. Parents can pay online.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Automatic fee reminders</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Send fees due messages and fee reminder messages for students without calling anyone.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Online fee receipts</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Issue professional receipts the moment a payment is made.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Dues tracking</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">See pending, paid and overdue fees by student, batch or month.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Student management</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Keep student records, batches and fee history together.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Reports without an accountant</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Get daily and monthly collection reports in a few clicks.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Parent communication</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Keep parents updated on dues and payments, plus attendance alerts when you mark the roll.</p>
+  <p style="margin:0.75rem 0 0"><a href="/features">See all features</a></p>
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">Designed for Academies in Kerala and the Gulf</h2>
+  <p style="margin:0.75rem 0 0;color:#3f3f46">Feezo is built by a team in Malappuram, Kerala, and shaped around how academies here actually work: monthly fee cycles, parent follow-ups over phone and WhatsApp, and admins who handle everything themselves.</p>
+  <ul style="margin:0.75rem 0 0;padding-left:1.25rem">
+    <li><strong>Kerala</strong>: Local support from a team that understands your market and speaks your language.</li>
+    <li><strong>GCC</strong>: Built for academies serving Malayali and Indian communities in the UAE, Saudi Arabia, Qatar, Oman, Kuwait and Bahrain.</li>
+    <li><strong>Support</strong>: Mon–Sat, 9:30 AM – 6:30 PM IST, with replies within one business day.</li>
+  </ul>
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">Why Academy Owners Switch to Feezo</h2>
+  <ul style="margin:0.75rem 0 0;padding-left:1.25rem">
+    <li><strong>No accounting staff needed</strong>: Fees and accounts are handled by the system.</li>
+    <li><strong>Quick setup</strong>: Get started in days, not weeks.</li>
+    <li><strong>Fewer pending fees</strong>: Reminders and easy online payment improve collection.</li>
+    <li><strong>Full visibility</strong>: Know your collection status anytime, from anywhere.</li>
+    <li><strong>Grows with you</strong>: Start with fees, then add attendance, exams and more.</li>
+  </ul>
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">Frequently Asked Questions</h2>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Is Feezo only for schools?</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">No. Feezo works for tuition centres, coaching institutes, language academies, madrasas, arts and sports academies, pre-schools, schools and colleges.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Can Feezo manage monthly and installment fees?</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Yes. You can set up monthly, term or course-based fee structures and track dues for each student.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Can parents pay fees online?</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Yes. When Parent Pay is enabled, guardians can pay online with Cashfree using UPI, card or net banking — in the parent app, via a WhatsApp pay link, or at the counter.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Does Feezo send fee reminders?</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Yes. You can send fee due messages and fee reminder messages for students to parents on WhatsApp without calling each one.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Do I need an accountant to use Feezo?</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">No. Feezo records payments, issues receipts and generates reports, so your regular admin staff can manage fees.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">Is Feezo available for academies in the GCC?</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Yes. Academies serving Malayali and Indian communities in the UAE, Saudi Arabia, Qatar, Oman, Kuwait and Bahrain can use Feezo, with support from our team in Malappuram, Kerala.</p>
+  <h3 style="margin:1rem 0 0;font-size:1.05rem">How long does setup take?</h3>
+  <p style="margin:0.35rem 0 0;color:#3f3f46">Most academies finish setup in a single sitting: create the account, add students, set the fee structure and start collecting. A free 14-day trial is included.</p>
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">Ready to Stop Chasing Fees?</h2>
+  <p style="margin:0.75rem 0 0;color:#3f3f46">Start your free trial or book a demo with our team in Malappuram, Kerala.</p>
+  <p style="margin:1rem 0 0">
+    <a href="/signup/school">Start free trial</a> ·
+    <a href="/contact">Book a demo</a> ·
+    <a href="/why-feezo">Why Feezo</a> ·
+    <a href="/product">Product</a> ·
+    <a href="/features">Features</a>
   </p>
 `);
 }
@@ -519,6 +618,12 @@ const pages = {
     "See why schools choose Feezo to replace paper receipts, spreadsheets and manual follow-ups with one simple system for fees and school accounts.",
     "Why Feezo",
   ),
+  whoItsFor: pageSeo(
+    "/who-is-feezo-for",
+    "Fee Management Software for Academies | Feezo",
+    "Feezo helps academies and institutes in Kerala and the GCC collect fees on time, send reminders and issue online receipts, without an accountant.",
+    "Who It's For",
+  ),
   product: pageSeo(
     "/product",
     "Feezo Product Overview | Mini ERP for Schools",
@@ -576,6 +681,7 @@ async function main() {
   await writeFile(path.join(dist, "index.html"), homeHtml, "utf8");
 
   await writeRoute(base, "/why-feezo", pages.whyFeezo, whyFeezoBody());
+  await writeRoute(base, "/who-is-feezo-for", pages.whoItsFor, whoItsForBody());
   await writeRoute(base, "/product", pages.product, productBody());
   await writeRoute(base, "/features", pages.features, featuresBody());
   await writeRoute(base, "/setup", pages.setup, setupBody());
@@ -605,7 +711,7 @@ async function main() {
   await unlink(path.join(dist, "404.html")).catch(() => undefined);
 
   console.log(
-    "Prerendered public pages: /, /why-feezo, /product, /features, /setup, /pricing, /contact, /download, not-found.html",
+    "Prerendered public pages: /, /why-feezo, /who-is-feezo-for, /product, /features, /setup, /pricing, /contact, /download, not-found.html",
   );
 }
 

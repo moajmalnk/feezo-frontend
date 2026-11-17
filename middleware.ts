@@ -8,6 +8,7 @@
 const PRERENDERED = new Set([
   "/",
   "/why-feezo",
+  "/who-is-feezo-for",
   "/product",
   "/features",
   "/setup",

@@ -11,6 +11,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: unknown;
       parentRoute: unknown;
     };
+    "/who-is-feezo-for": {
+      id: "/who-is-feezo-for";
+      path: "/who-is-feezo-for";
+      fullPath: "/who-is-feezo-for";
+      preLoaderRoute: unknown;
+      parentRoute: unknown;
+    };
     "/product": {
       id: "/product";
       path: "/product";

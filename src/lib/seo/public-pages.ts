@@ -9,6 +9,7 @@ import {
   PRODUCT_PAGE,
   SETUP_PAGE,
   SIGNUP_PAGE_SEO,
+  WHO_ITS_FOR_PAGE,
   WHY_FEEZO_PAGE,
 } from "@/lib/seo/marketing-pages-content";
 
@@ -19,6 +20,7 @@ export const OG_IMAGE_URL = `${SITE_ORIGIN}${OG_IMAGE_PATH}`;
 export type PublicPageKey =
   | "home"
   | "whyFeezo"
+  | "whoItsFor"
   | "product"
   | "features"
   | "setup"
@@ -110,6 +112,21 @@ function contactPageLd() {
   };
 }
 
+function whoItsForFaqLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: WHO_ITS_FOR_PAGE.faq.items.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.a,
+      },
+    })),
+  };
+}
+
 function pageSeo(
   path: string,
   title: string,
@@ -151,6 +168,13 @@ export const PUBLIC_PAGE_SEO: Record<PublicPageKey, PublicPageSeo> = {
     jsonLd: [organizationLd, softwareApplicationLd],
   },
   whyFeezo: pageSeo("/why-feezo", WHY_FEEZO_PAGE.title, WHY_FEEZO_PAGE.description, "Why Feezo"),
+  whoItsFor: pageSeo(
+    "/who-is-feezo-for",
+    WHO_ITS_FOR_PAGE.title,
+    WHO_ITS_FOR_PAGE.description,
+    "Who It's For",
+    [whoItsForFaqLd()],
+  ),
   product: pageSeo("/product", PRODUCT_PAGE.title, PRODUCT_PAGE.description, "Product"),
   features: pageSeo("/features", FEATURES_PAGE.title, FEATURES_PAGE.description, "Features"),
   setup: pageSeo("/setup", SETUP_PAGE.title, SETUP_PAGE.description, "Setup"),
@@ -218,6 +242,9 @@ export function homePrerenderBodyHtml(): string {
   <h2 style="margin:2rem 0 0;font-size:1.25rem">${escapeHtml(s.whyFeezo.h2)}</h2>
   <p style="margin:0.75rem 0 0;color:#3f3f46">${escapeHtml(s.whyFeezo.body)}</p>
   <p style="margin:0.5rem 0 0"><a href="${s.whyFeezo.href}">${escapeHtml(s.whyFeezo.linkLabel)}</a></p>
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">${escapeHtml(s.whoItsFor.h2)}</h2>
+  <p style="margin:0.75rem 0 0;color:#3f3f46">${escapeHtml(s.whoItsFor.body)}</p>
+  <p style="margin:0.5rem 0 0"><a href="${s.whoItsFor.href}">${escapeHtml(s.whoItsFor.linkLabel)}</a></p>
   <h2 style="margin:2rem 0 0;font-size:1.25rem">${escapeHtml(s.product.h2)}</h2>
   <p style="margin:0.75rem 0 0;color:#3f3f46">${escapeHtml(s.product.body)}</p>
   <p style="margin:0.5rem 0 0"><a href="${s.product.href}">${escapeHtml(s.product.linkLabel)}</a></p>
@@ -258,14 +285,74 @@ export function whyFeezoPrerenderBodyHtml(): string {
   </ul>
   <h2 style="margin:2rem 0 0;font-size:1.25rem">${escapeHtml(p.whoFor.h2)}</h2>
   <p style="margin:0.75rem 0 0;color:#3f3f46">${escapeHtml(p.whoFor.body)}</p>
+  <p style="margin:0.5rem 0 0"><a href="${p.whoFor.href}">${escapeHtml(p.whoFor.linkLabel)}</a></p>
   <h2 style="margin:2rem 0 0;font-size:1.25rem">${escapeHtml(p.operatedFrom.h2)}</h2>
   <p style="margin:0.75rem 0 0;color:#3f3f46">${escapeHtml(p.operatedFrom.body)}</p>
   <p style="margin:1.25rem 0 0">
     <a href="/signup/school">Start free 14-day trial</a> ·
     <a href="/contact">Book a demo</a> ·
+    <a href="/who-is-feezo-for">Who It's For</a> ·
     <a href="/product">Product</a> ·
     <a href="/features">Features</a> ·
     <a href="/pricing">Pricing</a>
+  </p>
+`);
+}
+
+export function whoItsForPrerenderBodyHtml(): string {
+  const p = WHO_ITS_FOR_PAGE;
+  return seoMain(`
+  <h1 style="margin:0;font-size:2rem;letter-spacing:-0.02em">${escapeHtml(p.h1)}</h1>
+  <p style="margin:1rem 0 0;color:#3f3f46">${escapeHtml(p.intro)}</p>
+  <p style="margin:1.25rem 0 0">
+    <a href="/signup/school">Start free trial</a> ·
+    <a href="/contact">Book a demo</a>
+  </p>
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">${escapeHtml(p.familiar.h2)}</h2>
+  <ul style="margin:0.75rem 0 0;padding-left:1.25rem">
+    ${p.familiar.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("\n    ")}
+  </ul>
+  <p style="margin:0.75rem 0 0;color:#3f3f46">${escapeHtml(p.familiar.closing)}</p>
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">${escapeHtml(p.audience.h2)}</h2>
+  <p style="margin:0.75rem 0 0;color:#3f3f46">${escapeHtml(p.audience.intro)}</p>
+  ${p.audience.types
+    .map(
+      (type) =>
+        `<h3 style="margin:1rem 0 0;font-size:1.05rem">${escapeHtml(type.name)}</h3><p style="margin:0.35rem 0 0;color:#3f3f46">${escapeHtml(type.pitch)}</p>`,
+    )
+    .join("\n  ")}
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">${escapeHtml(p.solves.h2)}</h2>
+  ${p.solves.items
+    .map(
+      (item) =>
+        `<h3 style="margin:1rem 0 0;font-size:1.05rem">${escapeHtml(item.title)}</h3><p style="margin:0.35rem 0 0;color:#3f3f46">${escapeHtml(item.body)}</p>`,
+    )
+    .join("\n  ")}
+  <p style="margin:0.75rem 0 0"><a href="${p.solves.ctaHref}">${escapeHtml(p.solves.ctaLabel)}</a></p>
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">${escapeHtml(p.region.h2)}</h2>
+  <p style="margin:0.75rem 0 0;color:#3f3f46">${escapeHtml(p.region.body)}</p>
+  <ul style="margin:0.75rem 0 0;padding-left:1.25rem">
+    ${p.region.items.map((item) => `<li><strong>${escapeHtml(item.title)}</strong>: ${escapeHtml(item.body)}</li>`).join("\n    ")}
+  </ul>
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">${escapeHtml(p.whyChoose.h2)}</h2>
+  <ul style="margin:0.75rem 0 0;padding-left:1.25rem">
+    ${p.whyChoose.items.map((item) => `<li><strong>${escapeHtml(item.title)}</strong>: ${escapeHtml(item.body)}</li>`).join("\n    ")}
+  </ul>
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">${escapeHtml(p.faq.h2)}</h2>
+  ${p.faq.items
+    .map(
+      (item) =>
+        `<h3 style="margin:1rem 0 0;font-size:1.05rem">${escapeHtml(item.q)}</h3><p style="margin:0.35rem 0 0;color:#3f3f46">${escapeHtml(item.a)}</p>`,
+    )
+    .join("\n  ")}
+  <h2 style="margin:2rem 0 0;font-size:1.25rem">${escapeHtml(p.finalCta.h2)}</h2>
+  <p style="margin:0.75rem 0 0;color:#3f3f46">${escapeHtml(p.finalCta.body)}</p>
+  <p style="margin:1rem 0 0">
+    <a href="/signup/school">Start free trial</a> ·
+    <a href="/contact">Book a demo</a> ·
+    <a href="/why-feezo">Why Feezo</a> ·
+    <a href="/product">Product</a> ·
+    <a href="/features">Features</a>
   </p>
 `);
 }

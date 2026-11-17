@@ -2,6 +2,7 @@
 
 export const MARKETING_NAV = [
   { path: "/why-feezo", label: "Why Feezo", hint: "Stop chasing paper registers" },
+  { path: "/who-is-feezo-for", label: "Who It's For", hint: "Academies, coaching & schools" },
   { path: "/product", label: "Product", hint: "Dashboard, students & fees" },
   { path: "/features", label: "Features", hint: "Everything in one workspace" },
   { path: "/setup", label: "Setup", hint: "Live in minutes, not weeks" },
@@ -17,6 +18,7 @@ export const LEGACY_HASH_REDIRECTS: Record<string, MarketingNavPath> = {
   features: "/features",
   setup: "/setup",
   pricing: "/pricing",
+  who: "/who-is-feezo-for",
 };
 
 export const HOME_PAGE = {
@@ -40,6 +42,13 @@ export const HOME_PAGE = {
       body: "Late payments, handwritten receipts and scattered records make fee collection a monthly struggle. Staff chase parents one by one, and accounts are matched by hand at the month end. Feezo replaces this routine with one simple system for fees, receipts and follow-ups, so nothing slips through.",
       linkLabel: "See why schools choose Feezo",
       href: "/why-feezo",
+    },
+    whoItsFor: {
+      id: "who-its-for",
+      h2: "Fee Management Software Built for Academies and Institutes",
+      body: "Tuition centres, coaching institutes, language academies, madrasas, arts and sports academies, pre-schools, schools and colleges use Feezo to collect fees, send reminders and issue online receipts — without depending on an accountant.",
+      linkLabel: "See who Feezo is for",
+      href: "/who-is-feezo-for",
     },
     product: {
       id: "product-overview",
@@ -138,10 +147,194 @@ export const WHY_FEEZO_PAGE = {
   whoFor: {
     h2: "Who Feezo Is For",
     body: "School owners and principals who want clear numbers. Office staff who want less manual work. Academies and institutes that collect fees every month and need reliable records.",
+    linkLabel: "See every academy type Feezo supports",
+    href: "/who-is-feezo-for",
   },
   operatedFrom: {
     h2: "Operated from Kerala",
     body: "Feezo is operated by MAC ADZ in Malappuram, Kerala. Our team is available to help your school get started.",
+  },
+} as const;
+
+export const WHO_ITS_FOR_PAGE = {
+  title: "Fee Management Software for Academies | Feezo",
+  description:
+    "Feezo helps academies and institutes in Kerala and the GCC collect fees on time, send reminders and issue online receipts, without an accountant.",
+  h1: "Fee Management Software Built for Academies and Institutes",
+  intro:
+    "Chasing parents for pending fees, writing receipts by hand and reconciling registers every month? Feezo handles fees collection, reminders and receipts in one place, so your team can focus on teaching instead of accounts.",
+  familiar: {
+    h2: "Fee Collection Shouldn't Take Over Your Day",
+    items: [
+      'Fees pile up as "pending" and no one knows exactly who owes what',
+      "Staff spend hours calling and messaging parents for dues",
+      "Receipts are handwritten, delayed or lost",
+      "Monthly fee tracking lives in registers and Excel sheets",
+      "You depend on an accountant just to know your collection status",
+      "Parents pay late because they forget or find paying inconvenient",
+    ],
+    closing: "Feezo replaces all of this with one system anyone on your team can use.",
+  },
+  audience: {
+    h2: "Made for Every Kind of Academy",
+    intro: "If you collect fees from students on a monthly, term or course basis, Feezo fits.",
+    types: [
+      {
+        name: "Tuition centres",
+        pitch: "Track monthly fees across batches and classes without a single register.",
+        alt: "fee management software for tuition centres",
+      },
+      {
+        name: "Entrance and competitive coaching (NEET, JEE, KEAM, CUET)",
+        pitch: "Manage installments and course fees for hundreds of students at once.",
+        alt: "fee management software for competitive coaching institutes",
+      },
+      {
+        name: "PSC and government exam coaching",
+        pitch: "Handle batch-wise fees and send due reminders automatically.",
+        alt: "fee management software for PSC coaching centres",
+      },
+      {
+        name: "Language and skill academies (Spoken English, IELTS, Arabic, computer training)",
+        pitch: "Keep short-course and monthly fees organised, with instant receipts.",
+        alt: "fee management software for language and skill academies",
+      },
+      {
+        name: "Madrasas and Quran learning centres",
+        pitch: "Simple monthly fee tracking for large student numbers.",
+        alt: "fee management software for madrasas and Quran centres",
+      },
+      {
+        name: "Arts, music, dance and sports academies",
+        pitch: "Manage recurring fees with clear dues and receipts.",
+        alt: "fee management software for arts music dance and sports academies",
+      },
+      {
+        name: "Pre-schools and kindergartens",
+        pitch: "Collect term and monthly fees and keep parents informed.",
+        alt: "fee management software for pre-schools and kindergartens",
+      },
+      {
+        name: "Schools and colleges",
+        pitch: "Run fees alongside attendance, exams and student records.",
+        alt: "fee management software for schools and colleges",
+      },
+    ],
+  },
+  solves: {
+    h2: "Everything You Need to Collect Fees on Time",
+    items: [
+      {
+        title: "Fee collection and fee pay",
+        body: "Set up fee structures once and collect payments quickly. Parents can pay online.",
+      },
+      {
+        title: "Automatic fee reminders",
+        body: "Send fees due messages and fee reminder messages for students without calling anyone.",
+      },
+      {
+        title: "Online fee receipts",
+        body: "Issue professional receipts the moment a payment is made.",
+      },
+      {
+        title: "Dues tracking",
+        body: "See pending, paid and overdue fees by student, batch or month.",
+      },
+      {
+        title: "Student management",
+        body: "Keep student records, batches and fee history together.",
+      },
+      {
+        title: "Reports without an accountant",
+        body: "Get daily and monthly collection reports in a few clicks.",
+      },
+      {
+        title: "Parent communication",
+        body: "Keep parents updated on dues and payments, plus attendance alerts when you mark the roll.",
+      },
+    ],
+    ctaLabel: "See all features",
+    ctaHref: "/features",
+  },
+  region: {
+    h2: "Designed for Academies in Kerala and the Gulf",
+    body: "Feezo is built by a team in Malappuram, Kerala, and shaped around how academies here actually work: monthly fee cycles, parent follow-ups over phone and WhatsApp, and admins who handle everything themselves.",
+    items: [
+      {
+        title: "Kerala",
+        body: "Local support from a team that understands your market and speaks your language.",
+      },
+      {
+        title: "GCC",
+        body: "Built for academies serving Malayali and Indian communities in the UAE, Saudi Arabia, Qatar, Oman, Kuwait and Bahrain.",
+      },
+      {
+        title: "Support",
+        body: "Mon–Sat, 9:30 AM – 6:30 PM IST, with replies within one business day.",
+      },
+    ],
+  },
+  whyChoose: {
+    h2: "Why Academy Owners Switch to Feezo",
+    items: [
+      {
+        title: "No accounting staff needed",
+        body: "Fees and accounts are handled by the system.",
+      },
+      {
+        title: "Quick setup",
+        body: "Get started in days, not weeks.",
+      },
+      {
+        title: "Fewer pending fees",
+        body: "Reminders and easy online payment improve collection.",
+      },
+      {
+        title: "Full visibility",
+        body: "Know your collection status anytime, from anywhere.",
+      },
+      {
+        title: "Grows with you",
+        body: "Start with fees, then add attendance, exams and more.",
+      },
+    ],
+  },
+  faq: {
+    h2: "Frequently Asked Questions",
+    items: [
+      {
+        q: "Is Feezo only for schools?",
+        a: "No. Feezo works for tuition centres, coaching institutes, language academies, madrasas, arts and sports academies, pre-schools, schools and colleges.",
+      },
+      {
+        q: "Can Feezo manage monthly and installment fees?",
+        a: "Yes. You can set up monthly, term or course-based fee structures and track dues for each student.",
+      },
+      {
+        q: "Can parents pay fees online?",
+        a: "Yes. When Parent Pay is enabled, guardians can pay online with Cashfree using UPI, card or net banking — in the parent app, via a WhatsApp pay link, or at the counter.",
+      },
+      {
+        q: "Does Feezo send fee reminders?",
+        a: "Yes. You can send fee due messages and fee reminder messages for students to parents on WhatsApp without calling each one.",
+      },
+      {
+        q: "Do I need an accountant to use Feezo?",
+        a: "No. Feezo records payments, issues receipts and generates reports, so your regular admin staff can manage fees.",
+      },
+      {
+        q: "Is Feezo available for academies in the GCC?",
+        a: "Yes. Academies serving Malayali and Indian communities in the UAE, Saudi Arabia, Qatar, Oman, Kuwait and Bahrain can use Feezo, with support from our team in Malappuram, Kerala.",
+      },
+      {
+        q: "How long does setup take?",
+        a: "Most academies finish setup in a single sitting: create the account, add students, set the fee structure and start collecting. A free 14-day trial is included.",
+      },
+    ],
+  },
+  finalCta: {
+    h2: "Ready to Stop Chasing Fees?",
+    body: "Start your free trial or book a demo with our team in Malappuram, Kerala.",
   },
 } as const;
 

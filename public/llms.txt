@@ -70,6 +70,10 @@ Confirm current prices at https://www.feezo.app before quoting them in a purchas
 ## Key pages
 
 - [Home](https://www.feezo.app/): Product overview, features, and pricing
+- [Why Feezo](https://www.feezo.app/why-feezo): Problems Feezo solves for school offices
+- [Who It's For](https://www.feezo.app/who-is-feezo-for): Academies, coaching institutes, schools and colleges
+- [Product](https://www.feezo.app/product): Product overview
+- [Features](https://www.feezo.app/features): Fees, receipts, reminders and reports
 - [Contact](https://www.feezo.app/contact): Sales and support enquiries
 - [Download](https://www.feezo.app/download): iPhone and Android app download
 - [Sign up](https://www.feezo.app/signup): 14-day trial

@@ -7,6 +7,7 @@ import {
   Settings2,
   Sparkles,
   Tag,
+  Users,
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -27,6 +28,7 @@ const NAV_META: Record<
   { icon: typeof Sparkles; hint: string }
 > = {
   "/why-feezo": { icon: Sparkles, hint: "Stop chasing paper registers" },
+  "/who-is-feezo-for": { icon: Users, hint: "Academies, coaching & schools" },
   "/product": { icon: LayoutDashboard, hint: "Dashboard, students & fees" },
   "/features": { icon: Grid3x3, hint: "Everything in one workspace" },
   "/setup": { icon: Settings2, hint: "Live in minutes, not weeks" },

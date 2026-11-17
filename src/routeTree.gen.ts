@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WhyFeezoRouteImport } from './routes/why-feezo'
+import { Route as WhoIsFeezoForRouteImport } from './routes/who-is-feezo-for'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TenantRouteImport } from './routes/tenant'
 import { Route as SuperAdminRouteImport } from './routes/super-admin'
@@ -75,6 +76,11 @@ import { Route as FamilyJoinTokenRouteImport } from './routes/family/join.$token
 const WhyFeezoRoute = WhyFeezoRouteImport.update({
   id: '/why-feezo',
   path: '/why-feezo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WhoIsFeezoForRoute = WhoIsFeezoForRouteImport.update({
+  id: '/who-is-feezo-for',
+  path: '/who-is-feezo-for',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermsRoute = TermsRouteImport.update({
@@ -408,6 +414,7 @@ export interface FileRoutesByFullPath {
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/tenant': typeof TenantRouteWithChildren
   '/terms': typeof TermsRoute
+  '/who-is-feezo-for': typeof WhoIsFeezoForRoute
   '/why-feezo': typeof WhyFeezoRoute
   '/family/academics': typeof FamilyAcademicsRoute
   '/family/attendance': typeof FamilyAttendanceRoute
@@ -468,6 +475,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/setup': typeof SetupRoute
   '/terms': typeof TermsRoute
+  '/who-is-feezo-for': typeof WhoIsFeezoForRoute
   '/why-feezo': typeof WhyFeezoRoute
   '/family/academics': typeof FamilyAcademicsRoute
   '/family/attendance': typeof FamilyAttendanceRoute
@@ -532,6 +540,7 @@ export interface FileRoutesById {
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/tenant': typeof TenantRouteWithChildren
   '/terms': typeof TermsRoute
+  '/who-is-feezo-for': typeof WhoIsFeezoForRoute
   '/why-feezo': typeof WhyFeezoRoute
   '/family/academics': typeof FamilyAcademicsRoute
   '/family/attendance': typeof FamilyAttendanceRoute
@@ -598,6 +607,7 @@ export interface FileRouteTypes {
     | '/super-admin'
     | '/tenant'
     | '/terms'
+    | '/who-is-feezo-for'
     | '/why-feezo'
     | '/family/academics'
     | '/family/attendance'
@@ -658,6 +668,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/setup'
     | '/terms'
+    | '/who-is-feezo-for'
     | '/why-feezo'
     | '/family/academics'
     | '/family/attendance'
@@ -721,6 +732,7 @@ export interface FileRouteTypes {
     | '/super-admin'
     | '/tenant'
     | '/terms'
+    | '/who-is-feezo-for'
     | '/why-feezo'
     | '/family/academics'
     | '/family/attendance'
@@ -786,6 +798,7 @@ export interface RootRouteChildren {
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
   TenantRoute: typeof TenantRouteWithChildren
   TermsRoute: typeof TermsRoute
+  WhoIsFeezoForRoute: typeof WhoIsFeezoForRoute
   WhyFeezoRoute: typeof WhyFeezoRoute
   ParentStudentTokenRoute: typeof ParentStudentTokenRoute
   StaffCollectTokenRoute: typeof StaffCollectTokenRoute
@@ -798,6 +811,13 @@ declare module '@tanstack/react-router' {
       path: '/why-feezo'
       fullPath: '/why-feezo'
       preLoaderRoute: typeof WhyFeezoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/who-is-feezo-for': {
+      id: '/who-is-feezo-for'
+      path: '/who-is-feezo-for'
+      fullPath: '/who-is-feezo-for'
+      preLoaderRoute: typeof WhoIsFeezoForRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms': {
@@ -1375,6 +1395,7 @@ const rootRouteChildren: RootRouteChildren = {
   SuperAdminRoute: SuperAdminRouteWithChildren,
   TenantRoute: TenantRouteWithChildren,
   TermsRoute: TermsRoute,
+  WhoIsFeezoForRoute: WhoIsFeezoForRoute,
   WhyFeezoRoute: WhyFeezoRoute,
   ParentStudentTokenRoute: ParentStudentTokenRoute,
   StaffCollectTokenRoute: StaffCollectTokenRoute,

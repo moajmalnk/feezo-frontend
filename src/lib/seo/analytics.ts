@@ -6,6 +6,7 @@ export type MarketingCtaLocation =
   | "form"
   | "download"
   | "why_feezo"
+  | "who_its_for"
   | "product"
   | "features"
   | "setup"

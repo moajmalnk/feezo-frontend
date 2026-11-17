@@ -69,6 +69,12 @@ export function WhyFeezoPage() {
             </span>
             <MarketingPageH2 className="mt-4">{p.whoFor.h2}</MarketingPageH2>
             <MarketingPageBody>{p.whoFor.body}</MarketingPageBody>
+            <a
+              href={p.whoFor.href}
+              className="mt-4 inline-flex text-[14px] font-semibold text-[var(--mkt-green-deep)] underline-offset-2 hover:underline"
+            >
+              {p.whoFor.linkLabel}
+            </a>
           </SectionReveal>
           <SectionReveal delay={0.08}>
             <span className="grid h-11 w-11 place-items-center rounded-xl bg-white text-[var(--mkt-green-deep)] shadow-sm">
@@ -126,6 +132,7 @@ export function WhyFeezoPage() {
         />
         <MarketingRelatedLinks
           links={[
+            { to: "/who-is-feezo-for", label: "Who It's For" },
             { to: "/product", label: "Product" },
             { to: "/features", label: "Features" },
             { to: "/pricing", label: "Pricing" },

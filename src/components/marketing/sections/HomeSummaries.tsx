@@ -71,14 +71,21 @@ export function HomeSummaries() {
         <SectionLink href={s.whyFeezo.href}>{s.whyFeezo.linkLabel}</SectionLink>
       </SummaryBlock>
 
-      <SummaryBlock id={s.product.id} headingId="home-product-heading" h2={s.product.h2}>
+      <SummaryBlock id={s.whoItsFor.id} headingId="home-who-heading" h2={s.whoItsFor.h2}>
+        <p className="mt-4 text-[15px] leading-relaxed text-[var(--mkt-muted)] sm:text-[16px]">
+          {s.whoItsFor.body}
+        </p>
+        <SectionLink href={s.whoItsFor.href}>{s.whoItsFor.linkLabel}</SectionLink>
+      </SummaryBlock>
+
+      <SummaryBlock id={s.product.id} headingId="home-product-heading" h2={s.product.h2} soft>
         <p className="mt-4 text-[15px] leading-relaxed text-[var(--mkt-muted)] sm:text-[16px]">
           {s.product.body}
         </p>
         <SectionLink href={s.product.href}>{s.product.linkLabel}</SectionLink>
       </SummaryBlock>
 
-      <SummaryBlock id={s.features.id} headingId="home-features-heading" h2={s.features.h2} soft>
+      <SummaryBlock id={s.features.id} headingId="home-features-heading" h2={s.features.h2}>
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           {s.features.items.map((item) => (
             <div
@@ -93,14 +100,14 @@ export function HomeSummaries() {
         <SectionLink href={s.features.href}>{s.features.linkLabel}</SectionLink>
       </SummaryBlock>
 
-      <SummaryBlock id={s.setup.id} headingId="home-setup-heading" h2={s.setup.h2}>
+      <SummaryBlock id={s.setup.id} headingId="home-setup-heading" h2={s.setup.h2} soft>
         <p className="mt-4 text-[15px] leading-relaxed text-[var(--mkt-muted)] sm:text-[16px]">
           {s.setup.body}
         </p>
         <SectionLink href={s.setup.href}>{s.setup.linkLabel}</SectionLink>
       </SummaryBlock>
 
-      <SummaryBlock id={s.pricing.id} headingId="home-pricing-heading" h2={s.pricing.h2} soft>
+      <SummaryBlock id={s.pricing.id} headingId="home-pricing-heading" h2={s.pricing.h2}>
         <p className="mt-4 text-[15px] leading-relaxed text-[var(--mkt-muted)] sm:text-[16px]">
           {s.pricing.body}
         </p>

@@ -284,7 +284,18 @@ export function MarketingCtaBand({
 export function MarketingRelatedLinks({
   links,
 }: {
-  links: { to: "/product" | "/features" | "/pricing" | "/setup" | "/why-feezo" | "/download" | "/contact"; label: string }[];
+  links: {
+    to:
+      | "/product"
+      | "/features"
+      | "/pricing"
+      | "/setup"
+      | "/why-feezo"
+      | "/who-is-feezo-for"
+      | "/download"
+      | "/contact";
+    label: string;
+  }[];
 }) {
   return (
     <nav className="mt-8 flex flex-wrap justify-center gap-2" aria-label="Related pages">

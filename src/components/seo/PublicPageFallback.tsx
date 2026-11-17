@@ -50,6 +50,17 @@ function pageForPath(pathname: string): FallbackPage {
     };
   }
 
+  if (pathname === "/who-is-feezo-for") {
+    return {
+      title: "Fee Management Software Built for Academies and Institutes",
+      paragraphs: [
+        "Feezo helps academies and institutes in Kerala and the GCC collect fees on time, send reminders and issue online receipts, without an accountant.",
+        "Built for tuition centres, coaching institutes, language academies, madrasas, arts and sports academies, pre-schools, schools and colleges.",
+      ],
+      links: SHARED_LINKS,
+    };
+  }
+
   if (pathname === "/product") {
     return {
       title: "Feezo: Mini ERP for School Fees and Accounts",
@@ -139,6 +150,7 @@ export function isPublicIndexablePath(pathname: string): boolean {
   return (
     pathname === "/" ||
     pathname === "/why-feezo" ||
+    pathname === "/who-is-feezo-for" ||
     pathname === "/product" ||
     pathname === "/features" ||
     pathname === "/setup" ||
