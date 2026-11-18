@@ -42,21 +42,78 @@
       html,body{margin:0;background:#fff;color:#1a1c2c;font-family:Inter,ui-sans-serif,system-ui,sans-serif}
       #root{min-height:100vh}
       #boot-shell{position:fixed;inset:0;z-index:40;overflow:auto;background:#fff;pointer-events:none}
-      #boot-shell .boot-inner{max-width:64rem;margin:0 auto;padding:4.75rem 1.25rem 2rem;text-align:center}
+      #boot-shell .boot-bar{position:sticky;top:0;z-index:2;height:2px;overflow:hidden;background:rgba(15,118,110,.08)}
+      #boot-shell .boot-bar>span{display:block;height:100%;width:32%;border-radius:999px;background:#0F766E;animation:feezo-boot-bar 1.1s ease-in-out infinite}
+      #boot-shell .boot-nav{max-width:72rem;margin:0 auto;padding:1rem 1.25rem 0;display:flex;align-items:center;justify-content:space-between;gap:.75rem}
+      #boot-shell .boot-nav-links{display:none;gap:.75rem;align-items:center}
+      @media (min-width:768px){#boot-shell .boot-nav-links{display:flex}}
+      #boot-shell .boot-inner{max-width:64rem;margin:0 auto;padding:2.5rem 1.25rem 2rem;text-align:center}
       #boot-shell .boot-eyebrow{margin:0;font-size:0.9rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#64748b}
       #boot-shell h1{margin:0.75rem 0 0;font-size:clamp(1.85rem,5.5vw,3.25rem);line-height:1.12;font-weight:800;letter-spacing:-0.02em;color:#1a1c2c}
       #boot-shell .boot-tagline{margin:0.75rem 0 0;font-size:clamp(1.05rem,2.4vw,1.35rem);font-weight:600;color:#3f7a1f}
-      #boot-shell img{display:block;width:min(100%,1040px);height:auto;margin:2rem auto 0;aspect-ratio:16/9;object-fit:contain}
-      #boot-shell p{max-width:32rem;margin:1.5rem auto 0;font-size:clamp(1rem,2.4vw,1.375rem);font-weight:500;line-height:1.35;color:#1a1c2c}
+      #boot-shell .boot-hero{position:relative;width:min(100%,1040px);margin:2rem auto 0;aspect-ratio:16/9;border-radius:1.25rem;overflow:hidden;background:#f1f5f9}
+      #boot-shell .boot-hero-shimmer{position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(15,23,42,.05) 0%,rgba(15,23,42,.1) 45%,rgba(15,23,42,.05) 100%);background-size:220% 100%;animation:feezo-bone 1.35s ease-in-out infinite}
+      #boot-shell .boot-hero-shimmer.is-done{opacity:0;transition:opacity .35s ease;pointer-events:none}
+      #boot-shell .boot-hero img{position:relative;z-index:2;display:block;width:100%;height:100%;object-fit:contain;opacity:0;transition:opacity .35s ease}
+      #boot-shell .boot-hero img.is-ready{opacity:1}
+      #boot-shell .boot-copy{max-width:32rem;margin:1.5rem auto 0;font-size:clamp(1rem,2.4vw,1.375rem);font-weight:500;line-height:1.35;color:#1a1c2c}
+      #boot-shell .boot-actions{margin:1.5rem auto 0;display:flex;flex-wrap:wrap;justify-content:center;gap:.75rem}
+      #boot-shell .bone{display:block;border-radius:.55rem;background:linear-gradient(90deg,rgba(15,23,42,.06) 0%,rgba(15,23,42,.11) 45%,rgba(15,23,42,.06) 100%);background-size:220% 100%;animation:feezo-bone 1.35s ease-in-out infinite}
+      #boot-shell .bone-circle{border-radius:999px}
       #boot-shell.is-done{opacity:0;transition:opacity .2s ease}
       html.no-boot #boot-shell{display:none!important}
+      /* App routes: never flash crawlable marketing HTML from SPA fallback index.html */
+      html.app-boot{background:#F4F6F9}
+      html.app-boot body{background:#F4F6F9}
+      html.app-boot #seo-content{display:none!important}
+      #app-boot-shell{display:none;position:fixed;inset:0;z-index:45;overflow:hidden;background:#F4F6F9;pointer-events:none}
+      html.app-boot #app-boot-shell{display:block}
+      #app-boot-shell.is-done{opacity:0;transition:opacity .18s ease}
+      #app-boot-shell .app-boot-bar{position:absolute;inset:0 auto auto 0;height:2px;width:100%;overflow:hidden;background:rgba(15,118,110,.08)}
+      #app-boot-shell .app-boot-bar>span{display:block;height:100%;width:32%;border-radius:999px;background:#0F766E;animation:feezo-boot-bar 1.1s ease-in-out infinite}
+      #app-boot-shell .app-boot-frame{max-width:1480px;margin:0 auto;padding:calc(0.9rem + env(safe-area-inset-top)) 1rem 1.5rem}
+      #app-boot-shell .app-boot-nav{display:flex;align-items:center;justify-content:space-between;gap:0.75rem;padding:0.7rem 0.85rem;border-radius:1rem;border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.9);box-shadow:0 14px 44px -32px rgba(0,0,0,.45)}
+      #app-boot-shell .app-boot-nav-left{display:flex;align-items:center;gap:0.7rem;min-width:0}
+      #app-boot-shell .app-boot-nav-right{display:flex;align-items:center;gap:0.45rem}
+      #app-boot-shell .app-boot-main{margin-top:1.1rem;display:grid;gap:0.85rem}
+      #app-boot-shell .app-boot-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.7rem}
+      @media (min-width:1024px){#app-boot-shell .app-boot-stats{grid-template-columns:repeat(4,minmax(0,1fr))}}
+      #app-boot-shell .app-boot-card{border-radius:1.1rem;border:1px solid #EFEFEF;background:#fff;padding:1rem;box-shadow:0 10px 30px -24px rgba(15,23,42,.35)}
+      #app-boot-shell .app-boot-list{border-radius:1.1rem;border:1px solid #EFEFEF;background:#fff;padding:0.85rem;box-shadow:0 10px 30px -24px rgba(15,23,42,.35)}
+      #app-boot-shell .app-boot-row{display:flex;align-items:center;gap:0.75rem;padding:0.7rem 0.35rem;border-bottom:1px solid #F1F5F9}
+      #app-boot-shell .app-boot-row:last-child{border-bottom:0}
+      #app-boot-shell .bone{display:block;border-radius:0.55rem;background:linear-gradient(90deg,rgba(15,23,42,.06) 0%,rgba(15,23,42,.11) 45%,rgba(15,23,42,.06) 100%);background-size:220% 100%;animation:feezo-bone 1.35s ease-in-out infinite}
+      #app-boot-shell .bone-circle{border-radius:999px}
+      #app-boot-shell .app-boot-label{margin:0.85rem 0 0;font-size:0.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(15,23,42,.4);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+      @keyframes feezo-bone{0%{background-position:100% 0}100%{background-position:-100% 0}}
+      @keyframes feezo-boot-bar{0%{transform:translateX(-120%)}100%{transform:translateX(340%)}}
     </style>
     <script>
       (function () {
-        var path = location.pathname || "/";
-        var marketing = path === "/" || path === "/index.html";
-        window.__feezoIsMarketingHome = marketing;
-        if (!marketing) document.documentElement.classList.add("no-boot");
+        var path = (location.pathname || "/").replace(/\/+$/, "") || "/";
+        var isHome = path === "/" || path === "/index.html";
+        // Public marketing pages keep crawlable HTML; app routes must not flash it.
+        var marketingPaths = {
+          "/": 1,
+          "/index.html": 1,
+          "/why-feezo": 1,
+          "/who-is-feezo-for": 1,
+          "/product": 1,
+          "/features": 1,
+          "/setup": 1,
+          "/pricing": 1,
+          "/contact": 1,
+          "/support": 1,
+          "/download": 1,
+          "/terms": 1,
+          "/payment-policy": 1,
+        };
+        window.__feezoIsMarketingHome = isHome;
+        if (!isHome) document.documentElement.classList.add("no-boot");
+        if (!marketingPaths[path]) {
+          // Vercel SPA fallback serves this same index.html for /super-admin, /tenant, …
+          document.documentElement.classList.add("app-boot");
+        }
       })();
     </script>
     <link
@@ -142,60 +199,209 @@
           gtag("js", new Date());
           var s = document.createElement("script");
           s.async = true;
-          s.src = "https://www.googletagmanager.com/gtm.js?id=GTM-P8CZ33ZN";
+          s.src = "https://www.googletagmanager.com/gtm.js?id=GTM-WTPWZCH7";
           document.head.appendChild(s);
         }, window.__feezoIsMarketingHome ? 8000 : 1500);
       })();
     </script>
   </head>
   <body class="bg-white antialiased">
-    <div id="boot-shell">
+    <!--feezo-boot-start-->
+    <div id="boot-shell" aria-busy="true" aria-label="Loading Feezo homepage">
+      <div class="boot-bar" aria-hidden="true"><span></span></div>
+      <div class="boot-nav" aria-hidden="true">
+        <div style="display:flex;align-items:center;gap:.65rem">
+          <span class="bone bone-circle" style="width:2.25rem;height:2.25rem"></span>
+          <span class="bone" style="width:4.75rem;height:.7rem"></span>
+        </div>
+        <div class="boot-nav-links">
+          <span class="bone" style="width:3.5rem;height:.55rem"></span>
+          <span class="bone" style="width:3.5rem;height:.55rem"></span>
+          <span class="bone" style="width:3.25rem;height:.55rem"></span>
+          <span class="bone" style="width:3.75rem;height:.55rem"></span>
+          <span class="bone" style="width:3rem;height:.55rem"></span>
+        </div>
+        <span class="bone" style="width:7rem;height:2.2rem;border-radius:999px"></span>
+      </div>
       <div class="boot-inner">
         <p class="boot-eyebrow">Welcome To Feezo</p>
         <h1>School Management System for Fees, Receipts &amp; Accounts</h1>
         <p class="boot-tagline">School accounts simplified</p>
-        <img
-          src="/home/feezo-school-dashboard.webp"
-          srcset="/home/feezo-school-dashboard.webp 640w, /home/feezo-school-dashboard-720.webp 720w"
-          sizes="(max-width: 768px) 100vw, 720px"
-          width="640"
-          height="360"
-          alt="Feezo school management system dashboard showing fee income, expenses and cash position"
-          fetchpriority="high"
-          loading="eager"
-          decoding="sync"
-        />
-        <p>Feezo is a school management system and mini ERP for schools. Collect fees, issue online receipts, send follow-ups and manage school accounts in one place, with no accounting staff needed.</p>
+        <div class="boot-hero">
+          <div class="boot-hero-shimmer" id="boot-hero-shimmer" aria-hidden="true"></div>
+          <img
+            id="boot-hero-img"
+            src="/home/feezo-school-dashboard.webp"
+            srcset="/home/feezo-school-dashboard.webp 640w, /home/feezo-school-dashboard-720.webp 720w"
+            sizes="(max-width: 768px) 100vw, 720px"
+            width="640"
+            height="360"
+            alt="Feezo school management system dashboard showing fee income, expenses and cash position"
+            fetchpriority="high"
+            loading="eager"
+            decoding="async"
+          />
+        </div>
+        <p class="boot-copy">Feezo is a school management system and mini ERP for schools. Collect fees, issue online receipts, send follow-ups and manage school accounts in one place, with no accounting staff needed.</p>
+        <div class="boot-actions" aria-hidden="true">
+          <span class="bone" style="width:11rem;height:2.75rem;border-radius:.65rem;background:linear-gradient(90deg,rgba(143,202,74,.28),rgba(143,202,74,.45),rgba(143,202,74,.28));background-size:220% 100%"></span>
+          <span class="bone" style="width:8.5rem;height:2.75rem;border-radius:.65rem"></span>
+        </div>
       </div>
     </div>
+    <div id="app-boot-shell" aria-busy="true" aria-label="Loading Feezo">
+      <div class="app-boot-bar" aria-hidden="true"><span></span></div>
+      <div class="app-boot-frame">
+        <div class="app-boot-nav">
+          <div class="app-boot-nav-left">
+            <span class="bone bone-circle" style="width:2.4rem;height:2.4rem;flex-shrink:0"></span>
+            <div style="min-width:0;display:grid;gap:0.4rem">
+              <span class="bone" style="width:7rem;height:0.7rem"></span>
+              <span class="bone" style="width:4.5rem;height:0.55rem;opacity:.7"></span>
+            </div>
+          </div>
+          <div class="app-boot-nav-right">
+            <span class="bone" style="width:8rem;height:2.2rem;border-radius:999px;display:none"></span>
+            <span class="bone bone-circle" style="width:2.25rem;height:2.25rem"></span>
+            <span class="bone bone-circle" style="width:2.25rem;height:2.25rem"></span>
+          </div>
+        </div>
+        <div class="app-boot-main">
+          <div class="app-boot-stats">
+            <div class="app-boot-card">
+              <span class="bone" style="width:4rem;height:0.55rem"></span>
+              <span class="bone" style="width:5.5rem;height:1.5rem;margin-top:0.65rem"></span>
+              <span class="bone" style="width:100%;height:0.35rem;margin-top:0.85rem;border-radius:999px"></span>
+            </div>
+            <div class="app-boot-card">
+              <span class="bone" style="width:4rem;height:0.55rem"></span>
+              <span class="bone" style="width:5.5rem;height:1.5rem;margin-top:0.65rem"></span>
+              <span class="bone" style="width:100%;height:0.35rem;margin-top:0.85rem;border-radius:999px"></span>
+            </div>
+            <div class="app-boot-card">
+              <span class="bone" style="width:4rem;height:0.55rem"></span>
+              <span class="bone" style="width:5.5rem;height:1.5rem;margin-top:0.65rem"></span>
+              <span class="bone" style="width:100%;height:0.35rem;margin-top:0.85rem;border-radius:999px"></span>
+            </div>
+            <div class="app-boot-card">
+              <span class="bone" style="width:4rem;height:0.55rem"></span>
+              <span class="bone" style="width:5.5rem;height:1.5rem;margin-top:0.65rem"></span>
+              <span class="bone" style="width:100%;height:0.35rem;margin-top:0.85rem;border-radius:999px"></span>
+            </div>
+          </div>
+          <div class="app-boot-list">
+            <div class="app-boot-row">
+              <span class="bone bone-circle" style="width:2.4rem;height:2.4rem;flex-shrink:0"></span>
+              <div style="flex:1;min-width:0;display:grid;gap:0.4rem">
+                <span class="bone" style="width:58%;height:0.7rem"></span>
+                <span class="bone" style="width:36%;height:0.55rem;opacity:.7"></span>
+              </div>
+              <span class="bone" style="width:4.5rem;height:1.6rem;border-radius:999px;flex-shrink:0"></span>
+            </div>
+            <div class="app-boot-row">
+              <span class="bone bone-circle" style="width:2.4rem;height:2.4rem;flex-shrink:0"></span>
+              <div style="flex:1;min-width:0;display:grid;gap:0.4rem">
+                <span class="bone" style="width:52%;height:0.7rem"></span>
+                <span class="bone" style="width:30%;height:0.55rem;opacity:.7"></span>
+              </div>
+              <span class="bone" style="width:4.5rem;height:1.6rem;border-radius:999px;flex-shrink:0"></span>
+            </div>
+            <div class="app-boot-row">
+              <span class="bone bone-circle" style="width:2.4rem;height:2.4rem;flex-shrink:0"></span>
+              <div style="flex:1;min-width:0;display:grid;gap:0.4rem">
+                <span class="bone" style="width:64%;height:0.7rem"></span>
+                <span class="bone" style="width:28%;height:0.55rem;opacity:.7"></span>
+              </div>
+              <span class="bone" style="width:4.5rem;height:1.6rem;border-radius:999px;flex-shrink:0"></span>
+            </div>
+            <div class="app-boot-row">
+              <span class="bone bone-circle" style="width:2.4rem;height:2.4rem;flex-shrink:0"></span>
+              <div style="flex:1;min-width:0;display:grid;gap:0.4rem">
+                <span class="bone" style="width:46%;height:0.7rem"></span>
+                <span class="bone" style="width:34%;height:0.55rem;opacity:.7"></span>
+              </div>
+              <span class="bone" style="width:4.5rem;height:1.6rem;border-radius:999px;flex-shrink:0"></span>
+            </div>
+          </div>
+          <p class="app-boot-label">Opening workspace</p>
+        </div>
+      </div>
+    </div>
+    <!--feezo-boot-end-->
     <div id="root"></div>
     <script>
       (function () {
-        var shell = document.getElementById("boot-shell");
-        if (!shell) return;
-        if (!window.__feezoIsMarketingHome) {
-          shell.remove();
-          return;
-        }
+        var marketingShell = document.getElementById("boot-shell");
+        var appShell = document.getElementById("app-boot-shell");
+        var heroImg = document.getElementById("boot-hero-img");
+        var heroShimmer = document.getElementById("boot-hero-shimmer");
         var dismissed = false;
-        window.__feezoDismissBootShell = function () {
-          if (dismissed) return;
-          var node = document.getElementById("boot-shell");
-          if (!node || node.classList.contains("is-done")) {
-            dismissed = true;
-            return;
+
+        function markHeroReady() {
+          if (heroImg) heroImg.classList.add("is-ready");
+          if (heroShimmer) heroShimmer.classList.add("is-done");
+        }
+        if (heroImg) {
+          if (heroImg.complete && heroImg.naturalWidth > 0) markHeroReady();
+          else {
+            heroImg.addEventListener("load", markHeroReady, { once: true });
+            heroImg.addEventListener("error", markHeroReady, { once: true });
           }
-          dismissed = true;
+        }
+
+        function removeNode(node, delay) {
+          if (!node) return;
           node.classList.add("is-done");
           window.setTimeout(function () {
-            node.remove();
-          }, 220);
+            if (node && node.parentNode) node.parentNode.removeChild(node);
+          }, delay || 200);
+        }
+
+        window.__feezoDismissBootShell = function (opts) {
+          var force = opts && opts.force;
+          // Keep homepage shell until MarketingLanding marks ready — prevents
+          // blank white screens while JS chunks crawl in on slow 3G.
+          if (
+            !force &&
+            window.__feezoIsMarketingHome &&
+            !window.__feezoLandingReady
+          ) {
+            return;
+          }
+          if (dismissed) return;
+          dismissed = true;
+          document.documentElement.classList.remove("app-boot");
+          if (window.__feezoIsMarketingHome) {
+            removeNode(marketingShell, 220);
+          } else if (marketingShell && marketingShell.parentNode) {
+            marketingShell.parentNode.removeChild(marketingShell);
+          }
+          removeNode(appShell, 180);
+          var seo = document.getElementById("seo-content");
+          if (seo) seo.setAttribute("hidden", "");
         };
-        // Safety net: never leave Chrome stuck on the LCP shell if the SPA
-        // chunk fails, hangs, or React never mounts MarketingLanding.
+
+        var isAppBoot = document.documentElement.classList.contains("app-boot");
+        if (!window.__feezoIsMarketingHome) {
+          if (marketingShell && marketingShell.parentNode) {
+            marketingShell.parentNode.removeChild(marketingShell);
+          }
+          if (!isAppBoot && appShell && appShell.parentNode) {
+            appShell.parentNode.removeChild(appShell);
+          }
+          window.setTimeout(function () {
+            window.__feezoDismissBootShell({ force: true });
+          }, isAppBoot ? 8000 : 2500);
+          return;
+        }
+
+        if (appShell && appShell.parentNode) {
+          appShell.parentNode.removeChild(appShell);
+        }
+        // Force-clear only if the landing chunk never marks ready.
         window.setTimeout(function () {
-          window.__feezoDismissBootShell();
-        }, 4000);
+          window.__feezoDismissBootShell({ force: true });
+        }, 15000);
       })();
     </script>
     <noscript>

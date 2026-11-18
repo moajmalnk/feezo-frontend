@@ -6,7 +6,7 @@ import { navigateToMarketingPath } from "@/components/marketing/MarketingNavLink
 import { MarketingShell } from "@/components/marketing/MarketingShell";
 import { Hero } from "@/components/marketing/sections/Hero";
 import { HomeSummaries } from "@/components/marketing/sections/HomeSummaries";
-import { dismissBootShell } from "@/lib/boot-shell";
+import { markLandingReady } from "@/lib/boot-shell";
 import { importWithRetry } from "@/lib/lazy-with-retry";
 import { LEGACY_HASH_REDIRECTS } from "@/lib/seo/marketing-pages-content";
 import { applyDocumentSeo, PUBLIC_PAGE_SEO } from "@/lib/seo/public-pages";
@@ -81,11 +81,12 @@ export function MarketingLanding() {
     applyDocumentSeo(PUBLIC_PAGE_SEO.home);
     let cancelled = false;
     let timer = 0;
-    // Let the LCP poster paint, then reveal the SPA. Cap the wait so Chrome
-    // never stays on #boot-shell when React is already up.
+    // Landing chunk is mounted — clear the HTML shell after a short paint beat
+    // so LCP poster and SPA hero don't fight. Always mark ready so 3G timers
+    // cannot blank the page while Suspense is still pending.
     const reveal = () => {
       if (cancelled) return;
-      dismissBootShell();
+      markLandingReady();
       window.dispatchEvent(new Event("feezo:hydrated"));
       setShowVisuals(true);
     };
@@ -102,7 +103,7 @@ export function MarketingLanding() {
       cancelled = true;
       window.clearTimeout(timer);
       window.clearTimeout(safety);
-      dismissBootShell();
+      markLandingReady();
     };
   }, []);
 

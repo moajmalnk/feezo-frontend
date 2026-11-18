@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense } from "react";
 
-import { dismissBootShell } from "@/lib/boot-shell";
+import { MarketingHomeSkeleton } from "@/components/marketing/MarketingHomeSkeleton";
 import { importWithRetry } from "@/lib/lazy-with-retry";
 
 const MarketingLanding = lazy(() =>
@@ -17,17 +17,10 @@ export const Route = createFileRoute("/")({
 });
 
 function IndexPage() {
-  // If the landing chunk never resolves, the HTML safety timer still clears
-  // #boot-shell — also dismiss here once Suspense has been pending too long.
-  useEffect(() => {
-    const timer = window.setTimeout(() => dismissBootShell(), 3500);
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  // Always show the marketing homepage. Logged-in users reach their workspace
-  // via login redirect / "My Account" — do not bounce "/" back to the app.
+  // Keep HTML #boot-shell up until MarketingLanding mounts (markLandingReady).
+  // Suspense fallback covers the rare case the shell was force-cleared on slow 3G.
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<MarketingHomeSkeleton />}>
       <MarketingLanding />
     </Suspense>
   );

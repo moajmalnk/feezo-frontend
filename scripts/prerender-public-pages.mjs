@@ -584,7 +584,8 @@ function notFoundBody() {
 
 function stripBootShell(html) {
   return html
-    .replace(/<div id="boot-shell">[\s\S]*?<\/div>\s*<div id="root"><\/div>/i, '<div id="root"></div>')
+    .replace(/<!--feezo-boot-start-->[\s\S]*?<!--feezo-boot-end-->\s*/i, "")
+    .replace(/<div id="boot-shell">[\s\S]*?<div id="root"><\/div>/i, '<div id="root"></div>')
     .replace(
       /var marketing = path === "\/" \|\| path === "\/home" \|\| path === "\/index\.html";/,
       "var marketing = false;",
@@ -600,6 +601,11 @@ function injectSeoBody(html, bodyHtml) {
         function hideSeo() {
           var el = document.getElementById("seo-content");
           if (el) el.setAttribute("hidden", "");
+        }
+        // App routes that fall back to this HTML must never flash marketing copy.
+        if (document.documentElement.classList.contains("app-boot")) {
+          hideSeo();
+          return;
         }
         window.addEventListener("feezo:hydrated", hideSeo);
         setTimeout(hideSeo, 8000);

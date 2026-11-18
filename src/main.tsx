@@ -32,4 +32,9 @@ queueMicrotask(() => {
 });
 
 // Last-resort clear if route code never calls dismiss (chunk/network failure).
-window.setTimeout(() => dismissBootShell(), 4500);
+// Marketing home waits longer — premature dismiss blanks the page on slow 3G
+// while the landing chunk is still pending.
+const marketingHome = Boolean(
+  (window as Window & { __feezoIsMarketingHome?: boolean }).__feezoIsMarketingHome,
+);
+window.setTimeout(() => dismissBootShell({ force: true }), marketingHome ? 15000 : 6000);

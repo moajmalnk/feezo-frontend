@@ -157,11 +157,12 @@ function BootShellGuard() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   useEffect(() => {
     if (pathname === "/" || pathname === "/index.html") {
-      // Home keeps the LCP shell briefly; never leave it covering a failed mount.
-      const timer = window.setTimeout(() => dismissBootShell(), 3500);
+      // Home: only force-clear if MarketingLanding never marks ready (chunk failure).
+      // Short timers caused blank white screens under 3G throttling.
+      const timer = window.setTimeout(() => dismissBootShell({ force: true }), 15000);
       return () => window.clearTimeout(timer);
     }
-    dismissBootShell();
+    dismissBootShell({ force: true });
   }, [pathname]);
   return null;
 }

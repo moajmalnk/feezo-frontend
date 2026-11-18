@@ -125,11 +125,15 @@ export function TenantLayoutApp() {
 
   if (!hydrated || !isTenantWorkspaceSession(session)) {
     return (
-      <div className="tenant-canvas flex min-h-screen items-center justify-center">
-        <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-slate-500">
-          <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#0F766E]/60" />
-          Validating tenant session…
-        </div>
+      <div className="tenant-canvas min-h-dvh px-3 py-4 sm:px-4 sm:py-5">
+        <WorkspaceOpeningScreen
+          label={hydrated ? "Redirecting to sign in" : "Opening workspace"}
+          detail={
+            hydrated
+              ? "Taking you to a secure sign-in…"
+              : "Preparing campus data for this school…"
+          }
+        />
       </div>
     );
   }
