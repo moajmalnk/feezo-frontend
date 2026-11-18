@@ -3698,9 +3698,11 @@ function StudentsDirectoryTable({
 export function AdmitStudentPage() {
   const {
     students,
+    setStudents,
     classes,
     setClasses,
     admitStudentToActiveYear,
+    enrollStudentInActiveYear,
     activeFeeTerms,
     academicYear,
     schoolDetails,
@@ -3816,11 +3818,18 @@ export function AdmitStudentPage() {
       toast.error(concessionError);
       return null;
     }
-    const nextNum = 2847 + students.filter((s) => s.id.startsWith("STU-28")).length;
+    // Always mint past the highest existing STU-* id — the old STU-28* offset reused
+    // STU-2900 once the roster grew past that band, so admits overwrote instead of adding.
+    const id = nextPrefixedId(
+      "STU",
+      students.map((s) => s.id),
+      4,
+    );
+    const admissionSuffix = id.replace(/^STU-/i, "");
     const token = createStudentShareToken();
     const draft = normalizeStudent({
-      id: `STU-${nextNum}`,
-      admissionNumber: `ADM-${nextNum}`,
+      id,
+      admissionNumber: `ADM-${admissionSuffix}`,
       name: form.name.trim(),
       cls: form.cls,
       guardian: form.guardian.trim(),
@@ -3841,27 +3850,58 @@ export function AdmitStudentPage() {
     });
   };
 
-  const persistAdmitted = (student: Student) => {
-    void apiUpsertStudent(student, { createOnly: true }).catch((err) =>
-      toast.error(err instanceof Error ? err.message : "Could not sync student to server"),
-    );
+  /** Keep local roster + year ledger aligned if the server assigns a different public id. */
+  const reconcileAdmitted = (local: Student, saved: Student): Student => {
+    const finalId = saved.id || local.id;
+    const merged = normalizeStudent({ ...local, ...saved, id: finalId });
+    if (finalId !== local.id) {
+      setStudents((prev) => [
+        merged,
+        ...prev.filter((s) => s.id !== local.id && s.id !== finalId),
+      ]);
+      enrollStudentInActiveYear(
+        finalId,
+        {
+          cls: merged.cls,
+          due: merged.due,
+          active: merged.active !== false,
+        },
+        { syncRemote: false },
+      );
+    } else {
+      setStudents((prev) => prev.map((s) => (s.id === finalId ? { ...s, ...merged } : s)));
+    }
+    return merged;
+  };
+
+  const persistAdmitted = async (student: Student): Promise<Student> => {
+    const saved = await apiUpsertStudent(student, { createOnly: true });
+    return reconcileAdmitted(student, saved);
   };
 
   const handleAdmit = (e: React.FormEvent) => {
     e.preventDefault();
     const newStu = createStudent();
     if (!newStu) return;
-    persistAdmitted(newStu);
+    // Navigate on the local admit immediately; sync/reconcile in the background.
     startTransition(() => {
       navigate({ to: "/tenant/students", search: { id: newStu.id } });
     });
-    // Toast after navigation frame so it doesn't fight the route swap / dock.
     window.setTimeout(() => {
       toast.success(`${newStu.name} admitted`, {
         description: `${newStu.id} · ${newStu.cls} · send the collection link to complete the profile`,
         position: "top-center",
       });
     }, 120);
+    void persistAdmitted(newStu)
+      .then((saved) => {
+        if (saved.id === newStu.id) return;
+        // Server reminted the public id — keep the profile deep-link accurate.
+        navigate({ to: "/tenant/students", search: { id: saved.id }, replace: true });
+      })
+      .catch((err) => {
+        toast.error(err instanceof Error ? err.message : "Could not sync student to server");
+      });
   };
 
   const handleAdmitAndShare = (e: React.MouseEvent) => {
@@ -3869,20 +3909,21 @@ export function AdmitStudentPage() {
     const newStu = createStudent();
     if (!newStu?.shareToken) return;
     void (async () => {
+      let saved: Student;
       try {
-        await apiUpsertStudent(newStu, { createOnly: true });
+        saved = await persistAdmitted(newStu);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Could not save the parent link");
         return;
       }
-      setAdmittedId(newStu.id);
-      setShareToken(newStu.shareToken ?? "");
-      setShareName(newStu.name);
-      setSharePhone(newStu.phone ?? "");
-      setShareGuardian(newStu.guardian);
+      setAdmittedId(saved.id);
+      setShareToken(saved.shareToken ?? newStu.shareToken ?? "");
+      setShareName(saved.name);
+      setSharePhone(saved.phone ?? "");
+      setShareGuardian(saved.guardian);
       setShareOpen(true);
-      toast.success(`${newStu.name} admitted`, {
-        description: `${newStu.id} · collection link ready for parents`,
+      toast.success(`${saved.name} admitted`, {
+        description: `${saved.id} · collection link ready for parents`,
         position: "top-center",
       });
     })();
