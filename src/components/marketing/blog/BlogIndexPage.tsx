@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Loader2, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
 import {
   Select,
@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchPublicBlogCategories,
   fetchPublicBlogs,
@@ -18,6 +19,43 @@ import {
 import { resolveMediaUrl } from "@/lib/media";
 import { applyDocumentSeo, SITE_ORIGIN } from "@/lib/seo/public-pages";
 import { cn } from "@/lib/utils";
+
+function BlogCardSkeleton() {
+  return (
+    <article
+      className={cn(
+        "flex flex-col overflow-hidden rounded-2xl border border-black/8 bg-white",
+        "shadow-[0_18px_50px_-36px_rgba(15,23,42,0.45)]",
+      )}
+      aria-hidden
+    >
+      <Skeleton className="aspect-[16/10] w-full rounded-none bg-black/[0.06]" />
+      <div className="flex flex-1 flex-col p-4">
+        <Skeleton className="h-3 w-24 rounded-full bg-black/[0.06]" />
+        <Skeleton className="mt-3 h-5 w-[92%] bg-black/[0.08]" />
+        <Skeleton className="mt-2 h-5 w-[70%] bg-black/[0.07]" />
+        <Skeleton className="mt-3 h-3.5 w-full bg-black/[0.05]" />
+        <Skeleton className="mt-1.5 h-3.5 w-[88%] bg-black/[0.05]" />
+        <Skeleton className="mt-1.5 h-3.5 w-[55%] bg-black/[0.05]" />
+        <Skeleton className="mt-5 h-3 w-16 bg-black/[0.04]" />
+      </div>
+    </article>
+  );
+}
+
+function BlogIndexGridSkeleton() {
+  return (
+    <div
+      className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+      aria-busy="true"
+      aria-label="Loading articles"
+    >
+      {Array.from({ length: 6 }, (_, i) => (
+        <BlogCardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
 
 const ALL_CATEGORIES = "__all__";
 
@@ -145,9 +183,7 @@ export function BlogIndexPage() {
       </div>
 
       {loading ? (
-        <div className="mt-16 flex justify-center text-black/45">
-          <Loader2 className="h-6 w-6 animate-spin" />
-        </div>
+        <BlogIndexGridSkeleton />
       ) : blogs.length === 0 ? (
         <p className="mt-16 text-center text-black/45">No published articles yet.</p>
       ) : (

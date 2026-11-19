@@ -110,7 +110,7 @@ const CHANNELS: Channel[] = [
     id: "global",
     label: "Registered address",
     value: C.location,
-    hint: C.registeredAddress,
+    hint: "MAC ADZ · Kuzhimanna, Malappuram",
     icon: <Globe2 className="h-5 w-5" aria-hidden />,
     href: MAP_LINK,
     cta: "View on map",
@@ -207,9 +207,9 @@ export function ContactPage() {
         >
           {CONTACT_PAGE_SEO.details.h2}
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {CHANNELS.map((ch, i) => (
-            <motion.div key={ch.id} {...fadeUp(0.05 * i)}>
+            <motion.div key={ch.id} className="h-full min-h-0" {...fadeUp(0.05 * i)}>
               <ChannelCard channel={ch} />
             </motion.div>
           ))}
@@ -350,7 +350,7 @@ function ChannelCard({ channel }: { channel: Channel }) {
   };
 
   return (
-    <div className="group relative flex h-full flex-col rounded-[22px] border border-[var(--mkt-line)] bg-white p-5 shadow-[0_18px_50px_-38px_rgba(26,28,44,0.5)] transition-all duration-300 hover:-translate-y-1 hover:border-[var(--mkt-green)]/35 hover:shadow-[0_24px_60px_-34px_rgba(107,168,50,0.45)]">
+    <div className="group relative flex h-full min-h-[15.5rem] flex-col rounded-[22px] border border-[var(--mkt-line)] bg-white p-5 shadow-[0_18px_50px_-38px_rgba(26,28,44,0.5)] transition-all duration-300 hover:-translate-y-1 hover:border-[var(--mkt-green)]/35 hover:shadow-[0_24px_60px_-34px_rgba(107,168,50,0.45)]">
       <div className="flex items-start justify-between gap-3">
         <span className={cn("grid h-11 w-11 place-items-center rounded-xl", channel.tone)}>
           {channel.icon}
@@ -368,15 +368,19 @@ function ChannelCard({ channel }: { channel: Channel }) {
               <Copy className="h-4 w-4" aria-hidden />
             )}
           </button>
-        ) : null}
+        ) : (
+          <span className="h-8 w-8 shrink-0" aria-hidden />
+        )}
       </div>
       <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--mkt-muted)]">
         {channel.label}
       </p>
-      <p className="mt-1 break-words text-[17px] font-semibold text-[var(--mkt-ink)]">
+      <p className="mt-1 line-clamp-2 break-words text-[17px] font-semibold leading-snug text-[var(--mkt-ink)]">
         {channel.value}
       </p>
-      <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--mkt-muted)]">{channel.hint}</p>
+      <p className="mt-1 line-clamp-3 flex-1 text-[12.5px] leading-relaxed text-[var(--mkt-muted)]">
+        {channel.hint}
+      </p>
       <a
         href={channel.href}
         target={channel.external ? "_blank" : undefined}

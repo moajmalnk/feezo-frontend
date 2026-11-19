@@ -598,7 +598,13 @@ function injectSeoBody(html, bodyHtml) {
     `${bodyHtml}\n    <div id="root"></div>
     <script>
       (function () {
+        function spaReady() {
+          var root = document.getElementById("root");
+          return !!(root && root.childElementCount > 0);
+        }
         function hideSeo() {
+          // Keep crawlable SEO HTML if the SPA never painted — avoids a blank white page.
+          if (!spaReady()) return;
           var el = document.getElementById("seo-content");
           if (el) el.setAttribute("hidden", "");
         }
@@ -609,6 +615,7 @@ function injectSeoBody(html, bodyHtml) {
         }
         window.addEventListener("feezo:hydrated", hideSeo);
         setTimeout(hideSeo, 8000);
+        setTimeout(hideSeo, 12000);
       })();
     </script>`,
   );

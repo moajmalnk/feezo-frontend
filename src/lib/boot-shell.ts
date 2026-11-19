@@ -36,8 +36,12 @@ export function dismissBootShell(opts?: { force?: boolean }) {
   }
 
   document.documentElement.classList.remove("app-boot");
+  const root = document.getElementById("root");
   const seo = document.getElementById("seo-content");
-  if (seo) seo.setAttribute("hidden", "");
+  // Keep SEO fallback visible until React has painted — prevents blank marketing pages.
+  if (seo && root && root.childElementCount > 0) {
+    seo.setAttribute("hidden", "");
+  }
   for (const id of ["boot-shell", "app-boot-shell"] as const) {
     const shell = document.getElementById(id);
     if (!shell) continue;

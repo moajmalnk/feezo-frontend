@@ -368,6 +368,12 @@
           ) {
             return;
           }
+          // Always try to hide SEO once SPA painted (even if shells already dismissed).
+          var root = document.getElementById("root");
+          var seo = document.getElementById("seo-content");
+          if (seo && root && root.childElementCount > 0) {
+            seo.setAttribute("hidden", "");
+          }
           if (dismissed) return;
           dismissed = true;
           document.documentElement.classList.remove("app-boot");
@@ -377,8 +383,6 @@
             marketingShell.parentNode.removeChild(marketingShell);
           }
           removeNode(appShell, 180);
-          var seo = document.getElementById("seo-content");
-          if (seo) seo.setAttribute("hidden", "");
         };
 
         var isAppBoot = document.documentElement.classList.contains("app-boot");

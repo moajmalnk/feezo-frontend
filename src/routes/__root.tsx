@@ -162,7 +162,11 @@ function BootShellGuard() {
       const timer = window.setTimeout(() => dismissBootShell({ force: true }), 15000);
       return () => window.clearTimeout(timer);
     }
-    dismissBootShell({ force: true });
+    // Defer one frame so #root has painted before SEO fallback is hidden.
+    const raf = window.requestAnimationFrame(() => {
+      dismissBootShell({ force: true });
+    });
+    return () => window.cancelAnimationFrame(raf);
   }, [pathname]);
   return null;
 }

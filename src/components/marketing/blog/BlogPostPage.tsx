@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Loader2, X } from "lucide-react";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchPublicBlogDetail,
   fetchRelatedBlogs,
@@ -19,6 +20,43 @@ import {
 } from "@/lib/seo/blogBotHtml";
 import { applyDocumentSeo } from "@/lib/seo/public-pages";
 import { cn } from "@/lib/utils";
+
+function BlogPostSkeleton() {
+  return (
+    <main
+      id="main"
+      className="mx-auto w-full max-w-3xl flex-1 px-4 pb-20 pt-28 sm:px-6"
+      aria-busy="true"
+      aria-label="Loading article"
+    >
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-3.5 w-10 bg-black/[0.05]" />
+        <Skeleton className="h-3.5 w-2 bg-black/[0.04]" />
+        <Skeleton className="h-3.5 w-10 bg-black/[0.05]" />
+        <Skeleton className="h-3.5 w-2 bg-black/[0.04]" />
+        <Skeleton className="h-3.5 w-40 bg-black/[0.05]" />
+      </div>
+      <Skeleton className="mt-4 h-3 w-28 rounded-full bg-black/[0.06]" />
+      <Skeleton className="mt-3 h-9 w-[95%] bg-black/[0.08] sm:h-10" />
+      <Skeleton className="mt-2 h-9 w-[70%] bg-black/[0.07] sm:h-10" />
+      <Skeleton className="mt-4 h-4 w-full bg-black/[0.05]" />
+      <Skeleton className="mt-2 h-4 w-[88%] bg-black/[0.05]" />
+      <Skeleton className="mt-4 h-3.5 w-56 bg-black/[0.04]" />
+      <Skeleton className="mt-8 aspect-[16/9] w-full rounded-2xl bg-black/[0.06]" />
+      <div className="mt-10 space-y-3">
+        <Skeleton className="h-6 w-48 bg-black/[0.07]" />
+        <Skeleton className="h-3.5 w-full bg-black/[0.05]" />
+        <Skeleton className="h-3.5 w-full bg-black/[0.05]" />
+        <Skeleton className="h-3.5 w-[92%] bg-black/[0.05]" />
+        <Skeleton className="h-3.5 w-[80%] bg-black/[0.05]" />
+        <Skeleton className="mt-6 h-6 w-56 bg-black/[0.07]" />
+        <Skeleton className="h-3.5 w-full bg-black/[0.05]" />
+        <Skeleton className="h-3.5 w-[90%] bg-black/[0.05]" />
+        <Skeleton className="h-3.5 w-[70%] bg-black/[0.05]" />
+      </div>
+    </main>
+  );
+}
 
 function LeadFormFields({
   fields,
@@ -209,11 +247,7 @@ export function BlogPostPage({ slug }: { slug: string }) {
   };
 
   if (loading) {
-    return (
-      <main className="flex min-h-[50vh] items-center justify-center pt-28">
-        <Loader2 className="h-6 w-6 animate-spin text-black/40" />
-      </main>
-    );
+    return <BlogPostSkeleton />;
   }
 
   if (notFound || !blog) {
