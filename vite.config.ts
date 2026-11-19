@@ -79,8 +79,8 @@ export default defineConfig(({ mode }) => {
           secure: true,
           rewrite: (path) => path.replace(/^\/api\/bugricer-whatsapp/, "/wapp/api"),
         },
-        // Leftover same-origin /api calls (e.g. WhatsApp proxy sibling) still
-        // forward to the production Hostinger API — never local PHP.
+        // DEV JSON API: browser calls same-origin `/api/*`; Vite forwards to
+        // VITE_API_BASE_URL (default https://api.feezo.app). Never local PHP.
         "/api": {
           target: apiProxyTarget,
           changeOrigin: true,

@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/
 import { useEffect } from "react";
 
 import { ADMIN_NAV } from "@/components/admin/admin-nav";
+import { NetworkStatusBanner } from "@/components/admin/NetworkStatusBanner";
 import { OverviewSkeleton } from "@/components/admin/OverviewViewSkeleton";
 import { TenantsViewSkeleton } from "@/components/admin/TenantsViewSkeleton";
 import { TopNav } from "@/components/admin/TopNav";
@@ -120,6 +121,7 @@ function SuperAdminLayout() {
       <main
         className={`mobile-app-rail mx-auto min-w-0 max-w-full scroll-pb-[calc(60px+0.75rem+env(safe-area-inset-bottom))] px-3 pb-6 pt-4 sm:px-4 sm:pt-6 lg:max-w-[1480px] lg:scroll-pb-24 lg:px-6 lg:pb-24 lg:pt-8 ${mobileMainPadding}`}
       >
+        <NetworkStatusBanner />
         <Outlet />
       </main>
       <MobileTabBar items={MOBILE_TABS} pathname={pathname} />

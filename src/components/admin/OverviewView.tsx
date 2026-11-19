@@ -44,6 +44,7 @@ import {
   type SuperAdminOverview,
 } from "@/lib/api/super-admin";
 import { ApiError, getApiToken } from "@/lib/api/client";
+import { isBrowserOffline, subscribeNetwork } from "@/lib/api/network";
 import { formatAbsoluteAppTime, formatRelativeAppTime } from "@/lib/dates";
 import { cn, type Tone, type CornerSide } from "@/lib/utils";
 import { formatMoney } from "@/lib/money";
@@ -320,6 +321,19 @@ export function OverviewView() {
     };
   }, [reloadToken]);
 
+  // Auto-recover once when connectivity returns after an offline / network-drop failure.
+  useEffect(() => {
+    if (!error || loading) return;
+    let wasBlocked = isBrowserOffline();
+    return subscribeNetwork((snap) => {
+      const blocked = snap.connectivity === "offline" || snap.circuitOpen;
+      if (wasBlocked && !blocked) {
+        setReloadToken((n) => n + 1);
+      }
+      wasBlocked = blocked;
+    });
+  }, [error, loading]);
+
   const overview = data ?? EMPTY_OVERVIEW;
   const portfolio = useMemo(
     () => (tenants ? computeTenantPortfolioStats(tenants) : null),
@@ -385,16 +399,41 @@ export function OverviewView() {
   if (loading) return <OverviewSkeleton />;
 
   if (error || !data) {
+    const offline = isBrowserOffline() || /offline/i.test(error ?? "");
     return (
-      <div className="flex min-w-0 flex-col items-center gap-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-12 text-center sm:px-6">
-        <AlertTriangle className="h-6 w-6 text-rose-600" aria-hidden />
+      <div
+        className={cn(
+          "flex min-w-0 flex-col items-center gap-4 rounded-2xl border px-4 py-12 text-center sm:px-6",
+          offline
+            ? "border-amber-200 bg-amber-50"
+            : "border-rose-200 bg-rose-50",
+        )}
+      >
+        <AlertTriangle
+          className={cn("h-6 w-6", offline ? "text-amber-700" : "text-rose-600")}
+          aria-hidden
+        />
         <div className="space-y-1.5">
-          <p className="text-[15px] font-semibold text-rose-950">Overview unavailable</p>
-          <p className="max-w-md text-[13px] leading-relaxed text-rose-800/90">
+          <p
+            className={cn(
+              "text-[15px] font-semibold",
+              offline ? "text-amber-950" : "text-rose-950",
+            )}
+          >
+            {offline ? "You're offline" : "Overview unavailable"}
+          </p>
+          <p
+            className={cn(
+              "max-w-md text-[13px] leading-relaxed",
+              offline ? "text-amber-900/90" : "text-rose-800/90",
+            )}
+          >
             {error || "Could not load overview"}
           </p>
-          <p className="text-[12px] text-rose-700/75">
-            Platform metrics were not loaded — this is not an empty live portfolio.
+          <p className={cn("text-[12px]", offline ? "text-amber-800/75" : "text-rose-700/75")}>
+            {offline
+              ? "Reconnect and this page will retry automatically — or tap Try again."
+              : "Platform metrics were not loaded — this is not an empty live portfolio."}
           </p>
         </div>
         <button

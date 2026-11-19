@@ -8,7 +8,15 @@ export {
   isApiConfigured,
   onUnauthorized,
   isAuthExpiredError,
+  useDevApiProxy,
 } from "@/lib/api/client";
+export {
+  getNetworkSnapshot,
+  isBrowserOffline,
+  subscribeNetwork,
+  waitUntilOnline,
+} from "@/lib/api/network";
+export type { NetworkConnectivity, NetworkSnapshot } from "@/lib/api/network";
 export {
   apiLogin,
   apiMe,

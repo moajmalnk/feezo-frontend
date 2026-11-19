@@ -7,6 +7,16 @@ import {
   persistAuthSecrets,
   touchLastActive,
 } from "@/lib/api/persistent-auth";
+import {
+  assertNetworkReady,
+  classifyTransportFailure,
+  dedupeInflightGet,
+  isBrowserOffline,
+  networkRetryDelayMs,
+  recordNetworkFailure,
+  recordNetworkSuccess,
+  transportFailureMessage,
+} from "@/lib/api/network";
 import { getActiveBranchPublicId } from "@/lib/branch-context";
 
 export {
@@ -27,16 +37,19 @@ export {
   touchLastActive,
 } from "@/lib/api/persistent-auth";
 
-/** Hostinger production API — used by local Vite and production builds. */
+/** Hostinger production API — absolute origin for media + production builds. */
 export const PRODUCTION_API_BASE_URL = "https://api.feezo.app";
 
-/** Fail fast when api.feezo.app is unreachable instead of waiting for browser TCP timeout. */
+/** Fail fast when the API is unreachable instead of waiting for browser TCP timeout. */
 export const API_REQUEST_TIMEOUT_MS = 12_000;
 
 /** Token refresh must not hang the UI longer than a normal API call. */
 const REFRESH_TIMEOUT_MS = 10_000;
 
-/** API origin for media / absolute links (always Hostinger, including in Vite). */
+/**
+ * Absolute API origin for media / absolute links.
+ * In production builds this is always Hostinger (or VITE_API_BASE_URL override).
+ */
 export function apiBaseUrl(): string {
   const raw = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
   if (raw) return raw.replace(/\/$/, "");
@@ -44,11 +57,24 @@ export function apiBaseUrl(): string {
 }
 
 /**
+ * When true, Vite DEV JSON calls use same-origin `/api` and the Vite proxy
+ * forwards to `VITE_API_BASE_URL` (default api.feezo.app). Set
+ * `VITE_API_USE_PROXY=0` to force direct cross-origin fetches in DEV.
+ */
+export function useDevApiProxy(): boolean {
+  if (!import.meta.env.DEV) return false;
+  const flag = (import.meta.env.VITE_API_USE_PROXY as string | undefined)?.trim().toLowerCase();
+  if (flag === "0" || flag === "false" || flag === "off") return false;
+  return true;
+}
+
+/**
  * Browser fetch origin for JSON API calls.
- * Local Vite and production builds both call https://api.feezo.app. The dev server
- * proxy is not used for these requests.
+ * DEV (default): same-origin → Vite `/api` proxy → Hostinger.
+ * Production / proxy-off: absolute `apiBaseUrl()`.
  */
 export function apiRequestOrigin(): string {
+  if (useDevApiProxy()) return "";
   return apiBaseUrl();
 }
 
@@ -390,6 +416,17 @@ function linkAbortSignals(...signals: AbortSignal[]): AbortSignal {
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const method = (options.method ?? "GET").toUpperCase();
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  // Safe to share: GET/HEAD have no body; remount storms (overview + support) collapse.
+  if ((method === "GET" || method === "HEAD") && !options.retried) {
+    const dedupeKey = `${method}:${apiRequestOrigin()}${normalizedPath}`;
+    return dedupeInflightGet(dedupeKey, () => apiRequestOnce<T>(path, options));
+  }
+  return apiRequestOnce<T>(path, options);
+}
+
+async function apiRequestOnce<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const {
     method = "GET",
     body,
@@ -403,6 +440,22 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   if (auth && unauthorizedNotified && !skipUnauthorized) {
     throw new ApiError("Unauthorized: Token expired", 401);
+  }
+
+  try {
+    assertNetworkReady();
+  } catch (err) {
+    const code =
+      err instanceof Error && "code" in err && typeof (err as { code?: unknown }).code === "string"
+        ? (err as { code: string }).code
+        : isBrowserOffline()
+          ? "offline"
+          : "circuit_open";
+    throw new ApiError(
+      err instanceof Error ? err.message : transportFailureMessage("offline"),
+      0,
+      code,
+    );
   }
 
   if (auth && !isImpersonating() && !retried) {
@@ -451,19 +504,28 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     });
   } catch (err) {
     const timedOut = timeoutController.signal.aborted && !signal?.aborted;
-    if (timedOut || err instanceof TypeError) {
-      if (networkRetries > 0 && !signal?.aborted) {
-        await new Promise((r) => setTimeout(r, 280));
-        return apiRequest<T>(path, {
+    const kind = classifyTransportFailure(err, timedOut);
+    recordNetworkFailure(kind);
+
+    const canRetry =
+      networkRetries > 0 &&
+      !signal?.aborted &&
+      kind !== "offline" &&
+      kind !== "aborted" &&
+      !isBrowserOffline();
+
+    if (canRetry) {
+      const attempt = Math.max(0, (options.networkRetries ?? 1) - networkRetries);
+      await new Promise((r) => setTimeout(r, networkRetryDelayMs(attempt)));
+      if (!isBrowserOffline()) {
+        return apiRequestOnce<T>(path, {
           ...options,
           networkRetries: networkRetries - 1,
         });
       }
-      if (timedOut) {
-        throw new ApiError("Request timed out — API may be unreachable", 0);
-      }
     }
-    throw err instanceof Error ? err : new Error("Network request failed");
+
+    throw new ApiError(transportFailureMessage(kind), 0, kind);
   } finally {
     if (timeoutId !== undefined) window.clearTimeout(timeoutId);
   }
@@ -496,7 +558,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       } else if (!retried) {
         const refreshed = await refreshAccessToken();
         if (refreshed === "ok") {
-          return apiRequest<T>(path, { ...options, retried: true });
+          return apiRequestOnce<T>(path, { ...options, retried: true });
         }
         if (refreshed === "network") {
           throw new ApiError(message, res.status);
@@ -510,6 +572,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     throw new ApiError(message, res.status, code);
   }
 
+  recordNetworkSuccess();
   if (auth) touchLastActive();
   return payload.data as T;
 }
