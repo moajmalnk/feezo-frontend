@@ -39,7 +39,19 @@ export function resolveBlogMediaUrl(url?: string | null): string | null {
   const thumb = url?.trim();
   if (!thumb) return null;
   if (thumb.startsWith("http://") || thumb.startsWith("https://")) return thumb;
-  if (thumb.startsWith("/")) return `${BLOG_API_ORIGIN}${thumb}`;
+  if (thumb.startsWith("/")) {
+    // Marketing/blog static assets live on the site origin; uploads use the API.
+    if (
+      thumb.startsWith("/blog/") ||
+      thumb.startsWith("/og/") ||
+      thumb.startsWith("/marketing/") ||
+      thumb.startsWith("/home/") ||
+      thumb.startsWith("/icons/")
+    ) {
+      return `${BLOG_SITE_ORIGIN}${thumb}`;
+    }
+    return `${BLOG_API_ORIGIN}${thumb}`;
+  }
   return thumb;
 }
 

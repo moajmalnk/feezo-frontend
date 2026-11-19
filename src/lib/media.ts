@@ -57,6 +57,21 @@ export function resolveMediaUrl(url?: string | null): string | undefined {
   }
 
   const path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  // Frontend public assets (Vite / CDN) — do not prefix the API origin.
+  if (
+    path.startsWith("/blog/") ||
+    path.startsWith("/marketing/") ||
+    path.startsWith("/og/") ||
+    path.startsWith("/home/") ||
+    path.startsWith("/icons/") ||
+    path.startsWith("/showcase/") ||
+    path.startsWith("/works/") ||
+    path.startsWith("/grid/") ||
+    path.startsWith("/digital/") ||
+    path.startsWith("/auth/")
+  ) {
+    return path;
+  }
   if (import.meta.env.DEV && isApiMediaPath(path.split("?")[0] ?? path)) {
     return path;
   }
