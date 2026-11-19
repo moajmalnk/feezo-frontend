@@ -167,6 +167,14 @@ function TenantShell() {
     void import("@/components/school/SchoolAdminWorkspace");
   }, []);
 
+  // Client navigations should never leave a focus trap / overlay feel "stuck".
+  useEffect(() => {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && active !== document.body) {
+      active.blur();
+    }
+  }, [pathname]);
+
   // Unblock Home as soon as lightweight COUNT/SUM summary returns.
   useEffect(() => {
     if (hydrated || !isDashboardRoute) return;
@@ -340,12 +348,14 @@ function TenantMobileHeader() {
           <div
             className={cn(
               "relative grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-xl text-[10px] font-bold text-white",
-              !logoUrl && "bg-gradient-to-br from-[#0F766E] to-[#115E59]",
+              logoUrl
+                ? "bg-white p-0.5 dark:bg-zinc-900"
+                : "bg-gradient-to-br from-[#0F766E] to-[#115E59]",
             )}
             title={tenantName}
             aria-label={`${tenantName} · ${sectionLabel}`}
           >
-            {logoUrl ? <SchoolLogo src={logoUrl} className="absolute inset-0" /> : initials}
+            {logoUrl ? <SchoolLogo src={logoUrl} className="h-full w-full" /> : initials}
           </div>
         )}
 

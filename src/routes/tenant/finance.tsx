@@ -1,8 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 
-import { FinanceModule } from "@/components/school/SchoolAdminWorkspace";
+import { WorkspacePending } from "@/components/workspace/WorkspacePending";
 import { useRequirePermission } from "@/hooks/useRequirePermission";
 import { isFinanceTab, type FinanceTab } from "@/lib/finance-tabs";
+
+const FinanceModule = lazy(() =>
+  import("@/components/school/SchoolAdminWorkspace").then((m) => ({
+    default: m.FinanceModule,
+  })),
+);
 
 type FinanceSearch = {
   tab?: FinanceTab;
@@ -47,9 +54,16 @@ export const Route = createFileRoute("/tenant/finance")({
     };
   },
   component: FinanceRoute,
+  pendingComponent: () => (
+    <WorkspacePending label="Opening finance…" detail="Loading books and reports…" />
+  ),
 });
 
 function FinanceRoute() {
   useRequirePermission("finance");
-  return <FinanceModule />;
+  return (
+    <Suspense fallback={<WorkspacePending label="Opening finance…" />}>
+      <FinanceModule />
+    </Suspense>
+  );
 }

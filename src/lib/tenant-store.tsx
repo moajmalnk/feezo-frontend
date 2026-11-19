@@ -2101,10 +2101,54 @@ export function migrateClassFeeSchedule(
   return lines;
 }
 
+/**
+ * When a saved schedule has installment amounts but blank due dates, fill them
+ * from fee-term start dates (by label, then by order). Without this, balances
+ * stay "Due" forever and never become "Overdue".
+ */
+export function backfillFeeScheduleDueDates(
+  schedule: ClassFeeLine[],
+  cls: Pick<ClassConfig, "billingCycle">,
+  feeTerms: FeeTerm[] = [],
+): ClassFeeLine[] {
+  if (schedule.length === 0 || feeTerms.length === 0) return schedule;
+  const needsBackfill = schedule.some(
+    (line) => line.kind === "installment" && line.amount > 0 && !line.dueDate,
+  );
+  if (!needsBackfill) return schedule;
+
+  const mode: FeePeriodMode = cls.billingCycle === "Monthly" ? "month" : "term";
+  const periods = filterFeePeriods(feeTerms, mode, "tuition");
+  if (periods.length === 0) return schedule;
+
+  let installmentIndex = 0;
+  let changed = false;
+  const next = schedule.map((line) => {
+    if (line.kind !== "installment") return line;
+    const index = installmentIndex++;
+    if (line.dueDate || line.amount <= 0) return line;
+    const needle = line.label.trim().toLowerCase();
+    // Prefer the latest period with this label when older years are still in the list.
+    const byLabel = needle
+      ? [...periods]
+          .reverse()
+          .find((period) => period.label.trim().toLowerCase() === needle)
+      : undefined;
+    const period = byLabel ?? periods[Math.min(index, periods.length - 1)];
+    const dueDate = period?.startDate?.trim();
+    if (!dueDate || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return line;
+    changed = true;
+    return { ...line, dueDate };
+  });
+  return changed ? next : schedule;
+}
+
 export function withClassFeeSchedule(cls: ClassConfig, feeTerms: FeeTerm[] = []): ClassConfig {
   if (cls.feeSchedule.length > 0) {
-    const tuitionFeeAmount = sumFeeSchedule(cls.feeSchedule) || cls.tuitionFeeAmount;
-    return tuitionFeeAmount === cls.tuitionFeeAmount ? cls : { ...cls, tuitionFeeAmount };
+    const feeSchedule = backfillFeeScheduleDueDates(cls.feeSchedule, cls, feeTerms);
+    const tuitionFeeAmount = sumFeeSchedule(feeSchedule) || cls.tuitionFeeAmount;
+    if (feeSchedule === cls.feeSchedule && tuitionFeeAmount === cls.tuitionFeeAmount) return cls;
+    return { ...cls, feeSchedule, tuitionFeeAmount };
   }
   if (cls.tuitionFeeAmount <= 0 && cls.vehicleFeeAmount <= 0) return cls;
   const feeSchedule = migrateClassFeeSchedule(cls, feeTerms);

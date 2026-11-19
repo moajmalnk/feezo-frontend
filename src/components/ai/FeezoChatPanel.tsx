@@ -154,13 +154,13 @@ function SchoolMark({
     <div
       className={cn(
         "relative grid shrink-0 place-items-center overflow-hidden rounded-[0.7rem] text-[11px] font-bold text-white shadow-sm shadow-teal-950/15 ring-1 ring-slate-200/80 dark:ring-white/15",
-        !src && "bg-gradient-to-br from-[#0F766E] to-[#0D5C56]",
+        src ? "bg-white p-0.5 dark:bg-zinc-900" : "bg-gradient-to-br from-[#0F766E] to-[#0D5C56]",
         className,
       )}
       title={name}
       aria-hidden
     >
-      {src ? <SchoolLogo src={src} className="absolute inset-0" /> : initials}
+      {src ? <SchoolLogo src={src} className="h-full w-full" /> : initials}
     </div>
   );
 }

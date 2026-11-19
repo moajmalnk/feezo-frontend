@@ -829,12 +829,12 @@ export function TenantMacDock({
               expanded
                 ? "h-11 w-11 text-[11px] max-[820px]:h-10 max-[820px]:w-10 xl:h-14 xl:w-14 xl:text-[12px]"
                 : "h-11 w-11 text-[11px] xl:h-12 xl:w-12",
-              !logoUrl && "bg-gradient-to-br from-[#0F766E] to-[#115E59]",
+              logoUrl ? "bg-white p-1 dark:bg-zinc-900" : "bg-gradient-to-br from-[#0F766E] to-[#115E59]",
             )}
             title={tenantName}
             aria-label={tenantName}
           >
-            {logoUrl ? <SchoolLogo src={logoUrl} className="absolute inset-0" /> : initials}
+            {logoUrl ? <SchoolLogo src={logoUrl} className="h-full w-full" /> : initials}
           </div>
           {expanded && (
             <div className="w-full min-w-0 px-1 text-center leading-tight">

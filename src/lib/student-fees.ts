@@ -1,5 +1,6 @@
 import { filterByAcademicYear, parseAcademicYearBounds } from "@/lib/academic-year";
 import { formatEventDate, parseEventDate, parseFlexibleDate, toIsoDate } from "@/lib/dates";
+import { resolveClassConfigForStudent } from "@/lib/student-csv";
 import {
   isVehicleFeeCategory,
   resolvePaymentFeeLines,
@@ -852,7 +853,7 @@ export function buildStudentFeeStatement(input: {
     .slice()
     .sort((a, b) => String(a.time).localeCompare(String(b.time)));
 
-  const classConfig = input.classes.find((c) => c.className === student.cls);
+  const classConfig = resolveClassConfigForStudent(input.classes, student.cls);
   const tuitionExpected = markBreaksOnCharges(
     expectedTuitionChargeLines(student, classConfig, yearTerms),
     feeBreaks,
@@ -975,7 +976,7 @@ export function studentSchedulePeriodOptions(input: {
   kind: "tuition" | "vehicle" | "both";
 }): StudentSchedulePeriodOption[] {
   const yearTerms = filterByAcademicYear(input.feeTerms, input.academicYear);
-  const classConfig = input.classes.find((c) => c.className === input.student.cls);
+  const classConfig = resolveClassConfigForStudent(input.classes, input.student.cls);
   const out: StudentSchedulePeriodOption[] = [];
   const seen = new Set<string>();
 

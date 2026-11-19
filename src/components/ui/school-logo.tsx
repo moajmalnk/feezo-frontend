@@ -5,8 +5,8 @@ import { resolveMediaUrl } from "@/lib/media";
 import { cn } from "@/lib/utils";
 
 /**
- * School mark that fills its rounded frame.
- * Light letterbox margins from the logo cropper are trimmed before paint.
+ * School mark for avatars / dock / settings previews.
+ * Trims crop letterboxing, then always contains (never stretches or crops the crest).
  */
 export function SchoolLogo({
   src,
@@ -32,13 +32,12 @@ export function SchoolLogo({
   }, [src]);
 
   const shown = fitted?.src ?? resolved;
-  const cover = fitted?.cover !== false;
 
   return (
     <img
       src={shown}
       alt={alt}
-      className={cn("h-full w-full", cover ? "object-cover" : "object-contain", className)}
+      className={cn("h-full w-full object-contain", className)}
     />
   );
 }

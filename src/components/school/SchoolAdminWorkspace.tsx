@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { toast } from "sonner";
-import { useNavigate, useSearch, Link } from "@tanstack/react-router";
+import { useNavigate, useRouterState, useSearch, Link } from "@tanstack/react-router";
 import {
   TrendingUp,
   Plus,
@@ -8999,15 +8999,39 @@ function FinanceOverview({
   const [customRange, setCustomRange] = useState<CustomDateRange>({ from: "", to: "" });
   const [pendingDeletePayment, setPendingDeletePayment] = useState<Payment | null>(null);
   const [previewAttachment, setPreviewAttachment] = useState<PaymentAttachment | null>(null);
+  // Hub paints action cards + report tiles first; charts/transactions wake after idle.
+  const [insightsReady, setInsightsReady] = useState(false);
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
+
+  useEffect(() => {
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const enable = () => setInsightsReady(true);
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (w.requestIdleCallback) {
+      idleId = w.requestIdleCallback(enable, { timeout: 900 });
+    } else {
+      timeoutId = setTimeout(enable, 180);
+    }
+    return () => {
+      if (idleId != null) w.cancelIdleCallback?.(idleId);
+      if (timeoutId != null) clearTimeout(timeoutId);
+    };
+  }, []);
 
   const filteredPayments = useMemo(
-    () => filterPaymentsByPeriod(payments, incomePeriod, customRange),
-    [payments, incomePeriod, customRange],
+    () =>
+      insightsReady ? filterPaymentsByPeriod(payments, incomePeriod, customRange) : [],
+    [payments, incomePeriod, customRange, insightsReady],
   );
 
-  const { disbursements } = useDisbursements();
+  const { disbursements } = useDisbursements(undefined, insightsReady);
 
   const incomeSegments = useMemo(() => {
+    if (!insightsReady) return [];
     const buckets = new Map<string, number>();
     for (const payment of filteredPayments) {
       const key = payment.cat || "Other";
@@ -9016,13 +9040,16 @@ function FinanceOverview({
     return Array.from(buckets.entries())
       .map(([label, value]) => ({ label, value }))
       .sort((a, b) => b.value - a.value);
-  }, [filteredPayments]);
+  }, [filteredPayments, insightsReady]);
 
   const incomeTotal = incomeSegments.reduce((sum, item) => sum + item.value, 0);
 
   const expenseSegments = useMemo(
-    () => expenseSegmentsFromDisbursements(disbursements, incomePeriod, customRange),
-    [disbursements, incomePeriod, customRange],
+    () =>
+      insightsReady
+        ? expenseSegmentsFromDisbursements(disbursements, incomePeriod, customRange)
+        : [],
+    [disbursements, incomePeriod, customRange, insightsReady],
   );
 
   const expenseChartConfig = {
@@ -9031,17 +9058,20 @@ function FinanceOverview({
 
   const overdueBills = useMemo(
     () =>
-      queuedSalaryPayables(disbursements).map((item, index) => ({
-        id: item.id || `OBL-${String(index + 1).padStart(3, "0")}`,
-        name: item.payee,
-        amount: item.amount,
-        due: formatEventDateTime(item.time) === "—" ? "Due" : formatEventDateTime(item.time),
-        type: normalizePayeeType(item.payeeType || item.payee),
-      })),
-    [disbursements],
+      insightsReady
+        ? queuedSalaryPayables(disbursements).map((item, index) => ({
+            id: item.id || `OBL-${String(index + 1).padStart(3, "0")}`,
+            name: item.payee,
+            amount: item.amount,
+            due: formatEventDateTime(item.time) === "—" ? "Due" : formatEventDateTime(item.time),
+            type: normalizePayeeType(item.payeeType || item.payee),
+          }))
+        : [],
+    [disbursements, insightsReady],
   );
 
   const financeTransactions = useMemo(() => {
+    if (!insightsReady) return [];
     const receipts = payments.map((p) => ({
       key: `rc-${p.id}`,
       kind: "receipt" as const,
@@ -9067,7 +9097,12 @@ function FinanceOverview({
       payment: null as Payment | null,
     }));
     return [...receipts, ...expenses].sort((a, b) => (b.time || "").localeCompare(a.time || ""));
-  }, [payments, disbursements]);
+  }, [payments, disbursements, insightsReady]);
+
+  const visibleTransactions = useMemo(() => {
+    if (showAllTransactions) return financeTransactions;
+    return financeTransactions.slice(0, 40);
+  }, [financeTransactions, showAllTransactions]);
 
   const transactionPdfHeaders = [
     "ID",
@@ -9491,6 +9526,19 @@ function FinanceOverview({
         })}
       </section>
 
+      {!insightsReady ? (
+        <div
+          className={cn(glassCardClass, "grid min-h-[12rem] place-items-center p-6")}
+          aria-busy="true"
+          aria-label="Loading finance insights"
+        >
+          <div className="flex items-center gap-2 text-[12px] font-medium text-slate-500 dark:text-zinc-400">
+            <Loader2 className="h-4 w-4 animate-spin text-[#0F766E]" />
+            Loading insights…
+          </div>
+        </div>
+      ) : (
+      <>
       <div className="grid grid-cols-12 gap-5">
         <section
           className={cn(glassCardClass, "col-span-12 flex flex-col p-4 sm:p-5 lg:col-span-4")}
@@ -9754,7 +9802,7 @@ function FinanceOverview({
               No transactions recorded yet
             </div>
           )}
-          {financeTransactions.map((tx) => (
+          {visibleTransactions.map((tx) => (
             <div
               key={tx.key}
               className="rounded-xl border border-[#E5E5E5] bg-white p-3.5 shadow-sm shadow-slate-200/40"
@@ -9920,7 +9968,7 @@ function FinanceOverview({
                   </td>
                 </tr>
               )}
-              {financeTransactions.map((tx) => (
+              {visibleTransactions.map((tx) => (
                 <tr key={tx.key} className="border-b border-[#F0F0F0] last:border-0">
                   <td className="px-3 py-3 font-mono text-[11px] text-black/70">{tx.id}</td>
                   <td className="px-3 py-3">
@@ -10018,7 +10066,21 @@ function FinanceOverview({
             </tbody>
           </table>
         </div>
+        {!showAllTransactions && financeTransactions.length > visibleTransactions.length ? (
+          <div className="mt-4 flex justify-center">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 rounded-full border-[#E5E5E5] bg-white px-4 text-[12px]"
+              onClick={() => setShowAllTransactions(true)}
+            >
+              Show all {financeTransactions.length} transactions
+            </Button>
+          </div>
+        ) : null}
       </section>
+      </>
+      )}
 
       {isAdmin && (
         <>
@@ -18054,11 +18116,13 @@ export function SchoolSettings() {
             <div
               className={cn(
                 "relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full text-[13px] font-bold text-white",
-                !logoUrl && "bg-gradient-to-br from-[#0F766E] to-[#115E59]",
+                logoUrl
+                  ? "bg-white p-1 dark:bg-zinc-900"
+                  : "bg-gradient-to-br from-[#0F766E] to-[#115E59]",
               )}
             >
               {logoUrl ? (
-                <SchoolLogo src={logoUrl} alt={tenantName} className="absolute inset-0" />
+                <SchoolLogo src={logoUrl} alt={tenantName} className="h-full w-full" />
               ) : (
                 initials
               )}
@@ -24079,8 +24143,9 @@ function SchoolDetailsMediaField({
   extraActions?: ReactNode;
 }) {
   const showAdjust = Boolean(canAdjust && onAdjust);
+  // w-fit so square marks (logo/seal) are not stretched into a full-width bar.
   const previewShell = (
-    <div className="relative shrink-0 overflow-hidden rounded-xl bg-white ring-1 ring-black/10">
+    <div className="relative inline-flex max-w-full shrink-0 overflow-hidden rounded-xl bg-white ring-1 ring-black/10">
       {preview}
       {showAdjust && (
         <span className="pointer-events-none absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/45 via-black/10 to-transparent pb-1.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
@@ -24136,13 +24201,13 @@ function SchoolDetailsMediaField({
         </div>
       </div>
       <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-start">
-        <div className="w-full shrink-0 lg:w-auto">
+        <div className="w-fit max-w-full shrink-0">
           {showAdjust ? (
             <button
               type="button"
               onClick={onAdjust}
               disabled={adjustLoading}
-              className="group w-full rounded-xl outline-none transition-transform active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-[#0F766E]/40 lg:w-auto"
+              className="group inline-flex max-w-full rounded-xl outline-none transition-transform active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-[#0F766E]/40"
               aria-label={`Adjust ${label.toLowerCase()}`}
             >
               {previewShell}
@@ -24485,13 +24550,11 @@ function SchoolDetailsCard({
               removeAriaLabel="Remove logo"
               preview={
                 draft.logoUrl ? (
-                  <SchoolLogo
-                    src={draft.logoUrl}
-                    alt="School logo"
-                    className="h-16 w-16"
-                  />
+                  <div className="grid aspect-square h-20 w-20 place-items-center bg-white p-1.5">
+                    <SchoolLogo src={draft.logoUrl} alt="School logo" className="h-full w-full" />
+                  </div>
                 ) : (
-                  <div className="grid h-16 w-16 place-items-center bg-gradient-to-br from-[#0F766E] to-[#115E59] text-[13px] font-bold text-white">
+                  <div className="grid aspect-square h-20 w-20 place-items-center bg-gradient-to-br from-[#0F766E] to-[#115E59] text-[13px] font-bold text-white">
                     {initials}
                   </div>
                 )
@@ -24514,10 +24577,10 @@ function SchoolDetailsCard({
                   <img
                     src={resolveMediaUrl(draft.letterheadUrl) ?? draft.letterheadUrl}
                     alt="School letterhead"
-                    className="h-16 w-full object-cover object-top lg:h-16 lg:w-48"
+                    className="aspect-[16/5] h-auto w-48 max-w-full bg-[#FAFAFA] object-contain object-center dark:bg-zinc-950"
                   />
                 ) : (
-                  <div className="flex h-16 w-full items-center justify-center border border-dashed border-black/10 px-3 text-center text-[10px] text-black/45 dark:border-white/15 dark:text-zinc-400 lg:w-48">
+                  <div className="flex aspect-[16/5] w-48 max-w-full items-center justify-center border border-dashed border-black/10 px-3 text-center text-[10px] text-black/45 dark:border-white/15 dark:text-zinc-400">
                     No letterhead
                   </div>
                 )
@@ -24784,7 +24847,7 @@ function SchoolDetailsCard({
             : 512
         }
         outputMime={cropTarget === "letterhead" ? "image/jpeg" : "image/png"}
-        fit={cropTarget === "logo" ? "cover" : "contain"}
+        fit="contain"
         background={
           cropTarget === "seal" || cropTarget === "signature" ? "transparent" : "#FFFFFF"
         }
@@ -25647,6 +25710,10 @@ export function FeePeriodMultiSelect({
     [selectedKey],
   );
   const label = formatFeePeriodMultiSelectLabel(stableSelected, stableChoices);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   const toggle = (value: string) => {
     const next = stableSelected.includes(value)
@@ -25656,7 +25723,7 @@ export function FeePeriodMultiSelect({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover modal={false} open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -25676,6 +25743,7 @@ export function FeePeriodMultiSelect({
       </PopoverTrigger>
       <PopoverContent
         align="start"
+        onCloseAutoFocus={(event) => event.preventDefault()}
         className="z-[250] w-[var(--radix-popover-trigger-width)] min-w-[min(100vw-1.5rem,20rem)] overflow-hidden p-0"
       >
         <div className="max-h-64 overflow-y-auto p-2">
@@ -25750,8 +25818,14 @@ export function FieldSelect({
     );
 
   const [open, setOpen] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Close overlays on route change so body never stays scroll-locked / focus-trapped.
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
   // Fingerprint options by content so parent re-creates of the same list
-  // do not remount Select items (that flash looks like "blinking").
+  // do not remount items (that flash looks like "blinking").
   const optionsKey = options.map((o) => `${o.value}\0${o.label}\0${o.group ?? ""}`).join("\n");
   const uniqueOptions = useMemo(() => {
     const seen = new Set<string>();
@@ -25788,8 +25862,6 @@ export function FieldSelect({
     return groups;
   }, [displayOptions]);
   const selectedLabel = displayOptions.find((o) => o.value === value)?.label;
-  const triggerOverflowClass =
-    "min-w-0 gap-2 overflow-hidden [&>span:first-child]:min-w-0 [&>span:first-child]:flex-1 [&>span:first-child]:truncate";
 
   const closeSelect = () => {
     setOpen(false);
@@ -25824,79 +25896,16 @@ export function FieldSelect({
     </button>
   ) : null;
 
-  if (!searchable) {
-    return (
-      <div className={cn("min-w-0", className)}>
-        <Select
-          open={open}
-          onOpenChange={setOpen}
-          value={value || undefined}
-          onValueChange={handleValueChange}
-          disabled={disabled}
-        >
-          <SelectTrigger
-            className={cn(
-              "h-10 w-full rounded-lg border border-[#E5E5E5] bg-white px-3 text-[13px] font-normal text-black shadow-none focus:ring-2 focus:ring-[#0F766E] focus:ring-offset-0 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-100",
-              triggerOverflowClass,
-              triggerClassName,
-            )}
-          >
-            <SelectValue placeholder={placeholder} />
-          </SelectTrigger>
-          <SelectContent
-            position="popper"
-            sideOffset={4}
-            className={cn(
-              "z-[100] max-h-72 overflow-y-auto rounded-lg border border-[#E5E5E5] bg-white p-1.5 shadow-[0_16px_48px_-12px_rgba(0,0,0,0.22)] dark:border-white/10 dark:bg-zinc-900",
-              "w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)] max-w-[min(calc(100vw-1.5rem),24rem)]",
-              contentClassName,
-            )}
-          >
-            {addNewRow ? (
-              <div className="mb-1 border-b border-[#E5E5E5] pb-1 dark:border-white/10">
-                {addNewRow}
-              </div>
-            ) : null}
-            {optionGroups.map((group) => (
-              <SelectGroup key={group.key || "all"}>
-                {group.label ? (
-                  <SelectLabel className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-black/40 dark:text-zinc-500">
-                    {group.label}
-                  </SelectLabel>
-                ) : null}
-                {group.items.map((opt) => {
-                  const chosen = opt.value === value;
-                  return (
-                    <SelectItem
-                      key={opt.value}
-                      value={opt.value}
-                      className={cn(
-                        fieldSelectItemClass(chosen),
-                        "pr-9",
-                        chosen &&
-                          "data-[state=checked]:bg-transparent data-[state=checked]:text-[#0F766E] data-[state=checked]:font-medium dark:data-[state=checked]:text-[#2DD4BF]",
-                      )}
-                    >
-                      <span className="block min-w-0 flex-1 whitespace-normal break-words">
-                        {opt.label}
-                      </span>
-                    </SelectItem>
-                  );
-                })}
-              </SelectGroup>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    );
-  }
-
+  // Always Popover (modal=false): Radix Select body-locks via RemoveScroll and
+  // fights scrollbar-gutter + sticky tenant dock. Empty string stays controlled.
   return (
     <div className={cn("min-w-0", className)}>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover modal={false} open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
             type="button"
+            role="combobox"
+            aria-expanded={open}
             disabled={disabled}
             className={cn(
               "flex h-10 w-full min-w-0 items-center justify-between gap-2 overflow-hidden rounded-lg border border-[#E5E5E5] bg-white px-3 text-left text-[13px] font-normal text-black shadow-none transition-colors hover:bg-[#FAFAFA] focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800",
@@ -25917,52 +25926,95 @@ export function FieldSelect({
         <PopoverContent
           align="start"
           sideOffset={4}
+          onCloseAutoFocus={(event) => event.preventDefault()}
           className={cn(
             "z-[100] w-[var(--radix-popover-trigger-width)] max-w-[min(calc(100vw-1.5rem),24rem)] rounded-lg border border-[#E5E5E5] bg-white p-0 shadow-[0_16px_48px_-12px_rgba(0,0,0,0.22)] dark:border-white/10 dark:bg-zinc-900",
             contentClassName,
           )}
         >
-          <Command className="rounded-lg bg-white dark:bg-zinc-900 dark:text-zinc-100">
-            {addNewRow ? (
-              <div className="border-b border-[#E5E5E5] p-1.5 dark:border-white/10">
-                {addNewRow}
-              </div>
-            ) : null}
-            <CommandInput
-              placeholder={searchPlaceholder}
-              className="h-10 text-[13px] dark:text-zinc-100"
-            />
-            <CommandList className="max-h-56">
-              <CommandEmpty className="py-4 text-center text-[12px] text-slate-500 dark:text-zinc-400">
-                No matches found
-              </CommandEmpty>
-              <CommandGroup className="gap-0.5 p-1.5">
-                {displayOptions.map((opt) => {
-                  const chosen = opt.value === value;
-                  return (
-                    <CommandItem
-                      key={opt.value}
-                      value={opt.label}
-                      onSelect={() => {
-                        handleValueChange(opt.value);
-                      }}
-                      className={fieldSelectItemClass(chosen)}
-                    >
-                      <span className="min-w-0 flex-1 whitespace-normal break-words">
-                        {opt.label}
-                      </span>
-                      {chosen ? (
-                        <Check
-                          className="h-4 w-4 shrink-0 text-[#0F766E] dark:text-[#2DD4BF]"
-                          aria-hidden
-                        />
-                      ) : null}
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            </CommandList>
-          </Command>
+          {searchable ? (
+            <Command className="rounded-lg bg-white dark:bg-zinc-900 dark:text-zinc-100">
+              {addNewRow ? (
+                <div className="border-b border-[#E5E5E5] p-1.5 dark:border-white/10">
+                  {addNewRow}
+                </div>
+              ) : null}
+              <CommandInput
+                placeholder={searchPlaceholder}
+                className="h-10 text-[13px] dark:text-zinc-100"
+              />
+              <CommandList className="max-h-56">
+                <CommandEmpty className="py-4 text-center text-[12px] text-slate-500 dark:text-zinc-400">
+                  No matches found
+                </CommandEmpty>
+                <CommandGroup className="gap-0.5 p-1.5">
+                  {displayOptions.map((opt) => {
+                    const chosen = opt.value === value;
+                    return (
+                      <CommandItem
+                        key={opt.value}
+                        value={opt.label}
+                        onSelect={() => {
+                          handleValueChange(opt.value);
+                        }}
+                        className={fieldSelectItemClass(chosen)}
+                      >
+                        <span className="min-w-0 flex-1 whitespace-normal break-words">
+                          {opt.label}
+                        </span>
+                        {chosen ? (
+                          <Check
+                            className="h-4 w-4 shrink-0 text-[#0F766E] dark:text-[#2DD4BF]"
+                            aria-hidden
+                          />
+                        ) : null}
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          ) : (
+            <div className="max-h-72 overflow-y-auto p-1.5">
+              {addNewRow ? (
+                <div className="mb-1 border-b border-[#E5E5E5] pb-1 dark:border-white/10">
+                  {addNewRow}
+                </div>
+              ) : null}
+              {optionGroups.map((group) => (
+                <div key={group.key || "all"} className="min-w-0">
+                  {group.label ? (
+                    <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-black/40 dark:text-zinc-500">
+                      {group.label}
+                    </div>
+                  ) : null}
+                  {group.items.map((opt) => {
+                    const chosen = opt.value === value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        role="option"
+                        aria-selected={chosen}
+                        onClick={() => handleValueChange(opt.value)}
+                        className={cn(fieldSelectItemClass(chosen), "text-left")}
+                      >
+                        <span className="min-w-0 flex-1 whitespace-normal break-words">
+                          {opt.label}
+                        </span>
+                        {chosen ? (
+                          <Check
+                            className="h-4 w-4 shrink-0 text-[#0F766E] dark:text-[#2DD4BF]"
+                            aria-hidden
+                          />
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
         </PopoverContent>
       </Popover>
     </div>

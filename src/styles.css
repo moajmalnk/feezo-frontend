@@ -38,6 +38,20 @@
     body {
       scrollbar-gutter: stable;
     }
+
+    /*
+      Radix Select/Dialog use react-remove-scroll, which injects margin-right +
+      padding offsets when locking the body. With scrollbar-gutter: stable the
+      gutter is already reserved, so that compensation double-shrinks the
+      viewport and reflows sticky tenant chrome (sidebar gap / jagged edge).
+      Keep overflow lock for modals; only cancel the redundant gap styles.
+    */
+    body[data-scroll-locked] {
+      margin-right: 0 !important;
+      padding-left: 0 !important;
+      padding-top: 0 !important;
+      padding-right: 0 !important;
+    }
   }
   .font-mono {
     font-family: "JetBrains Mono", ui-monospace, monospace;

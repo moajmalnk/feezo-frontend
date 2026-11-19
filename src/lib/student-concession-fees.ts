@@ -1,3 +1,4 @@
+import { resolveClassConfigForStudent } from "@/lib/student-csv";
 import {
   classFeePrefillAmount,
   findTransportRouteForStudent,
@@ -446,7 +447,7 @@ export function buildConcessionReportRows(input: {
 
   for (const student of input.students) {
     if (!studentHasConcession(student)) continue;
-    const classConfig = input.classes.find((c) => c.className === student.cls);
+    const classConfig = resolveClassConfigForStudent(input.classes, student.cls);
     const tuitionTier = student.concessionFees?.tuition;
     const vehicleTier = student.concessionFees?.vehicle;
     const coversTuition = isConcessionTierEnabled(tuitionTier);

@@ -2,6 +2,7 @@ import {
   composeClassName,
   normalizeGradeLabel,
   splitClassName,
+  sumFeeSchedule,
   type ClassConfig,
   type Student,
 } from "@/lib/tenant-store";
@@ -522,9 +523,15 @@ export function findMissingClassTiers(
 }
 
 export function matchExistingClass(classes: ClassConfig[], label: string): ClassConfig | undefined {
+  return matchExistingClasses(classes, label)[0];
+}
+
+/** All class tiers that fuzzy-match a student/class label (Class 1 - A ≡ Grade 1 - A). */
+export function matchExistingClasses(classes: ClassConfig[], label: string): ClassConfig[] {
   const parsed = parseClassLabel(label);
   const needleKey = normalizeClassLabelKey(parsed.className);
-  return classes.find((cls) => {
+  if (!needleKey) return [];
+  return classes.filter((cls) => {
     if (normalizeClassLabelKey(cls.className) === needleKey) return true;
     const parts = splitClassName(cls.className);
     const grade = (cls.grade || parts.grade || "").trim();
@@ -535,6 +542,37 @@ export function matchExistingClass(classes: ClassConfig[], label: string): Class
       Boolean(parsed.grade)
     );
   });
+}
+
+/**
+ * Resolve the class tier used for fee statements.
+ * Prefers the funded Term/Annual schedule when duplicate empty Monthly tiers exist
+ * for the same Class/Grade label.
+ */
+export function resolveClassConfigForStudent(
+  classes: ClassConfig[],
+  studentCls: string,
+): ClassConfig | undefined {
+  const trimmed = studentCls.trim();
+  if (!trimmed) return undefined;
+  const matches = matchExistingClasses(classes, trimmed);
+  if (matches.length === 0) {
+    return classes.find((c) => c.className === trimmed);
+  }
+  if (matches.length === 1) return matches[0];
+
+  const feeTotal = (c: ClassConfig) =>
+    sumFeeSchedule(c.feeSchedule) || Math.max(0, Math.round(c.tuitionFeeAmount) || 0);
+  const cycleScore = (c: ClassConfig) =>
+    c.billingCycle === "Term" ? 2 : c.billingCycle === "Annually" ? 1 : 0;
+
+  return matches.slice().sort((a, b) => {
+    const feeDiff = feeTotal(b) - feeTotal(a);
+    if (feeDiff !== 0) return feeDiff;
+    const cycleDiff = cycleScore(b) - cycleScore(a);
+    if (cycleDiff !== 0) return cycleDiff;
+    return (b.feeSchedule?.length ?? 0) - (a.feeSchedule?.length ?? 0);
+  })[0];
 }
 
 export function buildClassFromLabel(id: string, label: string): ClassConfig {
