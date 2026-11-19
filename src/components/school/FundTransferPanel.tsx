@@ -46,6 +46,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { DatePicker } from "@/components/ui/date-picker";
 import { getApiToken } from "@/lib/api/client";
+import { financeViewNav } from "@/lib/finance-tabs";
 import {
   apiGlChartTree,
   apiGlCreateAccount,
@@ -1736,7 +1737,9 @@ export function TransferReports() {
               type="button"
               size="sm"
               className="h-9 rounded-full bg-[#0F766E] text-[12px] text-white hover:bg-[#0D9488]"
-              onClick={() => navigate({ to: "/tenant/finance", search: { tab: "transfer" } })}
+              onClick={() =>
+                navigate(financeViewNav("transfer"))
+              }
             >
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               New transfer
@@ -1909,7 +1912,9 @@ export function TransferReports() {
               type="button"
               size="sm"
               className="mt-4 h-9 rounded-full bg-[#0F766E] text-[12px] text-white hover:bg-[#0D9488]"
-              onClick={() => navigate({ to: "/tenant/finance", search: { tab: "transfer" } })}
+              onClick={() =>
+                navigate(financeViewNav("transfer"))
+              }
             >
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               Record a transfer

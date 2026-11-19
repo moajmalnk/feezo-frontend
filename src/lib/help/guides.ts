@@ -508,7 +508,7 @@ export const HELP_GUIDES: HelpGuide[] = [
     access: { kind: "finance", view: "make" },
     procedure: "daily",
     keywords: ["salary", "payroll", "pay staff", "basic salary", "attendance", "hold salary"],
-    openTo: { href: "/tenant/finance?tab=make", label: "Open Make Payment" },
+    openTo: { href: "/tenant/finance/make", label: "Open Make Payment" },
     flowchart: {
       title: "Salary payment path",
       mermaid: `flowchart LR
@@ -579,7 +579,7 @@ export const HELP_GUIDES: HelpGuide[] = [
       "print",
       "tuition",
     ],
-    openTo: { href: "/tenant/finance?tab=receive", label: "Open Receive Payment" },
+    openTo: { href: "/tenant/finance/receive", label: "Open Receive Payment" },
     flowchart: {
       title: "Receive payment",
       mermaid: `flowchart TD
@@ -643,7 +643,7 @@ export const HELP_GUIDES: HelpGuide[] = [
       "pay",
       "electricity",
     ],
-    openTo: { href: "/tenant/finance?tab=make", label: "Open Make Payment" },
+    openTo: { href: "/tenant/finance/make", label: "Open Make Payment" },
     flowchart: {
       title: "Make payment",
       mermaid: `flowchart TD
@@ -695,7 +695,7 @@ export const HELP_GUIDES: HelpGuide[] = [
       "bank account",
       "move money",
     ],
-    openTo: { href: "/tenant/finance?tab=transfer", label: "Open Transfer money" },
+    openTo: { href: "/tenant/finance/transfer", label: "Open Transfer money" },
     steps: [
       {
         title: "Open Transfer money",
@@ -783,7 +783,7 @@ export const HELP_GUIDES: HelpGuide[] = [
       "setup",
       "classify",
     ],
-    openTo: { href: "/tenant/finance?tab=ledger", label: "Open Ledger" },
+    openTo: { href: "/tenant/finance/ledger", label: "Open Ledger" },
     flowchart: {
       title: "Ledger creation",
       mermaid: `flowchart TD
@@ -871,7 +871,7 @@ export const HELP_GUIDES: HelpGuide[] = [
     access: { kind: "finance", view: "make" },
     procedure: "daily",
     keywords: ["queued", "cleared", "pending payment", "clear payment", "status", "cash control"],
-    openTo: { href: "/tenant/finance?tab=make", label: "Open Make Payment" },
+    openTo: { href: "/tenant/finance/make", label: "Open Make Payment" },
     flowchart: {
       title: "Queued to cleared lifecycle",
       mermaid: `flowchart TD
@@ -907,7 +907,7 @@ export const HELP_GUIDES: HelpGuide[] = [
     minutes: 2,
     access: { kind: "finance", view: "fees" },
     keywords: ["fee break", "exempt", "waive period", "skip fee", "holiday fee"],
-    openTo: { href: "/tenant/finance?tab=fees", label: "Open Fees Report" },
+    openTo: { href: "/tenant/finance/fees", label: "Open Fees Report" },
     flowchart: {
       title: "Fee break path",
       mermaid: `flowchart LR
@@ -939,7 +939,7 @@ export const HELP_GUIDES: HelpGuide[] = [
     minutes: 2,
     access: { kind: "permission", key: "students" },
     keywords: ["concession", "discount", "waiver", "scholarship", "sibling", "reduce fee"],
-    openTo: { href: "/tenant/finance?tab=concession", label: "Open Concession Report" },
+    openTo: { href: "/tenant/finance/concession", label: "Open Concession Report" },
     steps: [
       {
         title: "At admission or later",
@@ -976,7 +976,7 @@ export const HELP_GUIDES: HelpGuide[] = [
       "correction",
       "manual journal",
     ],
-    openTo: { href: "/tenant/finance?tab=journals", label: "Open Journals" },
+    openTo: { href: "/tenant/finance/journals", label: "Open Journals" },
     flowchart: {
       title: "Manual journal rule",
       mermaid: `flowchart TD
@@ -1027,7 +1027,7 @@ export const HELP_GUIDES: HelpGuide[] = [
       "routine",
       "accounts desk",
     ],
-    openTo: { href: "/tenant/finance?tab=daybook", label: "Open Day Book" },
+    openTo: { href: "/tenant/finance/daybook", label: "Open Day Book" },
     flowchart: {
       title: "Daily accounts rhythm",
       mermaid: `flowchart TD
@@ -1075,7 +1075,7 @@ export const HELP_GUIDES: HelpGuide[] = [
       "balance sheet",
       "accounts close",
     ],
-    openTo: { href: "/tenant/finance?tab=trial", label: "Open Trial Balance" },
+    openTo: { href: "/tenant/finance/trial", label: "Open Trial Balance" },
     flowchart: {
       title: "Month-end close sequence",
       mermaid: `flowchart TD
@@ -1170,7 +1170,7 @@ export const HELP_GUIDES: HelpGuide[] = [
       "new year",
       "financial year",
     ],
-    openTo: { href: "/tenant/finance?tab=journals", label: "Open Journals" },
+    openTo: { href: "/tenant/finance/journals", label: "Open Journals" },
     steps: [
       {
         title: "Create the new year",
@@ -1209,7 +1209,7 @@ export const HELP_GUIDES: HelpGuide[] = [
       "defaulters",
       "follow-up",
     ],
-    openTo: { href: "/tenant/finance?tab=fees", label: "Open Fees Report" },
+    openTo: { href: "/tenant/finance/fees", label: "Open Fees Report" },
     flowchart: {
       title: "Outstanding follow-up",
       mermaid: `flowchart TD
@@ -1246,7 +1246,7 @@ export const HELP_GUIDES: HelpGuide[] = [
     access: { kind: "finance", view: "daybook" },
     procedure: "daily",
     keywords: ["day book", "daily", "cash count", "today", "closing", "end of day", "physical cash"],
-    openTo: { href: "/tenant/finance?tab=daybook", label: "Open Day Book" },
+    openTo: { href: "/tenant/finance/daybook", label: "Open Day Book" },
     flowchart: {
       title: "End-of-day Day Book",
       mermaid: `flowchart TD
@@ -1282,7 +1282,7 @@ export const HELP_GUIDES: HelpGuide[] = [
     access: { kind: "finance", view: "salary" },
     procedure: "monthly",
     keywords: ["salary report", "payroll", "staff payable"],
-    openTo: { href: "/tenant/finance?tab=salary", label: "Open Salary Report" },
+    openTo: { href: "/tenant/finance/salary", label: "Open Salary Report" },
     steps: [
       {
         title: "Open it",
@@ -1304,7 +1304,7 @@ export const HELP_GUIDES: HelpGuide[] = [
     access: { kind: "finance", view: "reconciliation" },
     procedure: "monthly",
     keywords: ["reconciliation", "bank statement", "match", "cleared", "bank balance", "difference"],
-    openTo: { href: "/tenant/finance?tab=reconciliation", label: "Open Bank Reconciliation" },
+    openTo: { href: "/tenant/finance/reconciliation", label: "Open Bank Reconciliation" },
     flowchart: {
       title: "Bank reconciliation",
       mermaid: `flowchart TD
@@ -1340,7 +1340,7 @@ export const HELP_GUIDES: HelpGuide[] = [
     minutes: 2,
     access: { kind: "finance", view: "analytics" },
     keywords: ["analytics", "charts", "insights", "trend", "graph", "investigate"],
-    openTo: { href: "/tenant/finance?tab=analytics", label: "Open Analytics" },
+    openTo: { href: "/tenant/finance/analytics", label: "Open Analytics" },
     flowchart: {
       title: "Analytics investigation",
       mermaid: `flowchart TD
@@ -1374,7 +1374,7 @@ export const HELP_GUIDES: HelpGuide[] = [
     access: { kind: "finance", view: "ledger" },
     procedure: "monthly",
     keywords: ["ledger", "account statement", "running balance", "general ledger", "opening", "closing"],
-    openTo: { href: "/tenant/finance?tab=ledger", label: "Open Ledger" },
+    openTo: { href: "/tenant/finance/ledger", label: "Open Ledger" },
     steps: [
       {
         title: "Pick an account",
@@ -1400,7 +1400,7 @@ export const HELP_GUIDES: HelpGuide[] = [
     access: { kind: "finance", view: "trial" },
     procedure: "monthly",
     keywords: ["trial balance", "debit", "credit", "balanced", "check", "month end"],
-    openTo: { href: "/tenant/finance?tab=trial", label: "Open Trial Balance" },
+    openTo: { href: "/tenant/finance/trial", label: "Open Trial Balance" },
     steps: [
       {
         title: "Open Trial Balance",
@@ -1422,7 +1422,7 @@ export const HELP_GUIDES: HelpGuide[] = [
     access: { kind: "finance", view: "pl" },
     procedure: "monthly",
     keywords: ["profit", "loss", "p&l", "pl", "income statement", "surplus", "deficit"],
-    openTo: { href: "/tenant/finance?tab=pl", label: "Open Profit & Loss" },
+    openTo: { href: "/tenant/finance/pl", label: "Open Profit & Loss" },
     steps: [
       {
         title: "Open Profit & Loss",
@@ -1444,7 +1444,7 @@ export const HELP_GUIDES: HelpGuide[] = [
     access: { kind: "finance", view: "balance" },
     procedure: "monthly",
     keywords: ["balance sheet", "assets", "liabilities", "equity", "retained earnings"],
-    openTo: { href: "/tenant/finance?tab=balance", label: "Open Balance Sheet" },
+    openTo: { href: "/tenant/finance/balance", label: "Open Balance Sheet" },
     steps: [
       {
         title: "Open Balance Sheet",

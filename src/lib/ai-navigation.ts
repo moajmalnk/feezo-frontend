@@ -1,4 +1,10 @@
-import { FINANCE_TABS, isFinanceTab, type FinanceTab } from "@/lib/finance-tabs";
+import {
+  FINANCE_TABS,
+  FINANCE_VIEW_PATHS,
+  financeViewPath,
+  isFinanceTab,
+  type FinanceTab,
+} from "@/lib/finance-tabs";
 
 /** Canonical tenant paths Feezo may open. */
 export const FEEZO_NAV_PATHS = [
@@ -12,6 +18,7 @@ export const FEEZO_NAV_PATHS = [
   "/tenant/staff",
   "/tenant/staff/edit",
   "/tenant/finance",
+  ...FINANCE_VIEW_PATHS,
   "/tenant/settings",
   "/tenant/billing",
   "/tenant/support",
@@ -161,42 +168,34 @@ const ALIASES: Record<string, { to: FeezoNavPath; search?: Record<string, string
     guides: { to: "/tenant/support", label: "Help & support" },
     notifications: { to: "/tenant/notifications", label: "Notifications" },
 
-    receive: { to: "/tenant/finance", search: { tab: "receive" }, label: "Receive payment" },
-    "receive.payment": { to: "/tenant/finance", search: { tab: "receive" }, label: "Receive payment" },
-    make: { to: "/tenant/finance", search: { tab: "make" }, label: "Make payment" },
-    "make.payment": { to: "/tenant/finance", search: { tab: "make" }, label: "Make payment" },
-    transfer: { to: "/tenant/finance", search: { tab: "transfer" }, label: "Fund transfer" },
-    transfers: { to: "/tenant/finance", search: { tab: "transfers" }, label: "Transfer reports" },
-    analytics: { to: "/tenant/finance", search: { tab: "analytics" }, label: "Analytics" },
-    ledger: { to: "/tenant/finance", search: { tab: "ledger" }, label: "Ledger" },
-    journals: { to: "/tenant/finance", search: { tab: "journals" }, label: "Journals" },
-    trial: { to: "/tenant/finance", search: { tab: "trial" }, label: "Trial balance" },
-    pl: { to: "/tenant/finance", search: { tab: "pl" }, label: "Profit & loss" },
-    "profit.loss": { to: "/tenant/finance", search: { tab: "pl" }, label: "Profit & loss" },
-    balance: { to: "/tenant/finance", search: { tab: "balance" }, label: "Balance sheet" },
-    fees: { to: "/tenant/finance", search: { tab: "fees" }, label: "Fees report" },
-    overdue: { to: "/tenant/finance", search: { tab: "fees" }, label: "Fees report" },
-    concession: { to: "/tenant/finance", search: { tab: "concession" }, label: "Concession report" },
-    salary: { to: "/tenant/finance", search: { tab: "salary" }, label: "Salary report" },
-    daybook: { to: "/tenant/finance", search: { tab: "daybook" }, label: "Day book" },
-    reconciliation: {
-      to: "/tenant/finance",
-      search: { tab: "reconciliation" },
-      label: "Bank reconciliation",
-    },
-    recon: {
-      to: "/tenant/finance",
-      search: { tab: "reconciliation" },
-      label: "Bank reconciliation",
-    },
-    cashflow: { to: "/tenant/finance", search: { tab: "cashflow" }, label: "Cash flow" },
-    "cash-flow": { to: "/tenant/finance", search: { tab: "cashflow" }, label: "Cash flow" },
-    vehicle: { to: "/tenant/finance", search: { tab: "vehicle" }, label: "Vehicle fees" },
-    "vehicle-fees": { to: "/tenant/finance", search: { tab: "vehicle" }, label: "Vehicle fees" },
-    aging: { to: "/tenant/finance", search: { tab: "aging" }, label: "Fee aging" },
-    "fee-aging": { to: "/tenant/finance", search: { tab: "aging" }, label: "Fee aging" },
-    heads: { to: "/tenant/finance", search: { tab: "heads" }, label: "Fee heads" },
-    "fee-heads": { to: "/tenant/finance", search: { tab: "heads" }, label: "Fee heads" },
+    receive: { to: "/tenant/finance/receive", label: "Receive payment" },
+    "receive.payment": { to: "/tenant/finance/receive", label: "Receive payment" },
+    make: { to: "/tenant/finance/make", label: "Make payment" },
+    "make.payment": { to: "/tenant/finance/make", label: "Make payment" },
+    transfer: { to: "/tenant/finance/transfer", label: "Fund transfer" },
+    transfers: { to: "/tenant/finance/transfers", label: "Transfer reports" },
+    analytics: { to: "/tenant/finance/analytics", label: "Analytics" },
+    ledger: { to: "/tenant/finance/ledger", label: "Ledger" },
+    journals: { to: "/tenant/finance/journals", label: "Journals" },
+    trial: { to: "/tenant/finance/trial", label: "Trial balance" },
+    pl: { to: "/tenant/finance/pl", label: "Profit & loss" },
+    "profit.loss": { to: "/tenant/finance/pl", label: "Profit & loss" },
+    balance: { to: "/tenant/finance/balance", label: "Balance sheet" },
+    fees: { to: "/tenant/finance/fees", label: "Fees report" },
+    overdue: { to: "/tenant/finance/fees", label: "Fees report" },
+    concession: { to: "/tenant/finance/concession", label: "Concession report" },
+    salary: { to: "/tenant/finance/salary", label: "Salary report" },
+    daybook: { to: "/tenant/finance/daybook", label: "Day book" },
+    reconciliation: { to: "/tenant/finance/reconciliation", label: "Bank reconciliation" },
+    recon: { to: "/tenant/finance/reconciliation", label: "Bank reconciliation" },
+    cashflow: { to: "/tenant/finance/cashflow", label: "Cash flow" },
+    "cash-flow": { to: "/tenant/finance/cashflow", label: "Cash flow" },
+    vehicle: { to: "/tenant/finance/vehicle", label: "Vehicle fees" },
+    "vehicle-fees": { to: "/tenant/finance/vehicle", label: "Vehicle fees" },
+    aging: { to: "/tenant/finance/aging", label: "Fee aging" },
+    "fee-aging": { to: "/tenant/finance/aging", label: "Fee aging" },
+    heads: { to: "/tenant/finance/heads", label: "Fee heads" },
+    "fee-heads": { to: "/tenant/finance/heads", label: "Fee heads" },
   };
 
 const FINANCE_TAB_ALIASES: Record<string, FinanceTab> = {
@@ -291,10 +290,16 @@ function normalizeFinanceTab(raw: string | undefined): FinanceTab | undefined {
 function sanitizeSearch(path: FeezoNavPath, search: Record<string, string>): Record<string, string> {
   const out: Record<string, string> = {};
 
-  if (path === "/tenant/finance") {
-    const tab = normalizeFinanceTab(search.tab);
-    if (tab) out.tab = tab;
-    for (const key of ["staffId", "studentId", "paymentId", "amount", "month", "periods"] as const) {
+  if (path === "/tenant/finance" || path.startsWith("/tenant/finance/")) {
+    for (const key of [
+      "staffId",
+      "studentId",
+      "paymentId",
+      "disbursementId",
+      "amount",
+      "month",
+      "periods",
+    ] as const) {
       if (search[key]) out[key] = search[key]!;
     }
     const feeKind = search.feeKind?.toLowerCase();
@@ -342,26 +347,35 @@ function sanitizeSearch(path: FeezoNavPath, search: Record<string, string>): Rec
   return out;
 }
 
+function financeViewLabel(view: string): string {
+  const labels: Record<string, string> = {
+    receive: "Receive payment",
+    make: "Make payment",
+    transfer: "Fund transfer",
+    transfers: "Transfer reports",
+    analytics: "Analytics",
+    ledger: "Ledger",
+    journals: "Journals",
+    trial: "Trial balance",
+    pl: "Profit & loss",
+    balance: "Balance sheet",
+    fees: "Fees report",
+    concession: "Concession report",
+    salary: "Salary report",
+    daybook: "Day book",
+    reconciliation: "Bank reconciliation",
+    cashflow: "Cash flow",
+    vehicle: "Vehicle fees",
+    aging: "Fee aging",
+    heads: "Fee heads",
+  };
+  return labels[view] ?? "Finance";
+}
+
 function defaultLabel(path: FeezoNavPath, search: Record<string, string>): string {
-  if (path === "/tenant/finance" && search.tab) {
-    const labels: Record<string, string> = {
-      receive: "Receive payment",
-      make: "Make payment",
-      transfer: "Fund transfer",
-      transfers: "Transfer reports",
-      analytics: "Analytics",
-      ledger: "Ledger",
-      journals: "Journals",
-      trial: "Trial balance",
-      pl: "Profit & loss",
-      balance: "Balance sheet",
-      fees: "Fees report",
-      concession: "Concession report",
-      salary: "Salary report",
-      daybook: "Day book",
-      reconciliation: "Bank reconciliation",
-    };
-    return labels[search.tab] ?? "Finance";
+  if (path.startsWith("/tenant/finance/")) {
+    const view = path.slice("/tenant/finance/".length);
+    return financeViewLabel(view);
   }
   if (path === "/tenant/settings" && search.tab === "academics") return "Academics";
   if (path === "/tenant/settings" && search.tab === "support") return "Chat with support";
@@ -442,12 +456,21 @@ export function normalizeFeezoNavigation(input: {
     query = { ...query, tab: "subscription" };
   }
 
+  // Legacy `/tenant/finance?tab=fees` → `/tenant/finance/fees`
+  if (path === "/tenant/finance") {
+    const tab = normalizeFinanceTab(query.tab);
+    if (tab) {
+      path = financeViewPath(tab);
+      const { tab: _legacyTab, ...rest } = query;
+      query = rest;
+    }
+  }
+
   if (!isAllowedPath(path)) {
     // Map bare finance tab as path mistake: to="fees"
     const tab = normalizeFinanceTab(path.replace(/^\//, ""));
     if (tab) {
-      path = "/tenant/finance";
-      query = { ...query, tab };
+      path = financeViewPath(tab);
     } else {
       return null;
     }
@@ -481,8 +504,8 @@ export function feezoNavigationCatalogText(): string {
     "- /tenant/students/edit?id=STU-…",
     "- /tenant/staff?id=STF-…&tab=profile|professional|attendance|documents|payments",
     "- /tenant/staff/edit?id=STF-…",
-    `- /tenant/finance?tab=<${financeTabs}>`,
-    "  Optional finance search: studentId, staffId, paymentId, amount, month (YYYY-MM), feeKind (tuition|vehicle), periods",
+    `- /tenant/finance/<${financeTabs}>`,
+    "  Optional finance search: studentId, staffId, paymentId, disbursementId, amount, month (YYYY-MM), feeKind (tuition|vehicle), periods",
     "- /tenant/settings?tab=school|branches|classes|departments|roles|leave|fees|users|vehicles|transport|system|backup|support|subscription",
     "- /tenant/notifications",
     "- /tenant/support?guide=<guide-id>&q=<search> (step-by-step help guides; use for 'how do I…' questions)",

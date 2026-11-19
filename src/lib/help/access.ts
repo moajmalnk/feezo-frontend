@@ -6,6 +6,7 @@ import {
   sessionHasPermission,
   type Session,
 } from "@/lib/auth";
+import { financeViewPath, isFinanceTab } from "@/lib/finance-tabs";
 import type { HelpAccess } from "@/lib/help/guides";
 
 export function canUseHelpAccess(
@@ -28,10 +29,18 @@ export function canUseHelpAccess(
   }
 }
 
-/** Split an in-app href like `/tenant/finance?tab=receive` for `navigate({ to, search })`. */
+/** Split an in-app href like `/tenant/finance/receive` for `navigate({ to, search })`. */
 export function parseHelpHref(href: string): { to: string; search?: Record<string, string> } {
-  const [path, query = ""] = href.split("?");
+  const [pathRaw, query = ""] = href.split("?");
+  let path = pathRaw || "/";
   const params = new URLSearchParams(query);
   const search = Object.fromEntries(params.entries());
+
+  // Legacy `/tenant/finance?tab=receive` → `/tenant/finance/receive`
+  if (path === "/tenant/finance" && isFinanceTab(search.tab)) {
+    path = financeViewPath(search.tab);
+    delete search.tab;
+  }
+
   return { to: path, search: Object.keys(search).length ? search : undefined };
 }

@@ -27,6 +27,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { FieldSelect } from "@/components/school/SchoolAdminWorkspace";
 import { classSelectOptions } from "@/lib/class-options";
+import { financeViewNav } from "@/lib/finance-tabs";
 import { FeePeriodChecklist } from "@/components/school/FeePeriodChecklist";
 import {
   StudentConcessionSection,
@@ -465,15 +466,15 @@ export function StudentEditPage() {
   };
 
   const openCollectVehicleFee = (target: Student, periods?: string[]) => {
-    navigate({
-      to: "/tenant/finance",
-      search: {
-        tab: "receive",
-        studentId: target.id,
-        feeKind: "vehicle",
-        ...(periods?.length ? { periods: periods.join(",") } : {}),
-      },
-    });
+    navigate(
+      financeViewNav("receive", {
+        search: {
+          studentId: target.id,
+          feeKind: "vehicle",
+          ...(periods?.length ? { periods: periods.join(",") } : {}),
+        },
+      }),
+    );
   };
 
   /** Persist vehicle-only fee breaks so unchecked periods are not billed / overdue. */

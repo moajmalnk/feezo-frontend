@@ -74,6 +74,7 @@ import {
   truncatePdfCell,
   type TablePdfRichCell,
 } from "@/lib/finance-export";
+import { financeViewNav } from "@/lib/finance-tabs";
 import { formatDownloadFilename, slugYear, todayStamp } from "@/lib/download-names";
 import { useDisbursements } from "@/lib/use-disbursements";
 import { apiCreateExpenseLedger, apiListExpenseLedgers, apiUpsertStaff } from "@/lib/api/records";
@@ -823,7 +824,7 @@ export function GeneralLedgerReport() {
   };
 
   const openMakePayment = () => {
-    navigate({ to: "/tenant/finance", search: { tab: "make" } });
+    navigate(financeViewNav("make"));
   };
 
   const handleCsv = () => {

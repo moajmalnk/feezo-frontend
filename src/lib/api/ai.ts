@@ -64,7 +64,7 @@ export type FeezoChatResponse = {
 };
 
 export type FeezoPageContext = {
-  /** Tenant page the user was on, e.g. `/tenant/finance?tab=fees`. */
+  /** Tenant page the user was on, e.g. `/tenant/finance/fees`. */
   path?: string;
   /** Help guide id open on the Support page. */
   guide?: string;

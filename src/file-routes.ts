@@ -123,6 +123,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: unknown;
       parentRoute: unknown;
     };
+    "/tenant/finance_/$view": {
+      id: "/tenant/finance_/$view";
+      path: "/finance/$view";
+      fullPath: "/tenant/finance/$view";
+      preLoaderRoute: unknown;
+      parentRoute: unknown;
+    };
     "/tenant/attendance": {
       id: "/tenant/attendance";
       path: "/attendance";

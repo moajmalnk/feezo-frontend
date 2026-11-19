@@ -42,11 +42,10 @@ export const SUPPORT_FAQ_NAV: Record<
     links: [
       {
         label: "Receive Payment",
-        to: "/tenant/finance",
-        search: { tab: "receive" },
+        to: "/tenant/finance/receive",
         primary: true,
       },
-      { label: "Fees Report", to: "/tenant/finance", search: { tab: "fees" } },
+      { label: "Fees Report", to: "/tenant/finance/fees" },
       { label: "Guide", ...GUIDE("receive-payment") },
     ],
   },
@@ -79,11 +78,10 @@ export const SUPPORT_FAQ_NAV: Record<
     links: [
       {
         label: "Fees Report",
-        to: "/tenant/finance",
-        search: { tab: "fees" },
+        to: "/tenant/finance/fees",
         primary: true,
       },
-      { label: "Analytics", to: "/tenant/finance", search: { tab: "analytics" } },
+      { label: "Analytics", to: "/tenant/finance/analytics" },
       {
         label: "Download settings",
         to: "/tenant/settings",

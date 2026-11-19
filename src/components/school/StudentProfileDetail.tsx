@@ -63,6 +63,7 @@ import {
   type StudentReceipt as Receipt,
 } from "@/lib/student-fees";
 import { concessionSummaryLines } from "@/lib/student-concession-fees";
+import { financeViewNav } from "@/lib/finance-tabs";
 import { FeePeriodChecklist } from "@/components/school/FeePeriodChecklist";
 import { ShareParentLinkDialog } from "@/components/school/ShareParentLinkDialog";
 import {
@@ -549,10 +550,7 @@ export function StudentProfileDetail({
   );
 
   const openCollectVehicleFee = (target: Student) => {
-    navigate({
-      to: "/tenant/finance",
-      search: { tab: "receive", studentId: target.id },
-    });
+    navigate(financeViewNav("receive", { search: { studentId: target.id } }));
   };
 
   const studentNeedsBus =
@@ -839,10 +837,7 @@ export function StudentProfileDetail({
   }, [ledger, vehicleFees]);
 
   const openCollectAll = () => {
-    navigate({
-      to: "/tenant/finance",
-      search: { tab: "receive", studentId: student.id },
-    });
+    navigate(financeViewNav("receive", { search: { studentId: student.id } }));
   };
 
   /** Same pattern as staff Login as / Parents app — open the family app for this student. */
@@ -2463,15 +2458,15 @@ function FeesTable({
     const periods = targets
       .map((row) => (row.periodLabel || row.desc).trim())
       .filter(Boolean);
-    navigate({
-      to: "/tenant/finance",
-      search: {
-        tab: "receive",
-        studentId: student.id,
-        feeKind,
-        ...(periods.length ? { periods: periods.join(",") } : {}),
-      },
-    });
+    navigate(
+      financeViewNav("receive", {
+        search: {
+          studentId: student.id,
+          feeKind,
+          ...(periods.length ? { periods: periods.join(",") } : {}),
+        },
+      }),
+    );
   };
 
   const openCollectNow = (row: LedgerRow) => openCollectRows([row]);

@@ -3,7 +3,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { FEEZO_OPEN_PARAM } from "@/lib/feezo-ai-bridge";
 
 type AiSearch = {
-  /** Full return path incl. query, e.g. /tenant/finance?tab=fees */
+  /** Full return path incl. query, e.g. /tenant/finance/fees */
   from?: string;
 };
 

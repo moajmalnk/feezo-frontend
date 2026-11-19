@@ -433,6 +433,12 @@ import {
   useAuth,
 } from "@/lib/auth";
 import {
+  financeViewNav,
+  financeViewPath,
+  parseFinanceViewSearch,
+  type FinanceTab,
+} from "@/lib/finance-tabs";
+import {
   planAllowsExtraUsers,
   planAllowsMultipleBranches,
   type SettingsTabId,
@@ -2868,10 +2874,14 @@ export function SchoolDashboard() {
         setPeriod={setPeriod}
         customRange={customRange}
         setCustomRange={setCustomRange}
-        onReceivePayment={() => navigate({ to: "/tenant/finance", search: { tab: "receive" } })}
-        onMakePayment={() => navigate({ to: "/tenant/finance", search: { tab: "make" } })}
+        onReceivePayment={() =>
+          navigate(financeViewNav("receive"))
+        }
+        onMakePayment={() =>
+          navigate(financeViewNav("make"))
+        }
         onOpenTransferReports={() =>
-          navigate({ to: "/tenant/finance", search: { tab: "transfers" } })
+          navigate(financeViewNav("transfers"))
         }
         onViewStudents={() => navigate({ to: "/tenant/students" })}
         onAdmitStudent={() => navigate({ to: "/tenant/students/admit" })}
@@ -5805,58 +5815,36 @@ export function StudentsLedger() {
                   <div className={cn(directoryFilterLabelClass, "hidden sm:block")}>
                     Class / Grade
                   </div>
-                  <Select value={gradeFilter} onValueChange={setGradeFilter}>
-                    <SelectTrigger
-                      className="h-9 w-full rounded-lg border-[#E5E5E5] bg-white sm:h-10"
-                      aria-label="Class / Grade"
-                    >
-                      <SelectValue placeholder="All classes" />
-                    </SelectTrigger>
-                    <SelectContent
-                      position="popper"
-                      sideOffset={4}
-                      className="z-[250] rounded-lg border-[#E5E5E5] bg-white"
-                    >
-                      <SelectItem value="all" className="rounded-md">
-                        All classes
-                      </SelectItem>
-                      {gradeOptions.map((grade) => (
-                        <SelectItem key={grade} value={grade} className="rounded-md">
-                          {grade}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FieldSelect
+                    value={gradeFilter}
+                    onValueChange={setGradeFilter}
+                    placeholder="All classes"
+                    triggerClassName="h-9 sm:h-10"
+                    contentClassName="z-[250]"
+                    options={[
+                      { value: "all", label: "All classes" },
+                      ...gradeOptions.map((grade) => ({ value: grade, label: grade })),
+                    ]}
+                  />
                 </div>
 
                 <div className={directoryFilterSelectColNarrow}>
                   <div className={cn(directoryFilterLabelClass, "hidden sm:block")}>Division</div>
-                  <Select
+                  <FieldSelect
                     value={divisionFilter}
                     onValueChange={setDivisionFilter}
+                    placeholder="All divisions"
                     disabled={gradeFilter === "all" && divisionOptions.length === 0}
-                  >
-                    <SelectTrigger
-                      className="h-9 w-full rounded-lg border-[#E5E5E5] bg-white sm:h-10"
-                      aria-label="Division"
-                    >
-                      <SelectValue placeholder="All divisions" />
-                    </SelectTrigger>
-                    <SelectContent
-                      position="popper"
-                      sideOffset={4}
-                      className="z-[250] rounded-lg border-[#E5E5E5] bg-white"
-                    >
-                      <SelectItem value="all" className="rounded-md">
-                        All divisions
-                      </SelectItem>
-                      {divisionOptions.map((division) => (
-                        <SelectItem key={division} value={division} className="rounded-md">
-                          {division}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    triggerClassName="h-9 sm:h-10"
+                    contentClassName="z-[250]"
+                    options={[
+                      { value: "all", label: "All divisions" },
+                      ...divisionOptions.map((division) => ({
+                        value: division,
+                        label: division,
+                      })),
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -7727,58 +7715,33 @@ export function StaffRoster() {
               <div className={directoryFilterSelectsRow}>
                 <div className={directoryFilterSelectCol}>
                   <div className={cn(directoryFilterLabelClass, "hidden sm:block")}>Department</div>
-                  <Select value={deptFilter} onValueChange={setDeptFilter}>
-                    <SelectTrigger
-                      className="h-9 w-full rounded-lg border-[#E5E5E5] bg-white sm:h-10"
-                      aria-label="Department"
-                    >
-                      <SelectValue placeholder="All departments" />
-                    </SelectTrigger>
-                    <SelectContent
-                      position="popper"
-                      sideOffset={4}
-                      className="z-[250] rounded-lg border-[#E5E5E5] bg-white"
-                    >
-                      <SelectItem value="all" className="rounded-md">
-                        All departments
-                      </SelectItem>
-                      {departmentOptions.map((dept) => (
-                        <SelectItem key={dept} value={dept} className="rounded-md">
-                          {dept}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FieldSelect
+                    value={deptFilter}
+                    onValueChange={setDeptFilter}
+                    placeholder="All departments"
+                    triggerClassName="h-9 sm:h-10"
+                    contentClassName="z-[250]"
+                    options={[
+                      { value: "all", label: "All departments" },
+                      ...departmentOptions.map((dept) => ({ value: dept, label: dept })),
+                    ]}
+                  />
                 </div>
 
                 <div className={directoryFilterSelectColNarrow}>
                   <div className={cn(directoryFilterLabelClass, "hidden sm:block")}>Status</div>
-                  <Select
+                  <FieldSelect
                     value={statusFilter}
                     onValueChange={(value) => setStatusFilter(value as StaffStatusFilter)}
-                  >
-                    <SelectTrigger
-                      className="h-9 w-full rounded-lg border-[#E5E5E5] bg-white sm:h-10"
-                      aria-label="Status"
-                    >
-                      <SelectValue placeholder="All statuses" />
-                    </SelectTrigger>
-                    <SelectContent
-                      position="popper"
-                      sideOffset={4}
-                      className="z-[250] rounded-lg border-[#E5E5E5] bg-white"
-                    >
-                      <SelectItem value="all" className="rounded-md">
-                        All statuses
-                      </SelectItem>
-                      <SelectItem value="active" className="rounded-md">
-                        Active
-                      </SelectItem>
-                      <SelectItem value="inactive" className="rounded-md">
-                        Inactive
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                    placeholder="All statuses"
+                    triggerClassName="h-9 sm:h-10"
+                    contentClassName="z-[250]"
+                    options={[
+                      { value: "all", label: "All statuses" },
+                      { value: "active", label: "Active" },
+                      { value: "inactive", label: "Inactive" },
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -8474,37 +8437,11 @@ export function StaffRoster() {
   );
 }
 
-export function FinanceModule() {
-  type FinanceView =
-    | "overview"
-    | "receive"
-    | "make"
-    | "transfer"
-    | "transfers"
-    | "analytics"
-    | "ledger"
-    | "journals"
-    | "trial"
-    | "pl"
-    | "balance"
-    | "fees"
-    | "concession"
-    | "salary"
-    | "daybook"
-    | "reconciliation"
-    | "cashflow"
-    | "vehicle"
-    | "aging"
-    | "heads";
+export function FinanceModule({ view = "overview" }: { view?: "overview" | FinanceTab }) {
+  type FinanceView = "overview" | FinanceTab;
 
   const { session } = useAuth();
   const navigate = useNavigate();
-  const search = useSearch({ from: "/tenant/finance" });
-  const [view, setView] = useState<FinanceView>(search.tab ?? "overview");
-
-  useEffect(() => {
-    setView(search.tab ?? "overview");
-  }, [search.tab]);
 
   useEffect(() => {
     if (sessionCanAccessFinanceView(session, view)) return;
@@ -8537,25 +8474,19 @@ export function FinanceModule() {
       return;
     }
     toast.error("You do not have access to this finance view");
-    setView(next);
     if (next === "overview") {
       navigate({ to: "/tenant/finance", search: {}, replace: true });
     } else {
-      navigate({ to: "/tenant/finance", search: { tab: next }, replace: true });
+      navigate(financeViewNav(next, { replace: true }));
     }
   }, [session, view, navigate]);
 
-  const openView = (next: FinanceView) => {
+  const openView = (next: Exclude<FinanceView, "overview">) => {
     if (!sessionCanAccessFinanceView(session, next)) {
       toast.error("You do not have access to this finance view");
       return;
     }
-    setView(next);
-    if (next === "overview") {
-      navigate({ to: "/tenant/finance", search: {}, replace: true });
-      return;
-    }
-    navigate({ to: "/tenant/finance", search: { tab: next }, replace: true });
+    navigate(financeViewNav(next));
   };
 
   if (view === "receive") {
@@ -9340,10 +9271,7 @@ function FinanceOverview({
 
   const openEditPayment = (payment: Payment) => {
     if (!isAdmin) return;
-    navigate({
-      to: "/tenant/finance",
-      search: { tab: "receive", paymentId: payment.id },
-    });
+    navigate(financeViewNav("receive", { search: { paymentId: payment.id } }));
   };
 
   const confirmDeletePayment = () => {
@@ -9874,8 +9802,7 @@ function FinanceOverview({
                 <div className="flex flex-wrap items-center justify-end gap-1.5">
                   {tx.kind === "expense" ? (
                     <Link
-                      to="/tenant/finance"
-                      search={{ tab: "make" }}
+                      to={financeViewPath("make") as never}
                       className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#E5E5E5] px-2.5 text-[11px] font-semibold text-black/65 transition-colors hover:border-black hover:bg-[#F4F4F5] hover:text-black"
                     >
                       View expense
@@ -10000,8 +9927,7 @@ function FinanceOverview({
                     <div className="flex flex-wrap items-center justify-end gap-1">
                       {tx.kind === "expense" ? (
                         <Link
-                          to="/tenant/finance"
-                          search={{ tab: "make" }}
+                          to={financeViewPath("make") as never}
                           className="inline-flex h-8 items-center rounded-full border border-[#E5E5E5] px-2.5 text-[11px] font-semibold text-black/65 hover:border-black hover:bg-[#F4F4F5]"
                         >
                           View
@@ -11511,7 +11437,7 @@ function PaymentModeControls({
 function ReceivePayment() {
   const { session } = useAuth();
   const navigate = useNavigate();
-  const search = useSearch({ from: "/tenant/finance" });
+  const search = parseFinanceViewSearch(useSearch({ strict: false }) as Record<string, unknown>);
   const {
     activeStudents: students,
     setStudents,
@@ -11941,7 +11867,7 @@ function ReceivePayment() {
     setPayerSource("student");
     setCls(student.cls);
     setStu(student.name);
-    navigate({ to: "/tenant/finance", search: { tab: "receive" }, replace: true });
+    navigate(financeViewNav("receive", { replace: true }));
   }, [search.studentId, search.feeKind, search.periods, students, editingPayment, navigate]);
 
   useEffect(() => {
@@ -13055,7 +12981,7 @@ function ReceivePayment() {
     if (editingPayment || !search.paymentId) return;
     if (paymentEditDeepLinkRef.current === search.paymentId) return;
     const payment = payments.find((p) => p.id === search.paymentId);
-    navigate({ to: "/tenant/finance", search: { tab: "receive" }, replace: true });
+    navigate(financeViewNav("receive", { replace: true }));
     if (!payment) {
       toast.error(`Receipt ${search.paymentId} not found`);
       return;
@@ -15271,7 +15197,7 @@ function LedgerStatementWithVouchers({ view = "ledger" }: { view?: "ledger" | "j
       return;
     }
     if (isJournal(v.voucherType)) {
-      navigate({ to: "/tenant/finance", search: { tab: "journals" } });
+      navigate(financeViewNav("journals"));
       return;
     }
     toast.info(`No source document found for ${v.voucherNo}`);
@@ -15376,7 +15302,7 @@ function LedgerStatementWithVouchers({ view = "ledger" }: { view?: "ledger" | "j
           isAdmin
             ? (p) => {
                 setViewingPayment(null);
-                navigate({ to: "/tenant/finance", search: { tab: "receive", paymentId: p.id } });
+                navigate(financeViewNav("receive", { search: { paymentId: p.id } }));
               }
             : undefined
         }
@@ -15393,7 +15319,7 @@ function LedgerStatementWithVouchers({ view = "ledger" }: { view?: "ledger" | "j
           isAdmin
             ? (p) => {
                 setViewingDisbursal(null);
-                navigate({ to: "/tenant/finance", search: { tab: "make", disbursementId: p.id } });
+                navigate(financeViewNav("make", { search: { disbursementId: p.id } }));
               }
             : undefined
         }
@@ -15414,7 +15340,7 @@ function MakePayment() {
   const { staff, setStaff, schoolDetails, academicYear, activeBranchId } = useTenantStore();
   const schoolName = schoolDetails.name || "School";
   const navigate = useNavigate();
-  const search = useSearch({ from: "/tenant/finance" });
+  const search = parseFinanceViewSearch(useSearch({ strict: false }) as Record<string, unknown>);
   const [madePayments, setMadePayments] = useState<MadePayment[]>([]);
   const [expensesReady, setExpensesReady] = useState(false);
   const [payeeType, setPayeeType] = useState<PayeeType>(search.staffId ? "Salary" : "Salary");
@@ -15761,11 +15687,7 @@ function MakePayment() {
     });
     setPayeeType("Salary");
     setMode("Bank");
-    navigate({
-      to: "/tenant/finance",
-      search: { tab: "make" },
-      replace: true,
-    });
+    navigate(financeViewNav("make", { replace: true }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeStaff, search.staffId, search.month, search.amount]);
 
@@ -16527,7 +16449,7 @@ function MakePayment() {
     if (!targetId || !expensesReady) return;
     if (disbursalDeepLinkRef.current === targetId) return;
     disbursalDeepLinkRef.current = targetId;
-    navigate({ to: "/tenant/finance", search: { tab: "make" }, replace: true });
+    navigate(financeViewNav("make", { replace: true }));
     const row = madePayments.find((p) => p.id === targetId);
     if (!row) {
       toast.error(`Voucher ${targetId} not found`);

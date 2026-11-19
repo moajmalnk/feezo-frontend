@@ -38,20 +38,32 @@
     body {
       scrollbar-gutter: stable;
     }
+  }
 
-    /*
-      Radix Select/Dialog use react-remove-scroll, which injects margin-right +
-      padding offsets when locking the body. With scrollbar-gutter: stable the
-      gutter is already reserved, so that compensation double-shrinks the
-      viewport and reflows sticky tenant chrome (sidebar gap / jagged edge).
-      Keep overflow lock for modals; only cancel the redundant gap styles.
-    */
-    body[data-scroll-locked] {
-      margin-right: 0 !important;
-      padding-left: 0 !important;
-      padding-top: 0 !important;
-      padding-right: 0 !important;
-    }
+  /*
+    Radix Select always mounts react-remove-scroll (overflow:hidden +
+    position:relative + margin gap). That reflows sticky tenant chrome —
+    sidebar glass clips and the Collapse/brand footer looks detached —
+    whenever a Class/Division/etc. dropdown opens.
+
+    Neutralize the lock for in-page selects/menus. Real modals opt back in
+    via [data-feezo-modal-overlay] on Dialog/Sheet/AlertDialog overlays.
+  */
+  body[data-scroll-locked] {
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-top: 0 !important;
+    padding-right: 0 !important;
+    overflow-x: clip !important;
+    overflow-y: visible !important;
+    position: static !important;
+    overscroll-behavior: auto !important;
+  }
+
+  body[data-scroll-locked]:has([data-feezo-modal-overlay]) {
+    overflow: hidden !important;
+    position: relative !important;
+    overscroll-behavior: contain !important;
   }
   .font-mono {
     font-family: "JetBrains Mono", ui-monospace, monospace;

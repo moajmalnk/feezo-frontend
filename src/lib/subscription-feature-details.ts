@@ -71,9 +71,9 @@ export const PLAN_FEATURE_DETAILS: Record<keyof PlanFlags, PlanFeatureDetail> = 
       { src: IMG.dashboard, caption: "Cash and dues on the dashboard" },
     ],
     references: [
-      { label: "Receive a fee payment", href: "/tenant/finance?tab=receive", guideId: "receive-payment" },
-      { label: "Make a payment", href: "/tenant/finance?tab=make", guideId: "make-payment" },
-      { label: "Set up ledgers", href: "/tenant/finance?tab=ledgers", guideId: "ledgers-setup" },
+      { label: "Receive a fee payment", href: "/tenant/finance/receive", guideId: "receive-payment" },
+      { label: "Make a payment", href: "/tenant/finance/make", guideId: "make-payment" },
+      { label: "Set up ledgers", href: "/tenant/finance/ledgers", guideId: "ledgers-setup" },
     ],
   },
   students: {
@@ -273,8 +273,8 @@ export const PLAN_FEATURE_DETAILS: Record<keyof PlanFlags, PlanFeatureDetail> = 
     ],
     references: [
       { label: "Salary setup guide", href: "/tenant/staff", guideId: "salary-setup" },
-      { label: "Salary report", href: "/tenant/finance?tab=salary", guideId: "salary-report" },
-      { label: "Make payment", href: "/tenant/finance?tab=make", guideId: "make-payment" },
+      { label: "Salary report", href: "/tenant/finance/salary", guideId: "salary-report" },
+      { label: "Make payment", href: "/tenant/finance/make", guideId: "make-payment" },
     ],
   },
   vehicle: {
@@ -339,8 +339,8 @@ export const PLAN_FEATURE_DETAILS: Record<keyof PlanFlags, PlanFeatureDetail> = 
       { src: IMG.accounts, caption: "Deep financial picture" },
     ],
     references: [
-      { label: "Analytics guide", href: "/tenant/finance?tab=analytics", guideId: "analytics" },
-      { label: "Fees report", href: "/tenant/finance?tab=fees", guideId: "fees-report" },
+      { label: "Analytics guide", href: "/tenant/finance/analytics", guideId: "analytics" },
+      { label: "Fees report", href: "/tenant/finance/fees", guideId: "fees-report" },
     ],
   },
   feeReminders: {
@@ -373,7 +373,7 @@ export const PLAN_FEATURE_DETAILS: Record<keyof PlanFlags, PlanFeatureDetail> = 
     ],
     references: [
       { label: "WhatsApp guardians", href: "/tenant/students", guideId: "bulk-actions" },
-      { label: "Fees report", href: "/tenant/finance?tab=fees", guideId: "fees-report" },
+      { label: "Fees report", href: "/tenant/finance/fees", guideId: "fees-report" },
     ],
   },
   feeCollection: {
@@ -405,9 +405,9 @@ export const PLAN_FEATURE_DETAILS: Record<keyof PlanFlags, PlanFeatureDetail> = 
       { src: IMG.accounts, caption: "Receipts in the books" },
     ],
     references: [
-      { label: "Receive payment", href: "/tenant/finance?tab=receive", guideId: "receive-payment" },
+      { label: "Receive payment", href: "/tenant/finance/receive", guideId: "receive-payment" },
       { label: "Fee categories", href: "/tenant/settings?tab=fees", guideId: "classes-fees" },
-      { label: "Fees report", href: "/tenant/finance?tab=fees", guideId: "fees-report" },
+      { label: "Fees report", href: "/tenant/finance/fees", guideId: "fees-report" },
     ],
   },
   autoFeeCollection: {

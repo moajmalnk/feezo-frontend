@@ -100,7 +100,7 @@ import {
   planAllowsStudentAttendance,
   planAllowsGlobalSearch,
 } from "@/lib/permissions";
-import { isFinanceTab } from "@/lib/finance-tabs";
+import { financeViewFromPathname, isFinanceTab } from "@/lib/finance-tabs";
 import { resolveMediaUrl } from "@/lib/media";
 import { WorkspaceOpeningScreen } from "@/components/school/TenantDirectorySkeleton";
 import { cn, glassInsetClass, glassPanelClass } from "@/lib/utils";
@@ -607,7 +607,9 @@ export function useWorkspaceSubViewBack() {
 
   const detailId = typeof search.id === "string" && search.id ? search.id : null;
   const financeTab = isFinanceTab(search.tab) ? search.tab : null;
-  const onFinanceSubView = pathname.startsWith("/tenant/finance") && Boolean(financeTab);
+  const financeView = financeViewFromPathname(pathname);
+  const onFinanceSubView =
+    Boolean(financeView) || (pathname.startsWith("/tenant/finance") && Boolean(financeTab));
   const onAdmitStudent = pathname.startsWith("/tenant/students/admit");
   const onEditStudent = pathname.startsWith("/tenant/students/edit");
   const onEditStaff = pathname.startsWith("/tenant/staff/edit");
@@ -797,10 +799,10 @@ export function TenantMacDock({
   return (
     <aside
       className={cn(
-        "relative z-40 hidden shrink-0 self-stretch transition-[width] duration-200 md:flex",
-        // Allow hover tooltips to escape when collapsed; expanded clips to enable nav scroll.
-        expanded ? "overflow-hidden" : "overflow-visible",
-        "sticky top-4 max-h-[calc(100dvh-2rem)] flex-col",
+        // Fixed viewport height (not self-stretch): body scroll-lock from Radix
+        // Select used to shrink sticky stretch height and clip the glass footer.
+        "relative z-40 hidden h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] shrink-0 overflow-visible transition-[width] duration-200 md:flex",
+        "sticky top-4 flex-col",
         expanded
           ? "w-[220px] min-w-0 max-w-[220px] xl:w-[240px] xl:max-w-[240px]"
           : "w-[84px] min-w-0 max-w-[84px] items-center xl:w-[92px] xl:max-w-[92px]",
@@ -811,7 +813,7 @@ export function TenantMacDock({
       <div
         className={cn(
           glassPanelClass,
-          "relative z-40 flex h-full max-h-[calc(100dvh-2rem)] min-h-0 w-full min-w-0 flex-col rounded-xl border border-white/70 bg-white/55 py-2.5 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.35)] backdrop-blur-2xl max-[820px]:py-2 xl:py-3",
+          "relative z-40 flex h-full min-h-0 w-full min-w-0 flex-col rounded-xl border border-white/70 bg-white/55 py-2.5 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.35)] backdrop-blur-2xl max-[820px]:py-2 xl:py-3",
           expanded
             ? "items-stretch overflow-hidden px-2.5 sm:px-3"
             : "items-center overflow-visible px-0",

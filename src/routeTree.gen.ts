@@ -65,6 +65,7 @@ import { Route as SuperAdminSupportIndexRouteImport } from './routes/super-admin
 import { Route as TenantStudentsEditRouteImport } from './routes/tenant/students_.edit'
 import { Route as TenantStudentsAdmitRouteImport } from './routes/tenant/students_.admit'
 import { Route as TenantStaffEditRouteImport } from './routes/tenant/staff_.edit'
+import { Route as TenantFinanceViewRouteImport } from './routes/tenant/finance_.$view'
 import { Route as SuperAdminSupportSettlementSetupRouteImport } from './routes/super-admin/support/settlement-setup'
 import { Route as SuperAdminSupportLeadsRouteImport } from './routes/super-admin/support/leads'
 import { Route as SuperAdminSupportHelpRouteImport } from './routes/super-admin/support/help'
@@ -355,6 +356,11 @@ const TenantStaffEditRoute = TenantStaffEditRouteImport.update({
   path: '/staff/edit',
   getParentRoute: () => TenantRoute,
 } as any)
+const TenantFinanceViewRoute = TenantFinanceViewRouteImport.update({
+  id: '/finance_/$view',
+  path: '/finance/$view',
+  getParentRoute: () => TenantRoute,
+} as any)
 const SuperAdminSupportSettlementSetupRoute =
   SuperAdminSupportSettlementSetupRouteImport.update({
     id: '/settlement-setup',
@@ -467,6 +473,7 @@ export interface FileRoutesByFullPath {
   '/super-admin/support/help': typeof SuperAdminSupportHelpRoute
   '/super-admin/support/leads': typeof SuperAdminSupportLeadsRoute
   '/super-admin/support/settlement-setup': typeof SuperAdminSupportSettlementSetupRoute
+  '/tenant/finance/$view': typeof TenantFinanceViewRoute
   '/tenant/staff/edit': typeof TenantStaffEditRoute
   '/tenant/students/admit': typeof TenantStudentsAdmitRoute
   '/tenant/students/edit': typeof TenantStudentsEditRoute
@@ -529,6 +536,7 @@ export interface FileRoutesByTo {
   '/super-admin/support/help': typeof SuperAdminSupportHelpRoute
   '/super-admin/support/leads': typeof SuperAdminSupportLeadsRoute
   '/super-admin/support/settlement-setup': typeof SuperAdminSupportSettlementSetupRoute
+  '/tenant/finance/$view': typeof TenantFinanceViewRoute
   '/tenant/staff/edit': typeof TenantStaffEditRoute
   '/tenant/students/admit': typeof TenantStudentsAdmitRoute
   '/tenant/students/edit': typeof TenantStudentsEditRoute
@@ -597,6 +605,7 @@ export interface FileRoutesById {
   '/super-admin/support/help': typeof SuperAdminSupportHelpRoute
   '/super-admin/support/leads': typeof SuperAdminSupportLeadsRoute
   '/super-admin/support/settlement-setup': typeof SuperAdminSupportSettlementSetupRoute
+  '/tenant/finance_/$view': typeof TenantFinanceViewRoute
   '/tenant/staff_/edit': typeof TenantStaffEditRoute
   '/tenant/students_/admit': typeof TenantStudentsAdmitRoute
   '/tenant/students_/edit': typeof TenantStudentsEditRoute
@@ -666,6 +675,7 @@ export interface FileRouteTypes {
     | '/super-admin/support/help'
     | '/super-admin/support/leads'
     | '/super-admin/support/settlement-setup'
+    | '/tenant/finance/$view'
     | '/tenant/staff/edit'
     | '/tenant/students/admit'
     | '/tenant/students/edit'
@@ -728,6 +738,7 @@ export interface FileRouteTypes {
     | '/super-admin/support/help'
     | '/super-admin/support/leads'
     | '/super-admin/support/settlement-setup'
+    | '/tenant/finance/$view'
     | '/tenant/staff/edit'
     | '/tenant/students/admit'
     | '/tenant/students/edit'
@@ -795,6 +806,7 @@ export interface FileRouteTypes {
     | '/super-admin/support/help'
     | '/super-admin/support/leads'
     | '/super-admin/support/settlement-setup'
+    | '/tenant/finance_/$view'
     | '/tenant/staff_/edit'
     | '/tenant/students_/admit'
     | '/tenant/students_/edit'
@@ -1224,6 +1236,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantStaffEditRouteImport
       parentRoute: typeof TenantRoute
     }
+    '/tenant/finance_/$view': {
+      id: '/tenant/finance_/$view'
+      path: '/finance/$view'
+      fullPath: '/tenant/finance/$view'
+      preLoaderRoute: typeof TenantFinanceViewRouteImport
+      parentRoute: typeof TenantRoute
+    }
     '/super-admin/support/settlement-setup': {
       id: '/super-admin/support/settlement-setup'
       path: '/settlement-setup'
@@ -1387,6 +1406,7 @@ interface TenantRouteChildren {
   TenantStudentsRoute: typeof TenantStudentsRoute
   TenantSupportRoute: typeof TenantSupportRoute
   TenantIndexRoute: typeof TenantIndexRoute
+  TenantFinanceViewRoute: typeof TenantFinanceViewRoute
   TenantStaffEditRoute: typeof TenantStaffEditRoute
   TenantStudentsAdmitRoute: typeof TenantStudentsAdmitRoute
   TenantStudentsEditRoute: typeof TenantStudentsEditRoute
@@ -1406,6 +1426,7 @@ const TenantRouteChildren: TenantRouteChildren = {
   TenantStudentsRoute: TenantStudentsRoute,
   TenantSupportRoute: TenantSupportRoute,
   TenantIndexRoute: TenantIndexRoute,
+  TenantFinanceViewRoute: TenantFinanceViewRoute,
   TenantStaffEditRoute: TenantStaffEditRoute,
   TenantStudentsAdmitRoute: TenantStudentsAdmitRoute,
   TenantStudentsEditRoute: TenantStudentsEditRoute,
