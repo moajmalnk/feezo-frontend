@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 
-import { WorkspacePending } from "@/components/workspace/WorkspacePending";
+import { WorkspaceOpeningScreen } from "@/components/school/TenantDirectorySkeleton";
 import { useRequirePermission } from "@/hooks/useRequirePermission";
 import {
   financeViewHref,
@@ -41,14 +41,26 @@ export const Route = createFileRoute("/tenant/finance")({
   },
   component: FinanceRoute,
   pendingComponent: () => (
-    <WorkspacePending label="Opening finance…" detail="Loading books and reports…" />
+    <WorkspaceOpeningScreen
+      label="Opening finance"
+      detail="Loading books and reports…"
+      variant="directory"
+    />
   ),
 });
 
 function FinanceRoute() {
   useRequirePermission("finance");
   return (
-    <Suspense fallback={<WorkspacePending label="Opening finance…" />}>
+    <Suspense
+      fallback={
+        <WorkspaceOpeningScreen
+          label="Opening finance"
+          detail="Loading books and reports…"
+          variant="directory"
+        />
+      }
+    >
       <FinanceModule view="overview" />
     </Suspense>
   );

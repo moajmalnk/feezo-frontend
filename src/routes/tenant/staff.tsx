@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 
 import { isStaffProfileTab, type StaffProfileTabId } from "@/components/school/ProfileDetailTabs";
-import { WorkspacePending } from "@/components/workspace/WorkspacePending";
+import { WorkspaceOpeningScreen } from "@/components/school/TenantDirectorySkeleton";
 import { useRequirePermission } from "@/hooks/useRequirePermission";
 
 const StaffRoster = lazy(() =>
@@ -23,14 +23,26 @@ export const Route = createFileRoute("/tenant/staff")({
   }),
   component: StaffRoute,
   pendingComponent: () => (
-    <WorkspacePending label="Opening staff…" detail="Loading the staff directory…" />
+    <WorkspaceOpeningScreen
+      label="Opening staff"
+      detail="Loading the staff directory…"
+      variant="directory"
+    />
   ),
 });
 
 function StaffRoute() {
   useRequirePermission("staff");
   return (
-    <Suspense fallback={<WorkspacePending label="Opening staff…" />}>
+    <Suspense
+      fallback={
+        <WorkspaceOpeningScreen
+          label="Opening staff"
+          detail="Loading the staff directory…"
+          variant="directory"
+        />
+      }
+    >
       <StaffRoster />
     </Suspense>
   );

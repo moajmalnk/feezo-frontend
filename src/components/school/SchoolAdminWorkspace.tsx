@@ -554,6 +554,7 @@ import { getApiToken } from "@/lib/api/client";
 import {
   assignedClassNamesForStaff,
   buildClassFromLabel,
+  countClassDuplicateExtras,
   findMissingClassTiers,
   isDuplicateStudent,
   matchExistingClass,
@@ -562,6 +563,8 @@ import {
   isPlausibleDivision,
   normalizeClassLabelKey,
   parseStudentTable,
+  planClassDuplicateMerge,
+  resolveClassConfigForStudent,
   splitStudentClassForCsv,
   studentInAssignedClasses,
   STUDENT_CSV_HEADERS,
@@ -2952,10 +2955,16 @@ function studentBelongsToClass(studentCls: string, selectedClass: string) {
   const selected = selectedClass.trim();
   const enrolled = studentCls.trim();
   if (!selected || !enrolled) return false;
+  if (normalizeClassLabelKey(enrolled) === normalizeClassLabelKey(selected)) return true;
   if (normalizeClassKey(enrolled) === normalizeClassKey(selected)) return true;
   const student = parseClassDivision(enrolled);
   const target = parseClassDivision(selected);
-  if (student.grade.toLowerCase() !== target.grade.toLowerCase()) return false;
+  if (
+    normalizeGradeLabel(student.grade).toLowerCase() !==
+    normalizeGradeLabel(target.grade).toLowerCase()
+  ) {
+    return false;
+  }
   if (!target.division) return true;
   if (!student.division) return false;
   return student.division.toLowerCase() === target.division.toLowerCase();
@@ -4289,17 +4298,15 @@ export function StudentsLedger() {
           try {
             const saved = await apiUpsertClass(cls);
             const finalId = saved.id || cls.id;
+            // Match by id only — never overwrite a funded Term twin via Class↔Grade label.
             setClasses((prev) =>
               prev.map((c) =>
-                c.id === cls.id ||
-                c.id === finalId ||
-                normalizeClassLabelKey(c.className) === normalizeClassLabelKey(cls.className)
-                  ? { ...c, ...cls, ...saved, id: finalId }
-                  : c,
+                c.id === cls.id || c.id === finalId ? { ...c, ...cls, ...saved, id: finalId } : c,
               ),
             );
           } catch {
-            /* keep local tier; settings sync can retry on next visit */
+            /* 409 = funded twin already exists — drop the empty local shell */
+            setClasses((prev) => prev.filter((c) => c.id !== cls.id));
           }
         }
       }
@@ -5212,15 +5219,12 @@ export function StudentsLedger() {
               const finalId = saved.id || cls.id;
               setClasses((prev) =>
                 prev.map((c) =>
-                  c.id === cls.id ||
-                  c.id === finalId ||
-                  normalizeClassLabelKey(c.className) === normalizeClassLabelKey(cls.className)
-                    ? { ...c, ...cls, ...saved, id: finalId }
-                    : c,
+                  c.id === cls.id || c.id === finalId ? { ...c, ...cls, ...saved, id: finalId } : c,
                 ),
               );
             } catch {
-              /* local class kept; settings sync can retry */
+              /* 409 = twin already on server — drop empty local shell */
+              setClasses((prev) => prev.filter((c) => c.id !== cls.id));
             }
           }
 
@@ -11457,9 +11461,24 @@ function ReceivePayment() {
   const isAdmin = session?.role === "school_admin" || session?.role === "super_admin";
   const schoolName = schoolDetails.name || "Silver Hills Global";
   const classes = useMemo(() => {
-    const fromConfig = classConfigs.map((c) => c.className);
-    const fromStudents = Array.from(new Set(students.map((s) => s.cls)));
-    return Array.from(new Set([...fromConfig, ...fromStudents]));
+    // One option per Class↔Grade identity — prefer the funded Term tier's label.
+    const byKey = new Map<string, string>();
+    for (const c of classConfigs) {
+      const preferred = resolveClassConfigForStudent(classConfigs, c.className) ?? c;
+      const key = normalizeClassLabelKey(preferred.className);
+      if (key && !byKey.has(key)) byKey.set(key, preferred.className);
+    }
+    for (const label of students.map((s) => s.cls)) {
+      const trimmed = label.trim();
+      if (!trimmed) continue;
+      const key = normalizeClassLabelKey(trimmed);
+      if (!key || byKey.has(key)) continue;
+      const preferred = resolveClassConfigForStudent(classConfigs, trimmed);
+      byKey.set(key, preferred?.className ?? trimmed);
+    }
+    return Array.from(byKey.values()).sort((a, b) =>
+      a.localeCompare(b, "en", { numeric: true }),
+    );
   }, [classConfigs, students]);
   const defaultCategory =
     paymentCategories.find((c) => categoryFeeTermKind(c.label) === "tuition")?.label ??
@@ -11575,7 +11594,7 @@ function ReceivePayment() {
   const matchedClass = useMemo(() => {
     const className = selected?.cls || (!isExternal ? cls : "");
     if (!className) return undefined;
-    return classConfigs.find((c) => c.className === className);
+    return resolveClassConfigForStudent(classConfigs, className);
   }, [classConfigs, selected, cls, isExternal]);
   const descriptionOptions = useMemo(
     () =>
@@ -19020,13 +19039,16 @@ function ClassesCard({
   feeTerms: FeeTerm[];
 }) {
   const navigate = useNavigate();
-  const { academicYear } = useTenantStore();
+  const { academicYear, setStudentYearLedgers } = useTenantStore();
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ClassConfig | null>(null);
   const [rosterClass, setRosterClass] = useState<ClassConfig | null>(null);
   const [cleaningInvalid, setCleaningInvalid] = useState(false);
   const [confirmCleanInvalid, setConfirmCleanInvalid] = useState(false);
+  const [mergingDuplicates, setMergingDuplicates] = useState(false);
+  const [confirmMergeDuplicates, setConfirmMergeDuplicates] = useState(false);
+  const autoMergedClassShellsRef = useRef(false);
   const [copyFromId, setCopyFromId] = useState<string>("");
   const [applyOpen, setApplyOpen] = useState(false);
   const [applySource, setApplySource] = useState<ClassConfig | null>(null);
@@ -19090,6 +19112,115 @@ function ClassesCard({
     () => classes.filter((c) => classHasConfiguredSchedule(withClassFeeSchedule(c, feeTerms))),
     [classes, feeTerms],
   );
+
+  const classDuplicateExtras = useMemo(() => countClassDuplicateExtras(classes), [classes]);
+  const isRecyclableEmptyShell = (c: ClassConfig) =>
+    planClassDuplicateMerge(classes).recycleIds.includes(c.id);
+
+  const mergeEmptyClassShells = async (opts?: { silent?: boolean }) => {
+    const plan = planClassDuplicateMerge(classes);
+    if (!plan.recycleIds.length) {
+      if (!opts?.silent) toast.success("No empty duplicate class shells to merge");
+      setConfirmMergeDuplicates(false);
+      return;
+    }
+    if (mergingDuplicates) return;
+    setMergingDuplicates(true);
+    const byId = new Map(classes.map((c) => [c.id, c]));
+    const recycled = new Set<string>();
+    const keepPatches = new Map<string, ClassConfig>();
+    const clsRemap = new Map<string, string>();
+
+    for (const merge of plan.merges) {
+      const keep = byId.get(merge.keepId);
+      if (!keep) continue;
+      const merged = merge.mergedKeep;
+      if (
+        merged.classTeacherId !== keep.classTeacherId ||
+        merged.vehicleFeeAmount !== keep.vehicleFeeAmount ||
+        merged.feeCollectionStartMonth !== keep.feeCollectionStartMonth
+      ) {
+        try {
+          await apiUpsertClass(merged);
+        } catch {
+          /* keep local patch even if sync lags */
+        }
+        keepPatches.set(merged.id, merged);
+      }
+      for (const emptyId of merge.recycleIds) {
+        const empty = byId.get(emptyId);
+        if (!empty) continue;
+        const from = empty.className.trim();
+        const to = keep.className.trim();
+        if (from && to && from !== to) clsRemap.set(from, to);
+        try {
+          await apiDeleteClass(emptyId);
+          recycled.add(emptyId);
+        } catch {
+          /* reported below */
+        }
+      }
+    }
+
+    if (recycled.size) {
+      setClasses((prev) =>
+        prev
+          .filter((c) => !recycled.has(c.id))
+          .map((c) => keepPatches.get(c.id) ?? c),
+      );
+    } else if (keepPatches.size) {
+      setClasses((prev) => prev.map((c) => keepPatches.get(c.id) ?? c));
+    }
+
+    if (clsRemap.size) {
+      setStudents((prev) =>
+        prev.map((s) => {
+          const nextCls = clsRemap.get(s.cls.trim());
+          return nextCls ? { ...s, cls: nextCls } : s;
+        }),
+      );
+      setStudentYearLedgers((prev) =>
+        prev.map((ledger) => {
+          let changed = false;
+          const byStudentId = { ...ledger.byStudentId };
+          for (const [studentId, fields] of Object.entries(byStudentId)) {
+            const nextCls = clsRemap.get((fields.cls ?? "").trim());
+            if (!nextCls) continue;
+            byStudentId[studentId] = { ...fields, cls: nextCls };
+            changed = true;
+          }
+          return changed ? { ...ledger, byStudentId } : ledger;
+        }),
+      );
+    }
+
+    setMergingDuplicates(false);
+    setConfirmMergeDuplicates(false);
+    const failed = plan.recycleIds.length - recycled.size;
+    if (recycled.size) {
+      toast.success(
+        `${recycled.size} empty duplicate shell${recycled.size === 1 ? "" : "s"} removed`,
+        {
+          description: "Funded Term schedules and class teachers kept",
+        },
+      );
+    }
+    if (failed > 0 && !opts?.silent) {
+      toast.error(
+        `${failed} duplicate shell${failed === 1 ? "" : "s"} could not be removed`,
+        { description: recycled.size ? "Retry for the rest" : "Try again" },
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (autoMergedClassShellsRef.current) return;
+    if (!classDuplicateExtras) return;
+    autoMergedClassShellsRef.current = true;
+    void mergeEmptyClassShells({ silent: true });
+    // One-shot cleanup when Settings → Classes opens with empty Monthly twins.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classDuplicateExtras]);
 
   const schedulePreview = useMemo(() => {
     const count = Math.max(1, Math.floor(Number(form.installmentCount) || 0));
@@ -19514,7 +19645,7 @@ function ClassesCard({
 
   const requestDelete = (c: ClassConfig) => {
     const count = blockingCount(c);
-    if (count > 0) {
+    if (count > 0 && !isRecyclableEmptyShell(c)) {
       toast.error(`${c.className} cannot be deleted`, {
         description: `${count} student${count === 1 ? "" : "s"} enrolled · move them to another class first`,
       });
@@ -19525,7 +19656,8 @@ function ClassesCard({
 
   const remove = (c: ClassConfig) => {
     const count = blockingCount(c);
-    if (count > 0) {
+    const shellCleanup = isRecyclableEmptyShell(c);
+    if (count > 0 && !shellCleanup) {
       toast.error(`${c.className} cannot be deleted`, {
         description: `${count} student${count === 1 ? "" : "s"} enrolled · move them to another class first`,
       });
@@ -19534,7 +19666,12 @@ function ClassesCard({
     setClasses((prev) => prev.filter((x) => x.id !== c.id));
     void apiDeleteClass(c.id)
       .then(() => {
-        toast.success(`${c.className} removed`);
+        toast.success(
+          shellCleanup ? `${c.className} empty shell removed` : `${c.className} removed`,
+          shellCleanup
+            ? { description: "Funded Term schedule kept for this grade" }
+            : undefined,
+        );
       })
       .catch((err) => {
         setClasses((prev) => (prev.some((x) => x.id === c.id) ? prev : [...prev, c]));
@@ -19632,6 +19769,7 @@ function ClassesCard({
     const teacher = teacherName(normalized.classTeacherId);
     const count = enrolledCount(normalized.className);
     const blockedByStudents = blockingCount(c);
+    const shellCleanup = isRecyclableEmptyShell(c);
     return {
       normalized,
       grade: grade || "—",
@@ -19639,7 +19777,7 @@ function ClassesCard({
       teacher,
       count,
       blockedByStudents,
-      canDelete: blockedByStudents === 0,
+      canDelete: blockedByStudents === 0 || shellCleanup,
     };
   };
 
@@ -19723,6 +19861,58 @@ function ClassesCard({
         actionLabel="Add Class"
         onAction={startCreate}
       />
+
+      {classDuplicateExtras > 0 && (
+        <div
+          role="status"
+          className="mt-4 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-amber-500/30 dark:bg-amber-950/40"
+        >
+          <div className="flex min-w-0 items-start gap-2.5">
+            <Combine className="mt-0.5 h-4 w-4 shrink-0 text-amber-800 dark:text-amber-200" />
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-amber-950 dark:text-amber-100">
+                {classDuplicateExtras} empty duplicate shell
+                {classDuplicateExtras === 1 ? "" : "s"} beside funded class tiers
+              </p>
+              <p className="mt-0.5 text-[12px] leading-relaxed text-amber-900/80 dark:text-amber-200/80">
+                Keeps the Term schedule and class teacher · removes ₹0 Monthly copies only.
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {confirmMergeDuplicates && !mergingDuplicates && (
+              <button
+                type="button"
+                onClick={() => setConfirmMergeDuplicates(false)}
+                className="inline-flex h-9 items-center rounded-full border border-[#E5E5E5] bg-white px-3.5 text-[12px] font-semibold text-black/65 hover:bg-[#F4F4F5] dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-300"
+              >
+                Cancel
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={mergingDuplicates}
+              onClick={() =>
+                confirmMergeDuplicates
+                  ? void mergeEmptyClassShells()
+                  : setConfirmMergeDuplicates(true)
+              }
+              className="inline-flex h-9 items-center gap-1.5 rounded-full bg-amber-700 px-4 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-amber-800 disabled:cursor-wait disabled:opacity-70"
+            >
+              {mergingDuplicates ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Combine className="h-3.5 w-3.5" />
+              )}
+              {mergingDuplicates
+                ? "Merging…"
+                : confirmMergeDuplicates
+                  ? `Confirm merge ${classDuplicateExtras}`
+                  : `Merge ${classDuplicateExtras} duplicate${classDuplicateExtras === 1 ? "" : "s"}`}
+            </button>
+          </div>
+        </div>
+      )}
 
       {invalidClasses.length > 0 && (
         <div

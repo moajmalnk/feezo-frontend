@@ -5,7 +5,7 @@ import {
   isStudentProfileTab,
   type StudentProfileTabId,
 } from "@/components/school/ProfileDetailTabs";
-import { WorkspacePending } from "@/components/workspace/WorkspacePending";
+import { WorkspaceOpeningScreen } from "@/components/school/TenantDirectorySkeleton";
 import { useRequirePermission } from "@/hooks/useRequirePermission";
 
 const StudentsLedger = lazy(() =>
@@ -26,14 +26,26 @@ export const Route = createFileRoute("/tenant/students")({
   }),
   component: StudentsRoute,
   pendingComponent: () => (
-    <WorkspacePending label="Opening students…" detail="Loading the student directory…" />
+    <WorkspaceOpeningScreen
+      label="Opening students"
+      detail="Loading the student directory…"
+      variant="directory"
+    />
   ),
 });
 
 function StudentsRoute() {
   useRequirePermission("students");
   return (
-    <Suspense fallback={<WorkspacePending label="Opening students…" />}>
+    <Suspense
+      fallback={
+        <WorkspaceOpeningScreen
+          label="Opening students"
+          detail="Loading the student directory…"
+          variant="directory"
+        />
+      }
+    >
       <StudentsLedger />
     </Suspense>
   );

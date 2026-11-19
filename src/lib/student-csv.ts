@@ -488,12 +488,9 @@ export function findMissingClassTiers(
   const created: ClassConfig[] = [];
   const knownKeys = new Set<string>();
   for (const cls of pool) {
+    const identity = classIdentityKey(cls);
+    if (identity) knownKeys.add(identity);
     knownKeys.add(normalizeClassLabelKey(cls.className));
-    const parts = splitClassName(cls.className);
-    const grade = (cls.grade || parts.grade || "").trim();
-    const section = (cls.section || parts.section || "").trim();
-    const composed = composeClassName(grade, section);
-    if (composed) knownKeys.add(normalizeClassLabelKey(composed));
   }
 
   const uniqueLabels = Array.from(
@@ -522,8 +519,136 @@ export function findMissingClassTiers(
   return created;
 }
 
+/** Canonical Class↔Grade + division key for dedupe (Class 1 - A ≡ Grade 1 - A). */
+export function classIdentityKey(
+  cls: Pick<ClassConfig, "className" | "grade" | "section">,
+): string {
+  const parts = splitClassName(cls.className);
+  const grade = normalizeGradeLabel((cls.grade || parts.grade || "").trim());
+  const section = (cls.section || parts.section || "").trim();
+  const composed = composeClassName(grade, section) || cls.className.trim();
+  return normalizeClassLabelKey(composed);
+}
+
+function classFeeTotal(c: ClassConfig): number {
+  return sumFeeSchedule(c.feeSchedule) || Math.max(0, Math.round(c.tuitionFeeAmount) || 0);
+}
+
+function classCycleScore(c: ClassConfig): number {
+  return c.billingCycle === "Term" ? 2 : c.billingCycle === "Annually" ? 1 : 0;
+}
+
+/**
+ * Prefer the funded Term/Annual tier (and assigned teacher) over empty Monthly shells.
+ * Never picks a zero-fee shell when a configured twin exists.
+ */
+export function preferFundedClassConfig(candidates: ClassConfig[]): ClassConfig {
+  return candidates.slice().sort((a, b) => {
+    const feeDiff = classFeeTotal(b) - classFeeTotal(a);
+    if (feeDiff !== 0) return feeDiff;
+    const cycleDiff = classCycleScore(b) - classCycleScore(a);
+    if (cycleDiff !== 0) return cycleDiff;
+    const scheduleDiff = (b.feeSchedule?.length ?? 0) - (a.feeSchedule?.length ?? 0);
+    if (scheduleDiff !== 0) return scheduleDiff;
+    const teacherA = Boolean(a.classTeacherId?.trim());
+    const teacherB = Boolean(b.classTeacherId?.trim());
+    if (teacherA !== teacherB) return teacherB ? 1 : -1;
+    return a.id.localeCompare(b.id);
+  })[0]!;
+}
+
+/** Empty Monthly/zero-fee row with no teacher — safe to recycle when a funded twin exists. */
+export function isEmptyClassShell(c: ClassConfig): boolean {
+  return classFeeTotal(c) <= 0 && !(c.feeSchedule?.length) && !c.classTeacherId?.trim();
+}
+
+/**
+ * Fold disposable twin fields into the keep row without clobbering fees.
+ * Teacher / vehicle fee fill gaps only; schedule & billing stay on the funded keep.
+ */
+export function mergeClassConfigFields(keep: ClassConfig, twins: ClassConfig[]): ClassConfig {
+  let next = { ...keep, feeSchedule: [...(keep.feeSchedule ?? [])] };
+  for (const twin of twins) {
+    if (!next.classTeacherId?.trim() && twin.classTeacherId?.trim()) {
+      next = { ...next, classTeacherId: twin.classTeacherId };
+    }
+    if ((next.vehicleFeeAmount ?? 0) <= 0 && (twin.vehicleFeeAmount ?? 0) > 0) {
+      next = { ...next, vehicleFeeAmount: twin.vehicleFeeAmount };
+    }
+    if (!next.feeCollectionStartMonth?.trim() && twin.feeCollectionStartMonth?.trim()) {
+      next = { ...next, feeCollectionStartMonth: twin.feeCollectionStartMonth };
+    }
+  }
+  return next;
+}
+
+export type ClassDuplicateMergePlan = {
+  keepIds: string[];
+  recycleIds: string[];
+  merges: Array<{
+    keepId: string;
+    recycleIds: string[];
+    identityKey: string;
+    keepClassName: string;
+    mergedKeep: ClassConfig;
+  }>;
+};
+
+/**
+ * Keep one canonical tier per grade+division. Recycle only empty Monthly shells so
+ * funded Term schedules and teachers are never discarded.
+ */
+export function planClassDuplicateMerge(existing: ClassConfig[]): ClassDuplicateMergePlan {
+  const groups = new Map<string, ClassConfig[]>();
+  for (const cls of existing) {
+    const key = classIdentityKey(cls);
+    if (!key) continue;
+    const list = groups.get(key) ?? [];
+    list.push(cls);
+    groups.set(key, list);
+  }
+
+  const keepIds: string[] = [];
+  const recycleIds: string[] = [];
+  const merges: ClassDuplicateMergePlan["merges"] = [];
+
+  for (const [identityKey, list] of groups) {
+    if (list.length === 1) {
+      keepIds.push(list[0]!.id);
+      continue;
+    }
+    const keep = preferFundedClassConfig(list);
+    const empties = list.filter((c) => c.id !== keep.id && isEmptyClassShell(c));
+    keepIds.push(keep.id);
+    if (!empties.length) continue;
+    const emptyIds = empties.map((c) => c.id);
+    recycleIds.push(...emptyIds);
+    merges.push({
+      keepId: keep.id,
+      recycleIds: emptyIds,
+      identityKey,
+      keepClassName: keep.className,
+      mergedKeep: mergeClassConfigFields(keep, empties),
+    });
+  }
+
+  const keepSet = new Set(keepIds);
+  return {
+    keepIds,
+    recycleIds: [...new Set(recycleIds)].filter((id) => !keepSet.has(id)),
+    merges,
+  };
+}
+
+/** How many empty Monthly shells sit beside a funded twin. */
+export function countClassDuplicateExtras(existing: ClassConfig[]): number {
+  return planClassDuplicateMerge(existing).recycleIds.length;
+}
+
 export function matchExistingClass(classes: ClassConfig[], label: string): ClassConfig | undefined {
-  return matchExistingClasses(classes, label)[0];
+  const matches = matchExistingClasses(classes, label);
+  if (!matches.length) return undefined;
+  return preferFundedClassConfig(matches);
 }
 
 /** All class tiers that fuzzy-match a student/class label (Class 1 - A ≡ Grade 1 - A). */
@@ -532,6 +657,7 @@ export function matchExistingClasses(classes: ClassConfig[], label: string): Cla
   const needleKey = normalizeClassLabelKey(parsed.className);
   if (!needleKey) return [];
   return classes.filter((cls) => {
+    if (classIdentityKey(cls) === needleKey) return true;
     if (normalizeClassLabelKey(cls.className) === needleKey) return true;
     const parts = splitClassName(cls.className);
     const grade = (cls.grade || parts.grade || "").trim();
@@ -545,7 +671,7 @@ export function matchExistingClasses(classes: ClassConfig[], label: string): Cla
 }
 
 /**
- * Resolve the class tier used for fee statements.
+ * Resolve the class tier used for fee statements / collection.
  * Prefers the funded Term/Annual schedule when duplicate empty Monthly tiers exist
  * for the same Class/Grade label.
  */
@@ -559,20 +685,7 @@ export function resolveClassConfigForStudent(
   if (matches.length === 0) {
     return classes.find((c) => c.className === trimmed);
   }
-  if (matches.length === 1) return matches[0];
-
-  const feeTotal = (c: ClassConfig) =>
-    sumFeeSchedule(c.feeSchedule) || Math.max(0, Math.round(c.tuitionFeeAmount) || 0);
-  const cycleScore = (c: ClassConfig) =>
-    c.billingCycle === "Term" ? 2 : c.billingCycle === "Annually" ? 1 : 0;
-
-  return matches.slice().sort((a, b) => {
-    const feeDiff = feeTotal(b) - feeTotal(a);
-    if (feeDiff !== 0) return feeDiff;
-    const cycleDiff = cycleScore(b) - cycleScore(a);
-    if (cycleDiff !== 0) return cycleDiff;
-    return (b.feeSchedule?.length ?? 0) - (a.feeSchedule?.length ?? 0);
-  })[0];
+  return preferFundedClassConfig(matches);
 }
 
 export function buildClassFromLabel(id: string, label: string): ClassConfig {

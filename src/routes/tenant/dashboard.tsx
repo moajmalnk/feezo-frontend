@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 
-import { WorkspacePending } from "@/components/workspace/WorkspacePending";
+import { WorkspaceOpeningScreen } from "@/components/school/TenantDirectorySkeleton";
 import { useRequirePermission } from "@/hooks/useRequirePermission";
 
 const SchoolDashboard = lazy(() =>
@@ -18,14 +18,26 @@ const PostSignupSupportPrompt = lazy(() =>
 export const Route = createFileRoute("/tenant/dashboard")({
   component: DashboardRoute,
   pendingComponent: () => (
-    <WorkspacePending label="Opening dashboard…" detail="Loading school overview…" />
+    <WorkspaceOpeningScreen
+      label="Opening dashboard"
+      detail="Loading school overview…"
+      variant="dashboard"
+    />
   ),
 });
 
 function DashboardRoute() {
   useRequirePermission("dashboard");
   return (
-    <Suspense fallback={<WorkspacePending label="Opening dashboard…" />}>
+    <Suspense
+      fallback={
+        <WorkspaceOpeningScreen
+          label="Opening dashboard"
+          detail="Loading school overview…"
+          variant="dashboard"
+        />
+      }
+    >
       <SchoolDashboard />
       <PostSignupSupportPrompt />
     </Suspense>
