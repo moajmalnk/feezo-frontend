@@ -55,6 +55,7 @@ import {
   apiGlListAccounts,
   apiGlListJournals,
   apiGlReportTrialBalance,
+  apiGlUpdateAllBooks,
   apiGlUpdateJournal,
   apiGlVoidJournal,
   glInstallHint,
@@ -408,6 +409,34 @@ function TransferHistorySkeleton() {
   );
 }
 
+/** Rebuild GL journals from Receive/Make Payment so cash/bank books stay in sync. */
+function useUpdateAllBooks(onDone?: () => void) {
+  const [busy, setBusy] = useState(false);
+  const run = useCallback(async () => {
+    if (!getApiToken()) {
+      toast.error("Sign in to update finance books");
+      return;
+    }
+    setBusy(true);
+    try {
+      const r = await apiGlUpdateAllBooks();
+      toast.success(`Books updated · ${r.payments} receipts · ${r.disbursements} payments`, {
+        description: r.skipped
+          ? `${r.skipped} already posted`
+          : "Cash, bank, journals, and statements refreshed",
+      });
+      onDone?.();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update books", {
+        description: glInstallHint(),
+      });
+    } finally {
+      setBusy(false);
+    }
+  }, [onDone]);
+  return { busy, run };
+}
+
 export function FundTransferPanel() {
   const { academicYear, activeBranchId: branchId, schoolDetails } = useTenantStore();
   const schoolName = schoolDetails.name || "School";
@@ -511,6 +540,8 @@ export function FundTransferPanel() {
       setLoading(false);
     }
   }, [academicYear, branchId]);
+
+  const { busy: updatingBooks, run: updateAllBooks } = useUpdateAllBooks(() => void load());
 
   useEffect(() => {
     void load();
@@ -833,21 +864,39 @@ export function FundTransferPanel() {
               {periodClosed ? " · year closed" : ""}
             </p>
           </div>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-8 rounded-full text-[11px]"
-            disabled={loading}
-            onClick={() => void load()}
-          >
-            {loading ? (
-              <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <RefreshCw className="mr-1 h-3.5 w-3.5" />
-            )}
-            Refresh
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 rounded-full text-[11px]"
+              disabled={loading || updatingBooks}
+              onClick={() => void load()}
+              title="Reload cash and bank balances"
+            >
+              {loading ? (
+                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-1 h-3.5 w-3.5" />
+              )}
+              Refresh
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="h-8 rounded-full bg-[#0F766E] text-[11px] text-white hover:bg-[#0D9488]"
+              disabled={loading || updatingBooks}
+              onClick={() => void updateAllBooks()}
+              title="Post receipts and payments into ledgers so cash, bank, P&L and statements stay current"
+            >
+              {updatingBooks ? (
+                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RotateCcw className="mr-1 h-3.5 w-3.5" />
+              )}
+              Update all books
+            </Button>
+          </div>
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -1552,6 +1601,8 @@ export function TransferReports() {
     }
   }, [academicYear, branchId]);
 
+  const { busy: updatingBooks, run: updateAllBooks } = useUpdateAllBooks(() => void load());
+
   useEffect(() => {
     void load();
   }, [load]);
@@ -1728,7 +1779,8 @@ export function TransferReports() {
               variant="outline"
               className="h-9 rounded-full text-[12px]"
               onClick={() => void load()}
-              disabled={loading}
+              disabled={loading || updatingBooks}
+              title="Reload transfer list"
             >
               <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", loading && "animate-spin")} />
               Refresh
@@ -1737,9 +1789,23 @@ export function TransferReports() {
               type="button"
               size="sm"
               className="h-9 rounded-full bg-[#0F766E] text-[12px] text-white hover:bg-[#0D9488]"
-              onClick={() =>
-                navigate(financeViewNav("transfer"))
-              }
+              disabled={loading || updatingBooks}
+              onClick={() => void updateAllBooks()}
+              title="Post receipts and payments into ledgers so cash, bank, P&L and statements stay current"
+            >
+              {updatingBooks ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              Update all books
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-9 rounded-full text-[12px]"
+              onClick={() => navigate(financeViewNav("transfer"))}
             >
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               New transfer

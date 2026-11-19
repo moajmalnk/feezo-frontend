@@ -5,6 +5,14 @@ import { toast } from "sonner";
 import { OrganicCard } from "@/components/ui/organic-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   ReportDataTable,
   ReportEmpty,
@@ -22,6 +30,12 @@ import {
 } from "@/lib/api/general-ledger";
 import { formatEventDate } from "@/lib/dates";
 import { formatAmount, formatMoney, moneyColumnLabel } from "@/lib/money";
+import {
+  DAY_BOOK_PERIOD_OPTIONS,
+  getPeriodRange,
+  type CustomDateRange,
+  type PaymentPeriod,
+} from "@/lib/payment-period";
 import { useTenantStore } from "@/lib/tenant-store";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +67,13 @@ function reportHasMovement(data: GlCashFlowReport): boolean {
   );
 }
 
+function toIsoDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 function CashFlowSkeleton() {
   return (
     <div
@@ -63,7 +84,10 @@ function CashFlowSkeleton() {
     >
       <div className="grid grid-cols-3 gap-2 bg-[#F4F4F5] px-3 py-2.5 dark:bg-zinc-900">
         {Array.from({ length: 3 }).map((_, index) => (
-          <Skeleton key={index} className="skeleton-shimmer h-2.5 rounded-md bg-black/[0.07] dark:bg-white/[0.08]" />
+          <Skeleton
+            key={index}
+            className="skeleton-shimmer h-2.5 rounded-md bg-black/[0.07] dark:bg-white/[0.08]"
+          />
         ))}
       </div>
       <div className="divide-y divide-[#EFEFEF] dark:divide-white/10">
@@ -125,6 +149,21 @@ export function CashFlowReport() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [updating, setUpdating] = useState(false);
+  // Same tight day window as Day Book (cash book style).
+  const [period, setPeriod] = useState<PaymentPeriod>("today");
+  const [customRange, setCustomRange] = useState<CustomDateRange>({ from: "", to: "" });
+
+  const periodLabel =
+    DAY_BOOK_PERIOD_OPTIONS.find((option) => option.value === period)?.label ?? "Today";
+
+  const dateWindow = useMemo(() => {
+    const range = getPeriodRange(period, customRange);
+    if (!range) return { from: undefined as string | undefined, to: undefined as string | undefined };
+    return { from: toIsoDate(range.start), to: toIsoDate(range.end) };
+  }, [period, customRange]);
+
+  const filtersReady =
+    period !== "custom" || Boolean(customRange.from && customRange.to);
 
   useEffect(() => {
     if (!getApiToken()) {
@@ -132,10 +171,20 @@ export function CashFlowReport() {
       setLoading(false);
       return;
     }
+    if (!filtersReady) {
+      setData(null);
+      setLoading(false);
+      setLoadError(null);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
-    void apiGlReportCashFlow({ academicYear: academicYear || undefined })
+    void apiGlReportCashFlow({
+      academicYear: academicYear || undefined,
+      from: dateWindow.from,
+      to: dateWindow.to,
+    })
       .then((next) => {
         if (!cancelled) setData(next);
       })
@@ -153,7 +202,7 @@ export function CashFlowReport() {
     return () => {
       cancelled = true;
     };
-  }, [academicYear, activeBranchId, reloadKey]);
+  }, [academicYear, activeBranchId, reloadKey, dateWindow.from, dateWindow.to, filtersReady]);
 
   const statement = data ?? emptyReport(academicYear);
   const hasMovement = data ? reportHasMovement(data) : false;
@@ -167,9 +216,7 @@ export function CashFlowReport() {
   );
 
   const exportRows = useMemo(() => {
-    const rows: (string | number)[][] = [
-      ["Opening", "Cash and bank", statement.opening, ""],
-    ];
+    const rows: (string | number)[][] = [["Opening", "Cash and bank", statement.opening, ""]];
     const push = (section: string, block: GlCashFlowSection) => {
       for (const line of block.lines) {
         rows.push([section, line.account, line.inflow, line.outflow]);
@@ -191,12 +238,22 @@ export function CashFlowReport() {
     return rows;
   }, [statement]);
 
+  const rangeSubtitle = (() => {
+    if (period === "custom" && customRange.from && customRange.to) {
+      return `${customRange.from} → ${customRange.to}`;
+    }
+    if (dateWindow.from && dateWindow.to && dateWindow.from !== dateWindow.to) {
+      return `${dateWindow.from} → ${dateWindow.to}`;
+    }
+    return dateWindow.from || periodLabel;
+  })();
+
   const runExport = (format: "csv" | "pdf" | "print", landscape?: boolean) => {
     exportReportFile({
       format,
       filenameBase: "cash-flow",
       title: "Cash Flow",
-      subtitle: `Direct cash flow · ${academicYear || "all periods"}`,
+      subtitle: `Direct cash flow · ${periodLabel} · ${rangeSubtitle} · ${academicYear || "all periods"}`,
       headers: ["Section", "Particulars", "Inflow", "Outflow"],
       pdfHeaders: [
         "Section",
@@ -210,7 +267,9 @@ export function CashFlowReport() {
       academicYear,
       landscape,
     });
-    toast.success(format === "print" ? "Print dialog opened" : format === "csv" ? "CSV downloaded" : "PDF downloaded");
+    toast.success(
+      format === "print" ? "Print dialog opened" : format === "csv" ? "CSV downloaded" : "PDF downloaded",
+    );
   };
 
   const updateBooks = async () => {
@@ -233,6 +292,14 @@ export function CashFlowReport() {
     }
   };
 
+  const clearFilters = () => {
+    setPeriod("today");
+    setCustomRange({ from: "", to: "" });
+  };
+
+  const filtersDirty =
+    period !== "today" || Boolean(customRange.from || customRange.to);
+
   return (
     <OrganicCard tone="white" cornerSide="tr" padded className="rounded-2xl">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -240,7 +307,8 @@ export function CashFlowReport() {
           <div className="text-title text-slate-900 dark:text-zinc-50">Cash Flow</div>
           <p className="mt-1 text-[12px] text-black/55 dark:text-zinc-400">
             Opening cash and bank, then operating, investing, and financing movements ·{" "}
-            {academicYear || "all periods"}
+            {periodLabel}
+            {rangeSubtitle ? ` · ${rangeSubtitle}` : ""} · {academicYear || "all periods"}
           </p>
         </div>
         <div className="flex flex-col gap-2 lg:items-end">
@@ -266,13 +334,74 @@ export function CashFlowReport() {
           </Button>
         </div>
       </div>
-      {loading ? (
+
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="-mx-1 overflow-x-auto px-1 pb-0.5">
+          <div className="flex min-w-0 flex-nowrap items-center gap-2">
+            <Select value={period} onValueChange={(value) => setPeriod(value as PaymentPeriod)}>
+              <SelectTrigger
+                className={cn(
+                  "h-10 w-[8.25rem] shrink-0 rounded-full border border-[#E5E5E5] bg-white text-[13px] font-semibold shadow-none",
+                  "focus:border-[#E5E5E5] focus:ring-1 focus:ring-[#0F766E]/25",
+                  "dark:border-white/10 dark:bg-zinc-900",
+                )}
+              >
+                <SelectValue placeholder="Period" />
+              </SelectTrigger>
+              <SelectContent>
+                {DAY_BOOK_PERIOD_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {period === "custom" && (
+              <>
+                <DatePicker
+                  value={customRange.from}
+                  onChange={(from) => setCustomRange({ ...customRange, from })}
+                  placeholder="From date"
+                  valueFormat="iso"
+                  variant="pill"
+                  max={customRange.to || undefined}
+                  quickPicks={[{ label: "Today", getDate: (t) => t }]}
+                  className="h-10 w-[10.25rem] shrink-0 border border-[#E5E5E5] shadow-none dark:border-white/10"
+                />
+                <DatePicker
+                  value={customRange.to}
+                  onChange={(to) => setCustomRange({ ...customRange, to })}
+                  placeholder="To date"
+                  valueFormat="iso"
+                  variant="pill"
+                  min={customRange.from || undefined}
+                  quickPicks={[{ label: "Today", getDate: (t) => t }]}
+                  className="h-10 w-[10.25rem] shrink-0 border border-[#E5E5E5] shadow-none dark:border-white/10"
+                />
+              </>
+            )}
+          </div>
+        </div>
+        {filtersDirty && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="shrink-0 self-start text-[11px] font-semibold text-[#0F766E] hover:underline sm:self-auto"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
+      {!filtersReady ? (
+        <ReportEmpty message="Pick From and To dates for the custom cash-flow window." />
+      ) : loading ? (
         <CashFlowSkeleton />
       ) : !hasMovement ? (
         <ReportEmpty
           message={
             loadError ??
-            "No cash or bank journals for this year. Post receipts and payments, or tap Update all books."
+            `No cash or bank journals for ${periodLabel.toLowerCase()}. Post receipts and payments, or tap Update all books.`
           }
         />
       ) : (
