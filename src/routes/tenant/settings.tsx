@@ -1,7 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 
-import { SchoolSettings } from "@/components/school/SchoolAdminWorkspace";
+import { WorkspacePending } from "@/components/workspace/WorkspacePending";
 import { useRequirePermission } from "@/hooks/useRequirePermission";
+
+const SchoolSettings = lazy(() =>
+  import("@/components/school/SchoolAdminWorkspace").then((m) => ({
+    default: m.SchoolSettings,
+  })),
+);
 
 export const SETTINGS_TABS = [
   "school",
@@ -65,9 +72,16 @@ export const Route = createFileRoute("/tenant/settings")({
     };
   },
   component: SettingsRoute,
+  pendingComponent: () => (
+    <WorkspacePending label="Opening settings…" detail="Loading school settings…" />
+  ),
 });
 
 function SettingsRoute() {
   useRequirePermission("settings");
-  return <SchoolSettings />;
+  return (
+    <Suspense fallback={<WorkspacePending label="Opening settings…" />}>
+      <SchoolSettings />
+    </Suspense>
+  );
 }

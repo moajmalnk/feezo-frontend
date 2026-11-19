@@ -1,11 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 
-import { StudentsLedger } from "@/components/school/SchoolAdminWorkspace";
 import {
   isStudentProfileTab,
   type StudentProfileTabId,
 } from "@/components/school/ProfileDetailTabs";
+import { WorkspacePending } from "@/components/workspace/WorkspacePending";
 import { useRequirePermission } from "@/hooks/useRequirePermission";
+
+const StudentsLedger = lazy(() =>
+  import("@/components/school/SchoolAdminWorkspace").then((m) => ({
+    default: m.StudentsLedger,
+  })),
+);
 
 export type StudentsSearch = {
   id?: string;
@@ -18,9 +25,16 @@ export const Route = createFileRoute("/tenant/students")({
     tab: isStudentProfileTab(search.tab) ? search.tab : undefined,
   }),
   component: StudentsRoute,
+  pendingComponent: () => (
+    <WorkspacePending label="Opening students…" detail="Loading the student directory…" />
+  ),
 });
 
 function StudentsRoute() {
   useRequirePermission("students");
-  return <StudentsLedger />;
+  return (
+    <Suspense fallback={<WorkspacePending label="Opening students…" />}>
+      <StudentsLedger />
+    </Suspense>
+  );
 }

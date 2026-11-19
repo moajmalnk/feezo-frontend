@@ -5,10 +5,37 @@ export function isDataUrl(value?: string | null): boolean {
   return typeof value === "string" && value.startsWith("data:");
 }
 
+function isApiMediaPath(path: string): boolean {
+  return path.startsWith("/api/media.php") || path.startsWith("/uploads/");
+}
+
+/**
+ * In Vite DEV, keep API media same-origin (`/api/...`) so the dev proxy serves
+ * it. Absolute https://api.feezo.app URLs race/cancel in DevTools and break
+ * logo <img> + edge-fit fetch from localhost.
+ */
+function preferDevProxy(pathOrUrl: string): string {
+  if (!import.meta.env.DEV) return pathOrUrl;
+  try {
+    if (pathOrUrl.startsWith("/") && isApiMediaPath(pathOrUrl.split("?")[0] ?? pathOrUrl)) {
+      return pathOrUrl;
+    }
+    const absolute = new URL(pathOrUrl);
+    const api = new URL(apiBaseUrl());
+    if (absolute.origin === api.origin && isApiMediaPath(absolute.pathname)) {
+      return `${absolute.pathname}${absolute.search}`;
+    }
+  } catch {
+    /* keep original */
+  }
+  return pathOrUrl;
+}
+
 /**
  * Resolve stored photo/logo URLs for <img src>.
- * - data: / blob: / http(s): leave as-is
- * - /uploads/... or /api/media.php?... → prefix production API origin
+ * - data: / blob: leave as-is
+ * - http(s) API media → same-origin path in DEV (Vite proxy), absolute in prod
+ * - /uploads/... or /api/media.php?... → prefix API origin (prod) or keep relative (dev)
  */
 export function resolveMediaUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
@@ -21,15 +48,18 @@ export function resolveMediaUrl(url?: string | null): string | undefined {
     return trimmed;
   }
 
-  if (
-    trimmed.startsWith("blob:") ||
-    trimmed.startsWith("http://") ||
-    trimmed.startsWith("https://")
-  ) {
+  if (trimmed.startsWith("blob:")) {
     return trimmed;
   }
 
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return preferDevProxy(trimmed);
+  }
+
   const path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  if (import.meta.env.DEV && isApiMediaPath(path.split("?")[0] ?? path)) {
+    return path;
+  }
   const base = apiBaseUrl();
   return `${base}${path}`;
 }

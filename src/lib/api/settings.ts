@@ -45,10 +45,15 @@ export async function apiUploadDataUrl(
   kind: "logo" | "letterhead" | "photo" | "document" | "seal" | "signature",
   fileName?: string,
 ): Promise<string> {
-  const data = await apiRequest<{ url: string }>("/api/upload.php", {
+  const data = await apiRequest<{ url: string; path?: string }>("/api/upload.php", {
     method: "POST",
     body: { dataUrl, kind, fileName },
   });
+  // Prefer relative /api/media.php path — works via Vite proxy locally and
+  // resolveMediaUrl() in production. Absolute api.feezo.app URLs break logos on localhost.
+  if (typeof data.path === "string" && data.path.startsWith("/api/media.php")) {
+    return data.path;
+  }
   return data.url;
 }
 
