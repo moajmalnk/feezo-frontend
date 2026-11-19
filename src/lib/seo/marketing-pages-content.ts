@@ -7,6 +7,7 @@ export const MARKETING_NAV = [
   { path: "/features", label: "Features", hint: "Everything in one workspace" },
   { path: "/setup", label: "Setup", hint: "Live in minutes, not weeks" },
   { path: "/pricing", label: "Pricing", hint: "14-day free trial included" },
+  { path: "/blog", label: "Blog", hint: "Fee collection guides & insights" },
 ] as const;
 
 export type MarketingNavPath = (typeof MARKETING_NAV)[number]["path"];

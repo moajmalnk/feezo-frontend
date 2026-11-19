@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
+  BookOpen,
   Grid3x3,
   LayoutDashboard,
   MessageCircle,
@@ -33,6 +34,7 @@ const NAV_META: Record<
   "/features": { icon: Grid3x3, hint: "Everything in one workspace" },
   "/setup": { icon: Settings2, hint: "Live in minutes, not weeks" },
   "/pricing": { icon: Tag, hint: "14-day free trial included" },
+  "/blog": { icon: BookOpen, hint: "Fee collection guides & insights" },
 };
 
 function MenuToggle({ open, onClick }: { open: boolean; onClick: () => void }) {

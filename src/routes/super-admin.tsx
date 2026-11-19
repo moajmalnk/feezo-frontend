@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/
 import { useEffect } from "react";
 
 import { ADMIN_NAV } from "@/components/admin/admin-nav";
+import { BlogsViewSkeleton } from "@/components/admin/blogs/BlogsViewSkeleton";
 import { NetworkStatusBanner } from "@/components/admin/NetworkStatusBanner";
 import { OverviewSkeleton } from "@/components/admin/OverviewViewSkeleton";
 import { TenantsViewSkeleton } from "@/components/admin/TenantsViewSkeleton";
@@ -96,6 +97,8 @@ function SuperAdminLayout() {
                 ))}
               </div>
             </div>
+          ) : pathname.startsWith("/super-admin/blogs") ? (
+            <BlogsViewSkeleton />
           ) : (
             <OverviewSkeleton />
           )}

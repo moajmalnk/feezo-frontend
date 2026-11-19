@@ -1,6 +1,13 @@
-import { CreditCard, LayoutDashboard, LifeBuoy, Users, type LucideIcon } from "lucide-react";
+import {
+  BookOpen,
+  CreditCard,
+  LayoutDashboard,
+  LifeBuoy,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 
-export type ViewKey = "overview" | "tenants" | "plans" | "support";
+export type ViewKey = "overview" | "tenants" | "plans" | "blogs" | "support";
 
 export type AdminNavEntry = {
   key: ViewKey;
@@ -31,6 +38,13 @@ export const ADMIN_NAV: AdminNavEntry[] = [
     shortLabel: "Plans",
     to: "/super-admin/plans",
     icon: CreditCard,
+  },
+  {
+    key: "blogs",
+    label: "Blogs",
+    shortLabel: "Blogs",
+    to: "/super-admin/blogs",
+    icon: BookOpen,
   },
   {
     key: "support",

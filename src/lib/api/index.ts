@@ -60,3 +60,4 @@ export {
   fetchSuperAdminAudits,
   postIncomingWebhook,
 } from "@/lib/api/super-admin";
+export * from "@/lib/api/blogs";

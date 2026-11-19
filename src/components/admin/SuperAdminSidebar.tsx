@@ -1,5 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
+  BookOpen,
   Building2,
   Code2,
   LayoutDashboard,
@@ -47,6 +48,12 @@ const NAV: NavEntry[] = [
     label: "Subscription Plans",
     helper: "Billing matrix",
     icon: Receipt,
+  },
+  {
+    to: "/super-admin/blogs",
+    label: "Blogs",
+    helper: "SEO content",
+    icon: BookOpen,
   },
   {
     to: "/super-admin/support",

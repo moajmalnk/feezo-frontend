@@ -32,11 +32,13 @@ import { Route as FamilyRouteImport } from './routes/family'
 import { Route as DownloadRouteImport } from './routes/download'
 import { Route as DataDeletionRouteImport } from './routes/data-deletion'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as BlogRouteImport } from './routes/blog'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TenantIndexRouteImport } from './routes/tenant/index'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin/index'
 import { Route as SignupIndexRouteImport } from './routes/signup/index'
 import { Route as FamilyIndexRouteImport } from './routes/family/index'
+import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as TenantSupportRouteImport } from './routes/tenant/support'
 import { Route as TenantStudentsRouteImport } from './routes/tenant/students'
 import { Route as TenantStaffRouteImport } from './routes/tenant/staff'
@@ -53,6 +55,7 @@ import { Route as SuperAdminTenantsRouteImport } from './routes/super-admin/tena
 import { Route as SuperAdminSupportRouteImport } from './routes/super-admin/support'
 import { Route as SuperAdminPlansRouteImport } from './routes/super-admin/plans'
 import { Route as SuperAdminOverviewRouteImport } from './routes/super-admin/overview'
+import { Route as SuperAdminBlogsRouteImport } from './routes/super-admin/blogs'
 import { Route as SignupStepRouteImport } from './routes/signup/$step'
 import { Route as FamilySettingsRouteImport } from './routes/family/settings'
 import { Route as FamilyNotificationsRouteImport } from './routes/family/notifications'
@@ -61,7 +64,9 @@ import { Route as FamilyLeaveRouteImport } from './routes/family/leave'
 import { Route as FamilyFeesRouteImport } from './routes/family/fees'
 import { Route as FamilyAttendanceRouteImport } from './routes/family/attendance'
 import { Route as FamilyAcademicsRouteImport } from './routes/family/academics'
+import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as SuperAdminSupportIndexRouteImport } from './routes/super-admin/support/index'
+import { Route as SuperAdminBlogsIndexRouteImport } from './routes/super-admin/blogs/index'
 import { Route as TenantStudentsEditRouteImport } from './routes/tenant/students_.edit'
 import { Route as TenantStudentsAdmitRouteImport } from './routes/tenant/students_.admit'
 import { Route as TenantStaffEditRouteImport } from './routes/tenant/staff_.edit'
@@ -72,6 +77,8 @@ import { Route as SuperAdminSupportHelpRouteImport } from './routes/super-admin/
 import { Route as SuperAdminSupportContactRouteImport } from './routes/super-admin/support/contact'
 import { Route as SuperAdminSupportAutoReplyRouteImport } from './routes/super-admin/support/auto-reply'
 import { Route as SuperAdminSupportTicketIdRouteImport } from './routes/super-admin/support/$ticketId'
+import { Route as SuperAdminBlogsNewRouteImport } from './routes/super-admin/blogs/new'
+import { Route as SuperAdminBlogsBlogIdRouteImport } from './routes/super-admin/blogs/$blogId'
 import { Route as StaffCollectTokenRouteImport } from './routes/staff/collect.$token'
 import { Route as ParentStudentTokenRouteImport } from './routes/parent/student.$token'
 import { Route as FamilyJoinTokenRouteImport } from './routes/family/join.$token'
@@ -191,6 +198,11 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogRoute = BlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -215,6 +227,11 @@ const FamilyIndexRoute = FamilyIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => FamilyRoute,
+} as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BlogRoute,
 } as any)
 const TenantSupportRoute = TenantSupportRouteImport.update({
   id: '/support',
@@ -296,6 +313,11 @@ const SuperAdminOverviewRoute = SuperAdminOverviewRouteImport.update({
   path: '/overview',
   getParentRoute: () => SuperAdminRoute,
 } as any)
+const SuperAdminBlogsRoute = SuperAdminBlogsRouteImport.update({
+  id: '/blogs',
+  path: '/blogs',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
 const SignupStepRoute = SignupStepRouteImport.update({
   id: '/$step',
   path: '/$step',
@@ -336,10 +358,20 @@ const FamilyAcademicsRoute = FamilyAcademicsRouteImport.update({
   path: '/academics',
   getParentRoute: () => FamilyRoute,
 } as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => BlogRoute,
+} as any)
 const SuperAdminSupportIndexRoute = SuperAdminSupportIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => SuperAdminSupportRoute,
+} as any)
+const SuperAdminBlogsIndexRoute = SuperAdminBlogsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SuperAdminBlogsRoute,
 } as any)
 const TenantStudentsEditRoute = TenantStudentsEditRouteImport.update({
   id: '/students_/edit',
@@ -395,6 +427,16 @@ const SuperAdminSupportTicketIdRoute =
     path: '/$ticketId',
     getParentRoute: () => SuperAdminSupportRoute,
   } as any)
+const SuperAdminBlogsNewRoute = SuperAdminBlogsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => SuperAdminBlogsRoute,
+} as any)
+const SuperAdminBlogsBlogIdRoute = SuperAdminBlogsBlogIdRouteImport.update({
+  id: '/$blogId',
+  path: '/$blogId',
+  getParentRoute: () => SuperAdminBlogsRoute,
+} as any)
 const StaffCollectTokenRoute = StaffCollectTokenRouteImport.update({
   id: '/staff/collect/$token',
   path: '/staff/collect/$token',
@@ -413,6 +455,7 @@ const FamilyJoinTokenRoute = FamilyJoinTokenRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/blog': typeof BlogRouteWithChildren
   '/contact': typeof ContactRoute
   '/data-deletion': typeof DataDeletionRoute
   '/download': typeof DownloadRoute
@@ -436,6 +479,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/who-is-feezo-for': typeof WhoIsFeezoForRoute
   '/why-feezo': typeof WhyFeezoRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/family/academics': typeof FamilyAcademicsRoute
   '/family/attendance': typeof FamilyAttendanceRoute
   '/family/fees': typeof FamilyFeesRoute
@@ -444,6 +488,7 @@ export interface FileRoutesByFullPath {
   '/family/notifications': typeof FamilyNotificationsRoute
   '/family/settings': typeof FamilySettingsRoute
   '/signup/$step': typeof SignupStepRoute
+  '/super-admin/blogs': typeof SuperAdminBlogsRouteWithChildren
   '/super-admin/overview': typeof SuperAdminOverviewRoute
   '/super-admin/plans': typeof SuperAdminPlansRoute
   '/super-admin/support': typeof SuperAdminSupportRouteWithChildren
@@ -460,6 +505,7 @@ export interface FileRoutesByFullPath {
   '/tenant/staff': typeof TenantStaffRoute
   '/tenant/students': typeof TenantStudentsRoute
   '/tenant/support': typeof TenantSupportRoute
+  '/blog/': typeof BlogIndexRoute
   '/family/': typeof FamilyIndexRoute
   '/signup/': typeof SignupIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
@@ -467,6 +513,8 @@ export interface FileRoutesByFullPath {
   '/family/join/$token': typeof FamilyJoinTokenRoute
   '/parent/student/$token': typeof ParentStudentTokenRoute
   '/staff/collect/$token': typeof StaffCollectTokenRoute
+  '/super-admin/blogs/$blogId': typeof SuperAdminBlogsBlogIdRoute
+  '/super-admin/blogs/new': typeof SuperAdminBlogsNewRoute
   '/super-admin/support/$ticketId': typeof SuperAdminSupportTicketIdRoute
   '/super-admin/support/auto-reply': typeof SuperAdminSupportAutoReplyRoute
   '/super-admin/support/contact': typeof SuperAdminSupportContactRoute
@@ -477,6 +525,7 @@ export interface FileRoutesByFullPath {
   '/tenant/staff/edit': typeof TenantStaffEditRoute
   '/tenant/students/admit': typeof TenantStudentsAdmitRoute
   '/tenant/students/edit': typeof TenantStudentsEditRoute
+  '/super-admin/blogs/': typeof SuperAdminBlogsIndexRoute
   '/super-admin/support/': typeof SuperAdminSupportIndexRoute
 }
 export interface FileRoutesByTo {
@@ -500,6 +549,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/who-is-feezo-for': typeof WhoIsFeezoForRoute
   '/why-feezo': typeof WhyFeezoRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/family/academics': typeof FamilyAcademicsRoute
   '/family/attendance': typeof FamilyAttendanceRoute
   '/family/fees': typeof FamilyFeesRoute
@@ -523,6 +573,7 @@ export interface FileRoutesByTo {
   '/tenant/staff': typeof TenantStaffRoute
   '/tenant/students': typeof TenantStudentsRoute
   '/tenant/support': typeof TenantSupportRoute
+  '/blog': typeof BlogIndexRoute
   '/family': typeof FamilyIndexRoute
   '/signup': typeof SignupIndexRoute
   '/super-admin': typeof SuperAdminIndexRoute
@@ -530,6 +581,8 @@ export interface FileRoutesByTo {
   '/family/join/$token': typeof FamilyJoinTokenRoute
   '/parent/student/$token': typeof ParentStudentTokenRoute
   '/staff/collect/$token': typeof StaffCollectTokenRoute
+  '/super-admin/blogs/$blogId': typeof SuperAdminBlogsBlogIdRoute
+  '/super-admin/blogs/new': typeof SuperAdminBlogsNewRoute
   '/super-admin/support/$ticketId': typeof SuperAdminSupportTicketIdRoute
   '/super-admin/support/auto-reply': typeof SuperAdminSupportAutoReplyRoute
   '/super-admin/support/contact': typeof SuperAdminSupportContactRoute
@@ -540,11 +593,13 @@ export interface FileRoutesByTo {
   '/tenant/staff/edit': typeof TenantStaffEditRoute
   '/tenant/students/admit': typeof TenantStudentsAdmitRoute
   '/tenant/students/edit': typeof TenantStudentsEditRoute
+  '/super-admin/blogs': typeof SuperAdminBlogsIndexRoute
   '/super-admin/support': typeof SuperAdminSupportIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/blog': typeof BlogRouteWithChildren
   '/contact': typeof ContactRoute
   '/data-deletion': typeof DataDeletionRoute
   '/download': typeof DownloadRoute
@@ -568,6 +623,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/who-is-feezo-for': typeof WhoIsFeezoForRoute
   '/why-feezo': typeof WhyFeezoRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/family/academics': typeof FamilyAcademicsRoute
   '/family/attendance': typeof FamilyAttendanceRoute
   '/family/fees': typeof FamilyFeesRoute
@@ -576,6 +632,7 @@ export interface FileRoutesById {
   '/family/notifications': typeof FamilyNotificationsRoute
   '/family/settings': typeof FamilySettingsRoute
   '/signup/$step': typeof SignupStepRoute
+  '/super-admin/blogs': typeof SuperAdminBlogsRouteWithChildren
   '/super-admin/overview': typeof SuperAdminOverviewRoute
   '/super-admin/plans': typeof SuperAdminPlansRoute
   '/super-admin/support': typeof SuperAdminSupportRouteWithChildren
@@ -592,6 +649,7 @@ export interface FileRoutesById {
   '/tenant/staff': typeof TenantStaffRoute
   '/tenant/students': typeof TenantStudentsRoute
   '/tenant/support': typeof TenantSupportRoute
+  '/blog/': typeof BlogIndexRoute
   '/family/': typeof FamilyIndexRoute
   '/signup/': typeof SignupIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
@@ -599,6 +657,8 @@ export interface FileRoutesById {
   '/family/join/$token': typeof FamilyJoinTokenRoute
   '/parent/student/$token': typeof ParentStudentTokenRoute
   '/staff/collect/$token': typeof StaffCollectTokenRoute
+  '/super-admin/blogs/$blogId': typeof SuperAdminBlogsBlogIdRoute
+  '/super-admin/blogs/new': typeof SuperAdminBlogsNewRoute
   '/super-admin/support/$ticketId': typeof SuperAdminSupportTicketIdRoute
   '/super-admin/support/auto-reply': typeof SuperAdminSupportAutoReplyRoute
   '/super-admin/support/contact': typeof SuperAdminSupportContactRoute
@@ -609,12 +669,14 @@ export interface FileRoutesById {
   '/tenant/staff_/edit': typeof TenantStaffEditRoute
   '/tenant/students_/admit': typeof TenantStudentsAdmitRoute
   '/tenant/students_/edit': typeof TenantStudentsEditRoute
+  '/super-admin/blogs/': typeof SuperAdminBlogsIndexRoute
   '/super-admin/support/': typeof SuperAdminSupportIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/blog'
     | '/contact'
     | '/data-deletion'
     | '/download'
@@ -638,6 +700,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/who-is-feezo-for'
     | '/why-feezo'
+    | '/blog/$slug'
     | '/family/academics'
     | '/family/attendance'
     | '/family/fees'
@@ -646,6 +709,7 @@ export interface FileRouteTypes {
     | '/family/notifications'
     | '/family/settings'
     | '/signup/$step'
+    | '/super-admin/blogs'
     | '/super-admin/overview'
     | '/super-admin/plans'
     | '/super-admin/support'
@@ -662,6 +726,7 @@ export interface FileRouteTypes {
     | '/tenant/staff'
     | '/tenant/students'
     | '/tenant/support'
+    | '/blog/'
     | '/family/'
     | '/signup/'
     | '/super-admin/'
@@ -669,6 +734,8 @@ export interface FileRouteTypes {
     | '/family/join/$token'
     | '/parent/student/$token'
     | '/staff/collect/$token'
+    | '/super-admin/blogs/$blogId'
+    | '/super-admin/blogs/new'
     | '/super-admin/support/$ticketId'
     | '/super-admin/support/auto-reply'
     | '/super-admin/support/contact'
@@ -679,6 +746,7 @@ export interface FileRouteTypes {
     | '/tenant/staff/edit'
     | '/tenant/students/admit'
     | '/tenant/students/edit'
+    | '/super-admin/blogs/'
     | '/super-admin/support/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -702,6 +770,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/who-is-feezo-for'
     | '/why-feezo'
+    | '/blog/$slug'
     | '/family/academics'
     | '/family/attendance'
     | '/family/fees'
@@ -725,6 +794,7 @@ export interface FileRouteTypes {
     | '/tenant/staff'
     | '/tenant/students'
     | '/tenant/support'
+    | '/blog'
     | '/family'
     | '/signup'
     | '/super-admin'
@@ -732,6 +802,8 @@ export interface FileRouteTypes {
     | '/family/join/$token'
     | '/parent/student/$token'
     | '/staff/collect/$token'
+    | '/super-admin/blogs/$blogId'
+    | '/super-admin/blogs/new'
     | '/super-admin/support/$ticketId'
     | '/super-admin/support/auto-reply'
     | '/super-admin/support/contact'
@@ -742,10 +814,12 @@ export interface FileRouteTypes {
     | '/tenant/staff/edit'
     | '/tenant/students/admit'
     | '/tenant/students/edit'
+    | '/super-admin/blogs'
     | '/super-admin/support'
   id:
     | '__root__'
     | '/'
+    | '/blog'
     | '/contact'
     | '/data-deletion'
     | '/download'
@@ -769,6 +843,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/who-is-feezo-for'
     | '/why-feezo'
+    | '/blog/$slug'
     | '/family/academics'
     | '/family/attendance'
     | '/family/fees'
@@ -777,6 +852,7 @@ export interface FileRouteTypes {
     | '/family/notifications'
     | '/family/settings'
     | '/signup/$step'
+    | '/super-admin/blogs'
     | '/super-admin/overview'
     | '/super-admin/plans'
     | '/super-admin/support'
@@ -793,6 +869,7 @@ export interface FileRouteTypes {
     | '/tenant/staff'
     | '/tenant/students'
     | '/tenant/support'
+    | '/blog/'
     | '/family/'
     | '/signup/'
     | '/super-admin/'
@@ -800,6 +877,8 @@ export interface FileRouteTypes {
     | '/family/join/$token'
     | '/parent/student/$token'
     | '/staff/collect/$token'
+    | '/super-admin/blogs/$blogId'
+    | '/super-admin/blogs/new'
     | '/super-admin/support/$ticketId'
     | '/super-admin/support/auto-reply'
     | '/super-admin/support/contact'
@@ -810,11 +889,13 @@ export interface FileRouteTypes {
     | '/tenant/staff_/edit'
     | '/tenant/students_/admit'
     | '/tenant/students_/edit'
+    | '/super-admin/blogs/'
     | '/super-admin/support/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BlogRoute: typeof BlogRouteWithChildren
   ContactRoute: typeof ContactRoute
   DataDeletionRoute: typeof DataDeletionRoute
   DownloadRoute: typeof DownloadRoute
@@ -1005,6 +1086,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog': {
+      id: '/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof BlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -1039,6 +1127,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/family/'
       preLoaderRoute: typeof FamilyIndexRouteImport
       parentRoute: typeof FamilyRoute
+    }
+    '/blog/': {
+      id: '/blog/'
+      path: '/'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof BlogRoute
     }
     '/tenant/support': {
       id: '/tenant/support'
@@ -1152,6 +1247,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminOverviewRouteImport
       parentRoute: typeof SuperAdminRoute
     }
+    '/super-admin/blogs': {
+      id: '/super-admin/blogs'
+      path: '/blogs'
+      fullPath: '/super-admin/blogs'
+      preLoaderRoute: typeof SuperAdminBlogsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
     '/signup/$step': {
       id: '/signup/$step'
       path: '/$step'
@@ -1208,12 +1310,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FamilyAcademicsRouteImport
       parentRoute: typeof FamilyRoute
     }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof BlogRoute
+    }
     '/super-admin/support/': {
       id: '/super-admin/support/'
       path: '/'
       fullPath: '/super-admin/support/'
       preLoaderRoute: typeof SuperAdminSupportIndexRouteImport
       parentRoute: typeof SuperAdminSupportRoute
+    }
+    '/super-admin/blogs/': {
+      id: '/super-admin/blogs/'
+      path: '/'
+      fullPath: '/super-admin/blogs/'
+      preLoaderRoute: typeof SuperAdminBlogsIndexRouteImport
+      parentRoute: typeof SuperAdminBlogsRoute
     }
     '/tenant/students_/edit': {
       id: '/tenant/students_/edit'
@@ -1285,6 +1401,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminSupportTicketIdRouteImport
       parentRoute: typeof SuperAdminSupportRoute
     }
+    '/super-admin/blogs/new': {
+      id: '/super-admin/blogs/new'
+      path: '/new'
+      fullPath: '/super-admin/blogs/new'
+      preLoaderRoute: typeof SuperAdminBlogsNewRouteImport
+      parentRoute: typeof SuperAdminBlogsRoute
+    }
+    '/super-admin/blogs/$blogId': {
+      id: '/super-admin/blogs/$blogId'
+      path: '/$blogId'
+      fullPath: '/super-admin/blogs/$blogId'
+      preLoaderRoute: typeof SuperAdminBlogsBlogIdRouteImport
+      parentRoute: typeof SuperAdminBlogsRoute
+    }
     '/staff/collect/$token': {
       id: '/staff/collect/$token'
       path: '/staff/collect/$token'
@@ -1308,6 +1438,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface BlogRouteChildren {
+  BlogSlugRoute: typeof BlogSlugRoute
+  BlogIndexRoute: typeof BlogIndexRoute
+}
+
+const BlogRouteChildren: BlogRouteChildren = {
+  BlogSlugRoute: BlogSlugRoute,
+  BlogIndexRoute: BlogIndexRoute,
+}
+
+const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
 
 interface FamilyRouteChildren {
   FamilyAcademicsRoute: typeof FamilyAcademicsRoute
@@ -1349,6 +1491,22 @@ const SignupRouteChildren: SignupRouteChildren = {
 const SignupRouteWithChildren =
   SignupRoute._addFileChildren(SignupRouteChildren)
 
+interface SuperAdminBlogsRouteChildren {
+  SuperAdminBlogsBlogIdRoute: typeof SuperAdminBlogsBlogIdRoute
+  SuperAdminBlogsNewRoute: typeof SuperAdminBlogsNewRoute
+  SuperAdminBlogsIndexRoute: typeof SuperAdminBlogsIndexRoute
+}
+
+const SuperAdminBlogsRouteChildren: SuperAdminBlogsRouteChildren = {
+  SuperAdminBlogsBlogIdRoute: SuperAdminBlogsBlogIdRoute,
+  SuperAdminBlogsNewRoute: SuperAdminBlogsNewRoute,
+  SuperAdminBlogsIndexRoute: SuperAdminBlogsIndexRoute,
+}
+
+const SuperAdminBlogsRouteWithChildren = SuperAdminBlogsRoute._addFileChildren(
+  SuperAdminBlogsRouteChildren,
+)
+
 interface SuperAdminSupportRouteChildren {
   SuperAdminSupportTicketIdRoute: typeof SuperAdminSupportTicketIdRoute
   SuperAdminSupportAutoReplyRoute: typeof SuperAdminSupportAutoReplyRoute
@@ -1373,6 +1531,7 @@ const SuperAdminSupportRouteWithChildren =
   SuperAdminSupportRoute._addFileChildren(SuperAdminSupportRouteChildren)
 
 interface SuperAdminRouteChildren {
+  SuperAdminBlogsRoute: typeof SuperAdminBlogsRouteWithChildren
   SuperAdminOverviewRoute: typeof SuperAdminOverviewRoute
   SuperAdminPlansRoute: typeof SuperAdminPlansRoute
   SuperAdminSupportRoute: typeof SuperAdminSupportRouteWithChildren
@@ -1381,6 +1540,7 @@ interface SuperAdminRouteChildren {
 }
 
 const SuperAdminRouteChildren: SuperAdminRouteChildren = {
+  SuperAdminBlogsRoute: SuperAdminBlogsRouteWithChildren,
   SuperAdminOverviewRoute: SuperAdminOverviewRoute,
   SuperAdminPlansRoute: SuperAdminPlansRoute,
   SuperAdminSupportRoute: SuperAdminSupportRouteWithChildren,
@@ -1437,6 +1597,7 @@ const TenantRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BlogRoute: BlogRouteWithChildren,
   ContactRoute: ContactRoute,
   DataDeletionRoute: DataDeletionRoute,
   DownloadRoute: DownloadRoute,

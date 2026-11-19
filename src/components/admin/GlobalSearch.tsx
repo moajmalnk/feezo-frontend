@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import {
+  BookOpen,
   CreditCard,
   LayoutDashboard,
   LifeBuoy,
@@ -47,6 +48,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   overview: LayoutDashboard,
   tenants: Users,
   plans: CreditCard,
+  blogs: BookOpen,
   support: LifeBuoy,
 };
 
@@ -54,6 +56,7 @@ type AdminPath =
   | "/super-admin/overview"
   | "/super-admin/tenants"
   | "/super-admin/plans"
+  | "/super-admin/blogs"
   | "/super-admin/support";
 
 function isMacPlatform() {

@@ -46,6 +46,27 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: unknown;
       parentRoute: unknown;
     };
+    "/blog": {
+      id: "/blog";
+      path: "/blog";
+      fullPath: "/blog";
+      preLoaderRoute: unknown;
+      parentRoute: unknown;
+    };
+    "/blog/": {
+      id: "/blog/";
+      path: "/";
+      fullPath: "/blog/";
+      preLoaderRoute: unknown;
+      parentRoute: unknown;
+    };
+    "/blog/$slug": {
+      id: "/blog/$slug";
+      path: "/$slug";
+      fullPath: "/blog/$slug";
+      preLoaderRoute: unknown;
+      parentRoute: unknown;
+    };
     "/download": {
       id: "/download";
       path: "/download";
@@ -148,6 +169,34 @@ declare module "@tanstack/react-router" {
       id: "/tenant/parents";
       path: "/parents";
       fullPath: "/tenant/parents";
+      preLoaderRoute: unknown;
+      parentRoute: unknown;
+    };
+    "/super-admin/blogs": {
+      id: "/super-admin/blogs";
+      path: "/blogs";
+      fullPath: "/super-admin/blogs";
+      preLoaderRoute: unknown;
+      parentRoute: unknown;
+    };
+    "/super-admin/blogs/": {
+      id: "/super-admin/blogs/";
+      path: "/";
+      fullPath: "/super-admin/blogs/";
+      preLoaderRoute: unknown;
+      parentRoute: unknown;
+    };
+    "/super-admin/blogs/new": {
+      id: "/super-admin/blogs/new";
+      path: "/new";
+      fullPath: "/super-admin/blogs/new";
+      preLoaderRoute: unknown;
+      parentRoute: unknown;
+    };
+    "/super-admin/blogs/$blogId": {
+      id: "/super-admin/blogs/$blogId";
+      path: "/$blogId";
+      fullPath: "/super-admin/blogs/$blogId";
       preLoaderRoute: unknown;
       parentRoute: unknown;
     };

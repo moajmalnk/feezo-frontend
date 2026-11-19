@@ -2,11 +2,19 @@ User-agent: *
 Allow: /
 Allow: /assets/
 Allow: /og/
+Allow: /blog
+Disallow: /super-admin
+Disallow: /tenant
+Disallow: /family
+Disallow: /login
+Disallow: /impersonate
 
 User-agent: Googlebot
 Allow: /
 Allow: /assets/
 Allow: /og/
+Allow: /blog
+Disallow: /super-admin
 
 Sitemap: https://www.feezo.app/sitemap.xml
 
