@@ -8,6 +8,7 @@ import {
   Power,
   PowerOff,
   RefreshCcw,
+  ShieldCheck,
   Trash2,
   Eye,
   Tag,
@@ -52,6 +53,7 @@ import {
 import { ApiError } from "@/lib/api/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import "@/file-routes";
 
 function formatDate(value: string) {
   try {
@@ -248,6 +250,12 @@ export function BlogsView() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" className="rounded-full" asChild>
+            <Link to="/super-admin/blogs/seo">
+              <ShieldCheck className="mr-1.5 h-4 w-4" />
+              SEO Checks
+            </Link>
+          </Button>
           <Button
             type="button"
             variant="outline"

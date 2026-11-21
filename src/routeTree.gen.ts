@@ -77,6 +77,7 @@ import { Route as SuperAdminSupportHelpRouteImport } from './routes/super-admin/
 import { Route as SuperAdminSupportContactRouteImport } from './routes/super-admin/support/contact'
 import { Route as SuperAdminSupportAutoReplyRouteImport } from './routes/super-admin/support/auto-reply'
 import { Route as SuperAdminSupportTicketIdRouteImport } from './routes/super-admin/support/$ticketId'
+import { Route as SuperAdminBlogsSeoRouteImport } from './routes/super-admin/blogs/seo'
 import { Route as SuperAdminBlogsNewRouteImport } from './routes/super-admin/blogs/new'
 import { Route as SuperAdminBlogsBlogIdRouteImport } from './routes/super-admin/blogs/$blogId'
 import { Route as StaffCollectTokenRouteImport } from './routes/staff/collect.$token'
@@ -427,6 +428,11 @@ const SuperAdminSupportTicketIdRoute =
     path: '/$ticketId',
     getParentRoute: () => SuperAdminSupportRoute,
   } as any)
+const SuperAdminBlogsSeoRoute = SuperAdminBlogsSeoRouteImport.update({
+  id: '/seo',
+  path: '/seo',
+  getParentRoute: () => SuperAdminBlogsRoute,
+} as any)
 const SuperAdminBlogsNewRoute = SuperAdminBlogsNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -515,6 +521,7 @@ export interface FileRoutesByFullPath {
   '/staff/collect/$token': typeof StaffCollectTokenRoute
   '/super-admin/blogs/$blogId': typeof SuperAdminBlogsBlogIdRoute
   '/super-admin/blogs/new': typeof SuperAdminBlogsNewRoute
+  '/super-admin/blogs/seo': typeof SuperAdminBlogsSeoRoute
   '/super-admin/support/$ticketId': typeof SuperAdminSupportTicketIdRoute
   '/super-admin/support/auto-reply': typeof SuperAdminSupportAutoReplyRoute
   '/super-admin/support/contact': typeof SuperAdminSupportContactRoute
@@ -583,6 +590,7 @@ export interface FileRoutesByTo {
   '/staff/collect/$token': typeof StaffCollectTokenRoute
   '/super-admin/blogs/$blogId': typeof SuperAdminBlogsBlogIdRoute
   '/super-admin/blogs/new': typeof SuperAdminBlogsNewRoute
+  '/super-admin/blogs/seo': typeof SuperAdminBlogsSeoRoute
   '/super-admin/support/$ticketId': typeof SuperAdminSupportTicketIdRoute
   '/super-admin/support/auto-reply': typeof SuperAdminSupportAutoReplyRoute
   '/super-admin/support/contact': typeof SuperAdminSupportContactRoute
@@ -659,6 +667,7 @@ export interface FileRoutesById {
   '/staff/collect/$token': typeof StaffCollectTokenRoute
   '/super-admin/blogs/$blogId': typeof SuperAdminBlogsBlogIdRoute
   '/super-admin/blogs/new': typeof SuperAdminBlogsNewRoute
+  '/super-admin/blogs/seo': typeof SuperAdminBlogsSeoRoute
   '/super-admin/support/$ticketId': typeof SuperAdminSupportTicketIdRoute
   '/super-admin/support/auto-reply': typeof SuperAdminSupportAutoReplyRoute
   '/super-admin/support/contact': typeof SuperAdminSupportContactRoute
@@ -736,6 +745,7 @@ export interface FileRouteTypes {
     | '/staff/collect/$token'
     | '/super-admin/blogs/$blogId'
     | '/super-admin/blogs/new'
+    | '/super-admin/blogs/seo'
     | '/super-admin/support/$ticketId'
     | '/super-admin/support/auto-reply'
     | '/super-admin/support/contact'
@@ -804,6 +814,7 @@ export interface FileRouteTypes {
     | '/staff/collect/$token'
     | '/super-admin/blogs/$blogId'
     | '/super-admin/blogs/new'
+    | '/super-admin/blogs/seo'
     | '/super-admin/support/$ticketId'
     | '/super-admin/support/auto-reply'
     | '/super-admin/support/contact'
@@ -879,6 +890,7 @@ export interface FileRouteTypes {
     | '/staff/collect/$token'
     | '/super-admin/blogs/$blogId'
     | '/super-admin/blogs/new'
+    | '/super-admin/blogs/seo'
     | '/super-admin/support/$ticketId'
     | '/super-admin/support/auto-reply'
     | '/super-admin/support/contact'
@@ -1401,6 +1413,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminSupportTicketIdRouteImport
       parentRoute: typeof SuperAdminSupportRoute
     }
+    '/super-admin/blogs/seo': {
+      id: '/super-admin/blogs/seo'
+      path: '/seo'
+      fullPath: '/super-admin/blogs/seo'
+      preLoaderRoute: typeof SuperAdminBlogsSeoRouteImport
+      parentRoute: typeof SuperAdminBlogsRoute
+    }
     '/super-admin/blogs/new': {
       id: '/super-admin/blogs/new'
       path: '/new'
@@ -1494,12 +1513,14 @@ const SignupRouteWithChildren =
 interface SuperAdminBlogsRouteChildren {
   SuperAdminBlogsBlogIdRoute: typeof SuperAdminBlogsBlogIdRoute
   SuperAdminBlogsNewRoute: typeof SuperAdminBlogsNewRoute
+  SuperAdminBlogsSeoRoute: typeof SuperAdminBlogsSeoRoute
   SuperAdminBlogsIndexRoute: typeof SuperAdminBlogsIndexRoute
 }
 
 const SuperAdminBlogsRouteChildren: SuperAdminBlogsRouteChildren = {
   SuperAdminBlogsBlogIdRoute: SuperAdminBlogsBlogIdRoute,
   SuperAdminBlogsNewRoute: SuperAdminBlogsNewRoute,
+  SuperAdminBlogsSeoRoute: SuperAdminBlogsSeoRoute,
   SuperAdminBlogsIndexRoute: SuperAdminBlogsIndexRoute,
 }
 

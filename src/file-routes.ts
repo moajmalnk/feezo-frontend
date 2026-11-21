@@ -193,6 +193,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: unknown;
       parentRoute: unknown;
     };
+    "/super-admin/blogs/seo": {
+      id: "/super-admin/blogs/seo";
+      path: "/seo";
+      fullPath: "/super-admin/blogs/seo";
+      preLoaderRoute: unknown;
+      parentRoute: unknown;
+    };
     "/super-admin/blogs/$blogId": {
       id: "/super-admin/blogs/$blogId";
       path: "/$blogId";
